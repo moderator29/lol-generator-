@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LOL MEME GENERATOR</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial,sans-serif; background:#ffeb3b; display:flex; min-height:100vh; }
+    #sidebar { width:300px; background:#ff9800; padding:16px; overflow-y:auto; flex-shrink:0; }
+    #main { flex:1; padding:16px; display:flex; flex-direction:column; gap:12px; }
+    h1 { margin:4px 0 12px; font-size:24px; }
+    .section { background:white; border-radius:8px; padding:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    #canvas-container { position:relative; width:100%; max-width:800px; margin:auto; }
+    canvas { width:100%; height:auto; border:2px solid #444; background:#222; display:block; }
+    #logo-overlay { position:absolute; top:10px; left:10px; cursor:move; user-select:none; touch-action:none; border:2px dashed #fff; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; }
+    #logo-overlay img { max-width:100%; max-height:100%; pointer-events:none; display:block; }
+    .control-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+    button { padding:8px 12px; border:none; cursor:pointer; border-radius:4px; font-size:14px; }
+    #templates { display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+    .template-card { position:relative; background:#fff; border-radius:6px; overflow:hidden; cursor:pointer; box-shadow:0 1px 6px rgba(0,0,0,0.15); }
+    .template-card img { width:100%; display:block; }
+    .template-label { position:absolute; bottom:4px; left:4px; background:rgba(0,0,0,0.6); color:#fff; padding:2px 6px; font-size:10px; border-radius:3px; }
+    .small { font-size:12px; color:#555; }
+    #saved-count { margin-top:4px; font-size:12px; }
+    .resize-handle { width:12px; height:12px; position:absolute; right:0; bottom:0; cursor:se-resize; background:#fff; border:1px solid #444; border-radius:2px; }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <h1 style="margin:0; font-size:22px;">LOL MEME GENERATOR</h1>
+    <div class="small">Templates & Saved Memes</div>
+    <div id="saved-count"></div>
+    <div id="templates"></div>
+    <button id="clear-templates" style="margin-top:16px;">Clear All Templates</button>
+  </div>
+  <div id="main">
+    <div class="section">
+      <div class="control-row">
+        <label>Upload Background:<input type="file" id="upload-base" accept="image/*"></label>
+        <label>Upload LOL Logo:<input type="file" id="upload-logo" accept="image/*"></label>
+        <button id="download">Download Meme</button>
+        <button id="reset">Reset</button>
+      </div>
+      <div class="small">Drag/resize the logo. Download saves it as a template automatically.</div>
+    </div>
+    <div class="section">
+      <div id="canvas-container">
+        <canvas id="memeCanvas" width="800" height="800"></canvas>
+        <div id="logo-overlay" style="display:none; width:120px; height:120px;">
+          <img id="logo-img" src="" alt="LOL Logo"><div class="resize-handle"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const uploadBase = document.getElementById('upload-base');
+    const uploadLogo = document.getElementById('upload-logo');
+    const canvas = document.getElementById('memeCanvas');
+    const ctx = canvas.getContext('2d');
+    const downloadBtn = document.getElementById('download');
+    const resetBtn = document.getElementById('reset');
+    const logoOverlay = document.getElementById('logo-overlay');
+    const logoImg = document.getElementById('logo-img');
+    const templatesDiv = document.getElementById('templates');
+    const savedCount = document.getElementById('saved-count');
+    const clearTemplatesBtn = document.getElementById('clear-templates');
+    let baseImage = new Image(), dragging=false, resizing=false;
+    let startX, startY, startW, startH, offsetX, offsetY;
+    function drawCanvas(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='#ffeb3b'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      if(baseImage.src){ const r=Math.min(canvas.width/baseImage.width,canvas.height/baseImage.height); const w=baseImage.width*r, h=baseImage.height*r; const x=(canvas.width-w)/2, y=(canvas.height-h)/2; ctx.drawImage(baseImage,x,y,w,h);}
+      if(logoOverlay.style.display!=='none'&&logoImg.src){
+        const rect=logoOverlay.getBoundingClientRect(), parent=canvas.getBoundingClientRect();
+        const sx=canvas.width/parent.width, sy=canvas.height/parent.height;
+        ctx.drawImage(logoImg,(rect.left-parent.left)*sx,(rect.top-parent.top)*sy,rect.width*sx,rect.height*sy);
+      }
+    }
+    uploadBase.onchange=e=>{ const f=e.target.files[0]; if(!f)return; baseImage.src=URL.createObjectURL(f); baseImage.onload=drawCanvas;};
+    uploadLogo.onchange=e=>{ const f=e.target.files[0]; if(!f)return; logoImg.src=URL.createObjectURL(f); logoImg.onload=()=>{logoOverlay.style.display='flex';drawCanvas();};};
+    logoOverlay.addEventListener('pointerdown',e=>{e.preventDefault(); const rect=logoOverlay.getBoundingClientRect(), handle=e.target.closest('.resize-handle'); if(handle){resizing=true;startW=rect.width;startH=rect.height;startX=e.clientX;startY=e.clientY;}else{dragging=true;offsetX=e.clientX-rect.left;offsetY=e.clientY-rect.top;}document.body.style.userSelect='none';});
+    window.addEventListener('pointermove',e=>{const pr=document.getElementById('canvas-container').getBoundingClientRect();if(dragging){let nx=e.clientX-offsetX, ny=e.clientY-offsetY; if(nx<pr.left)nx=pr.left; if(ny<pr.top)ny=pr.top; const or=logoOverlay.getBoundingClientRect(); if(nx+or.width>pr.right)nx=pr.right-or.width; if(ny+or.height>pr.bottom)ny=pr.bottom-or.height; logoOverlay.style.left=(nx-pr.left)+'px';logoOverlay.style.top=(ny-pr.top)+'px';drawCanvas();}else if(resizing){const dx=e.clientX-startX, dy=e.clientY-startY; logoOverlay.style.width=Math.max(40,startW+dx)+'px';logoOverlay.style.height=Math.max(40,startH+dy)+'px';drawCanvas();}});
+    window.addEventListener('pointerup',()=>{dragging=false;resizing=false;document.body.style.userSelect='';});
+    downloadBtn.addEventListener('click',()=>{drawCanvas(); const d=canvas.toDataURL('image/png'); addTemplate(d,'Saved Meme'); const a=document.createElement('a');a.href=d;a.download='LOL_meme_'+Date.now()+'.png';a.click();});
+    resetBtn.addEventListener('click',()=>{baseImage.src='';uploadBase.value='';uploadLogo.value='';logoOverlay.style.display='none';logoImg.src='';drawCanvas();});
+    function loadTemplates(){const s=JSON.parse(localStorage.getItem('lol_templates')||'[]');templatesDiv.innerHTML='';s.forEach((t,i)=>templatesDiv.appendChild(createCard(t.data,t.label,i)));savedCount.innerText=s.length+' saved';}
+    function saveTemplates(a){localStorage.setItem('lol_templates',JSON.stringify(a));loadTemplates();}
+    function addTemplate(d,l){const s=JSON.parse(localStorage.getItem('lol_templates')||'[]');s.unshift({data:d,label:l});if(s.length>30)s.pop();saveTemplates(s);}
+    function createCard(d,l,i){const w=document.createElement('div');w.className='template-card';w.style='width:100%';const iel=document.createElement('img');iel.src=d;w.appendChild(iel);const lab=document.createElement('div');lab.className='template-label';lab.innerText=l;w.appendChild(lab);w.onclick=()=>{baseImage.src=d;baseImage.onload=drawCanvas;};w.oncontextmenu=e=>{e.preventDefault();if(confirm('Remove this template?')){const s=JSON.parse(localStorage.getItem('lol_templates')||'[]');s.splice(i,1);saveTemplates(s);}};return w;}
+    clearTemplatesBtn.addEventListener('click',()=>{if(confirm('Clear all templates?')){localStorage.removeItem('lol_templates');loadTemplates();}});
+    loadTemplates();setInterval(drawCanvas,100);
+  </script>
+</body>
+</html>
