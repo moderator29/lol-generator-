@@ -58,7 +58,7 @@ function filterFormHTML() {
       <b>Price</b>
       <div class="range-row">
         <input class="input num" type="number" inputmode="numeric" data-f="min" value="${state.min}" placeholder="Min" aria-label="Minimum price" min="0" step="10000" />
-        <span>–</span>
+        <span>to</span>
         <input class="input num" type="number" inputmode="numeric" data-f="max" value="${state.max}" placeholder="Max" aria-label="Maximum price" min="0" step="10000" />
       </div>
     </div>
@@ -81,7 +81,7 @@ function filterFormHTML() {
       <b>Year built</b>
       <div class="range-row">
         <input class="input num" type="number" inputmode="numeric" data-f="yearMin" value="${state.yearMin}" placeholder="From" aria-label="Year built from" min="1800" max="2030" />
-        <span>–</span>
+        <span>to</span>
         <input class="input num" type="number" inputmode="numeric" data-f="yearMax" value="${state.yearMax}" placeholder="To" aria-label="Year built to" min="1800" max="2030" />
       </div>
     </div>
@@ -177,6 +177,79 @@ const resultsEl = $("#results");
 const emptyEl = $("#results-empty");
 const countEl = $("#results-count");
 const mapEl = $("#map");
+const chipsEl = $("#filter-chips");
+const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)");
+
+const escapeHTML = s => String(s).replace(/[&<>"]/g,
+  c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ---------- active-filter chips ---------- */
+function chipList() {
+  const chips = [];
+  const add = (key, label, val) => chips.push({ key, label, val });
+  if (state.q.trim()) add("q", `"${state.q.trim()}"`);
+  if (state.min) add("min", `Min ${fmtPrice(+state.min)}`);
+  if (state.max) add("max", `Max ${fmtPrice(+state.max)}`);
+  if (state.beds) add("beds", `${state.beds}+ beds`);
+  if (state.baths) add("baths", `${state.baths}+ baths`);
+  state.types.forEach(t => add("type", t, t));
+  if (state.status) add("status", state.status);
+  if (state.sqftMin) add("sqftMin", `${fmtNum(+state.sqftMin)}+ sqft`);
+  if (state.lotMin) add("lotMin", `${state.lotMin}+ acres`);
+  if (state.garage) add("garage", "Garage");
+  if (state.pool) add("pool", "Pool");
+  if (state.yearMin) add("yearMin", `Built ${state.yearMin} or later`);
+  if (state.yearMax) add("yearMax", `Built ${state.yearMax} or earlier`);
+  if (state.district) add("district", state.district);
+  if (state.neighborhood) add("neighborhood", state.neighborhood);
+  return chips;
+}
+
+function removeChip(key, val) {
+  if (key === "type") state.types = state.types.filter(t => t !== val);
+  else if (key === "beds" || key === "baths") state[key] = 0;
+  else if (key === "garage" || key === "pool") state[key] = false;
+  else state[key] = "";
+}
+
+function renderChips() {
+  const chips = chipList();
+  chipsEl.innerHTML = chips.map((c, i) =>
+    `<button type="button" class="chip chip-x chip-in" style="animation-delay:${Math.min(i * 40, 320)}ms"
+       data-chip="${c.key}" data-chipval="${escapeHTML(c.val || "")}"
+       aria-label="Remove filter: ${escapeHTML(c.label)}">${escapeHTML(c.label)} <i aria-hidden="true">✕</i></button>`
+  ).join("") + (chips.length >= 2
+    ? `<button type="button" class="chip chip-x chip-clear chip-in" style="animation-delay:${Math.min(chips.length * 40, 360)}ms"
+         data-chip-clear aria-label="Clear all filters">Clear all</button>`
+    : "");
+}
+
+chipsEl.addEventListener("click", e => {
+  const clear = e.target.closest("[data-chip-clear]");
+  const chip = e.target.closest("[data-chip]");
+  if (!clear && !chip) return;
+  if (clear) { const sort = state.sort; state = defaults(); state.sort = sort; }
+  else removeChip(chip.dataset.chip, chip.dataset.chipval);
+  bindSidebar();
+  apply();
+});
+
+/* ---------- skeleton loading ---------- */
+let skeletonTimer;
+function showSkeletons() {
+  emptyEl.innerHTML = "";
+  if (!$(".sk-card", resultsEl))
+    resultsEl.innerHTML = Array.from({ length: 4 },
+      () => `<div class="skeleton sk-card" aria-hidden="true"></div>`).join("");
+  countEl.textContent = "Updating results";
+}
+
+function apply() {
+  clearTimeout(skeletonTimer);
+  if (REDUCE_MOTION.matches) { render(); return; }
+  showSkeletons();
+  skeletonTimer = setTimeout(render, 250);
+}
 
 /* Deterministic pseudo-position for map pins (placeholder for real geo) */
 function pinPos(p, i, total) {
@@ -187,15 +260,20 @@ function pinPos(p, i, total) {
   };
 }
 
-function apply() {
+function render() {
+  clearTimeout(skeletonTimer);
   const list = PROPERTIES.filter(matches).sort(SORTS[state.sort] || SORTS.recommended);
   writeURL();
+  renderChips();
 
   countEl.textContent = `${list.length} home${list.length === 1 ? "" : "s"} · placeholder listings`;
-  $("#results-title").textContent = state.q ? `Homes matching “${state.q}”` : "Homes for sale";
+  $("#results-title").innerHTML = state.q
+    ? `Homes matching <span class="text-aurora">${escapeHTML(state.q)}</span>`
+    : "Homes for sale";
 
   resultsEl.innerHTML = "";
   emptyEl.innerHTML = "";
+  const instant = REDUCE_MOTION.matches;
   if (!list.length) {
     emptyEl.innerHTML = `<div class="empty card">${ICONS.home}<b>No homes match those filters</b>
       <p>Try widening the price range or clearing a filter or two.</p>
@@ -206,9 +284,19 @@ function apply() {
       apply();
     });
   } else {
-    list.forEach(p => {
+    list.forEach((p, i) => {
       const card = propertyCard(p);
-      card.classList.add("is-in"); // results appear instantly; reveal is for landing
+      card.dataset.id = p.id;
+      if (instant) {
+        card.classList.add("is-in");
+      } else {
+        /* staggered entrance, delay capped and cleared afterwards
+           so hover micro-interactions stay snappy */
+        const delay = Math.min(i, 8) * 45;
+        card.style.transitionDelay = delay + "ms";
+        requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add("is-in")));
+        setTimeout(() => { card.style.transitionDelay = ""; }, delay + 800);
+      }
       resultsEl.appendChild(card);
     });
   }
@@ -220,14 +308,59 @@ function apply() {
     const pos = pinPos(p, i, list.length);
     const pin = document.createElement("button");
     pin.className = "map-pin num";
+    if (!instant) {
+      pin.classList.add("pin-pop");
+      pin.style.animationDelay = Math.min(i * 45, 500) + "ms";
+    }
+    pin.dataset.id = p.id;
     pin.style.left = pos.left + "%";
     pin.style.top = pos.top + "%";
     pin.textContent = "$" + (p.price >= 1e6 ? (p.price / 1e6).toFixed(1) + "M" : Math.round(p.price / 1e3) + "K");
-    pin.setAttribute("aria-label", `${p.address}, ${p.city} — ${fmtPrice(p.price)}`);
+    pin.setAttribute("aria-label", `${p.address}, ${p.city}, ${fmtPrice(p.price)}`);
     pin.addEventListener("click", () => quickView(p));
     mapEl.appendChild(pin);
   });
 }
+
+/* ---------- card and pin cross-highlight ---------- */
+function setHot(id, on) {
+  const pin = $(`.map-pin[data-id="${id}"]`, mapEl);
+  const card = $(`.property-card[data-id="${id}"]`, resultsEl);
+  if (pin) pin.classList.toggle("is-hot", on);
+  if (card) card.classList.toggle("is-hot", on);
+}
+
+function bindHot(container, sel) {
+  container.addEventListener("pointerover", e => {
+    const el = e.target.closest(sel);
+    if (el && el.dataset.id) setHot(el.dataset.id, true);
+  });
+  container.addEventListener("pointerout", e => {
+    const el = e.target.closest(sel);
+    if (el && el.dataset.id && !el.contains(e.relatedTarget)) setHot(el.dataset.id, false);
+  });
+  container.addEventListener("focusin", e => {
+    const el = e.target.closest(sel);
+    if (el && el.dataset.id) setHot(el.dataset.id, true);
+  });
+  container.addEventListener("focusout", e => {
+    const el = e.target.closest(sel);
+    if (el && el.dataset.id && !el.contains(e.relatedTarget)) setHot(el.dataset.id, false);
+  });
+}
+bindHot(resultsEl, ".property-card");
+bindHot(mapEl, ".map-pin");
+
+/* ---------- save this search ---------- */
+$("#save-search").addEventListener("click", () => {
+  const query = location.search.replace(/^\?/, "");
+  const saved = store.get("savedSearches", []);
+  if (saved.some(s => s.query === query)) { toast("This search is already saved"); return; }
+  const name = chipList().map(c => c.label).join(" · ") || "All homes";
+  saved.unshift({ name, query, savedAt: new Date().toISOString() });
+  store.set("savedSearches", saved.slice(0, 20));
+  toast("Search saved · see your dashboard");
+});
 
 /* ---------- mobile drawer ---------- */
 const drawer = $("#filter-drawer");
@@ -263,4 +396,5 @@ state = readURL();
 $("#sort").value = state.sort;
 $("#sort").addEventListener("change", e => { state.sort = e.target.value; apply(); });
 bindSidebar();
-apply();
+render(); /* first paint is instant; skeletons only cover later filter changes */
+observeReveals();

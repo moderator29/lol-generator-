@@ -53,9 +53,42 @@ if (fine && !noMotion) {
   stage.addEventListener("pointerleave", () => { heroCard.style.transform = ""; });
 }
 
+/* markets marquee: every city as a chip, duplicated once for a seamless loop.
+   The moving strip is decorative (aria-hidden); a visually hidden list carries
+   the same links for screen readers. */
+const marqueeTrack = $("#market-marquee");
+const marketList = $("#market-list");
+const cityChip = (c, decorative) => {
+  const href = "search.html?q=" + encodeURIComponent(c.split(",")[0]);
+  return decorative
+    ? `<a class="chip" tabindex="-1" href="${href}">${c}</a>`
+    : `<li><a href="${href}">${c}</a></li>`;
+};
+const seg = `<div class="marquee-seg">${CITIES.map(c => cityChip(c, true)).join("")}</div>`;
+marqueeTrack.innerHTML = seg + seg;
+marketList.innerHTML = CITIES.map(c => cityChip(c, false)).join("");
+
+/* staggered entrance: delay applies to the reveal only, then clears so
+   hover transitions stay instant */
+function staggerReveal(els, step, cap) {
+  if (noMotion) return;
+  els.forEach((el, i) => {
+    const delay = Math.min(i * step, cap);
+    if (!delay) return;
+    el.style.transitionDelay = delay + "ms";
+    el.addEventListener("transitionend", function clear(e) {
+      if (e.propertyName !== "opacity") return;
+      el.style.transitionDelay = "";
+      el.removeEventListener("transitionend", clear);
+    });
+  });
+}
+
 /* 30 listing cards */
 const grid = $("#listing-grid");
 PROPERTIES.forEach(p => grid.appendChild(propertyCard(p)));
+staggerReveal($$(".property-card", grid), 40, 400);
+staggerReveal($$(".how-step"), 120, 400);
 
 /* communities */
 const communityGrid = $("#community-grid");
@@ -67,12 +100,13 @@ COMMUNITIES.forEach(c => {
   a.innerHTML = `<div class="community-info"><b>${c.city}, ${c.state}</b><span>${c.note} · ${count} listing${count === 1 ? "" : "s"}</span></div>`;
   communityGrid.appendChild(a);
 });
+staggerReveal($$(".community", communityGrid), 80, 400);
 
 /* pillars */
 const PILLARS = [
   { t: "Honest numbers", d: "Real prices, real days on market, labeled estimates. We never dress up data.", icon: ICONS.eye },
   { t: "Effortless search", d: "Fast, forgiving filters that remember what you love and alert you first.", icon: ICONS.home },
-  { t: "Tours on your time", d: "Pick a slot on any listing and we confirm with the agent — usually within the hour.", icon: ICONS.camera },
+  { t: "Tours on your time", d: "Pick a slot on any listing and we confirm with the agent, usually within the hour.", icon: ICONS.camera },
   { t: "People, not pressure", d: "Agents measured on satisfaction, not volume. No spam, no cold calls, ever.", icon: ICONS.heart }
 ];
 const pillarWrap = $("#pillars");

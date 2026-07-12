@@ -53,15 +53,16 @@ function buildPage(p) {
   const recentBefore = store.get("recent", []).filter(id => id !== p.id);
   trackViewed(p.id);
 
-  const annualTax = Math.round(p.price * (0.011 + (seed % 8) * 0.0012));
-  const hoaMonthly = p.type === "Condo" ? 260 + (seed % 9) * 45
+  /* listing-supplied facts win; seeded placeholders fill any gaps */
+  const annualTax = p.taxes ?? Math.round(p.price * (0.011 + (seed % 8) * 0.0012));
+  const hoaMonthly = p.hoa ?? (p.type === "Condo" ? 260 + (seed % 9) * 45
     : p.type === "Townhouse" ? 120 + (seed % 6) * 30
     : p.type === "Multi-Family" ? 0
-    : (p.pool ? 60 + (seed % 4) * 15 : 0);
-  const heating = pick(["Forced air, gas", "Heat pump", "Radiant floor", "Forced air, electric", "Hot water boiler"], 1);
-  const cooling = pick(["Central air", "Heat pump", "Mini-split zones", "Central air, two zones"], 2);
-  const parkingDesc = p.garage ? `${p.garage}-car garage` : "Street parking";
-  const walkScore = Math.min(97, 46 + (seed % 38) + (p.type === "Condo" ? 13 : 0));
+    : (p.pool ? 60 + (seed % 4) * 15 : 0));
+  const heating = p.heating || pick(["Forced air, gas", "Heat pump", "Radiant floor", "Forced air, electric", "Hot water boiler"], 1);
+  const cooling = p.cooling || pick(["Central air", "Heat pump", "Mini-split zones", "Central air, two zones"], 2);
+  const parkingDesc = p.parkingDesc || (p.garage ? `${p.garage}-car garage` : "Street parking");
+  const walkScore = p.walkScore ?? Math.min(97, 46 + (seed % 38) + (p.type === "Condo" ? 13 : 0));
   const walkLabel = walkScore >= 90 ? "Walker's paradise" : walkScore >= 70 ? "Very walkable" : walkScore >= 50 ? "Somewhat walkable" : "Car-dependent";
 
   document.title = `${p.address}, ${p.city} ${p.state} · Solhaven`;

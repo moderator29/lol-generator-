@@ -87,6 +87,10 @@ const AUDIT = [
 /* ---------- helpers ---------- */
 
 const content = $("#dash-content");
+const noMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const esc = s => String(s).replace(/[&<>"]/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 const hBtn = key => typeof helpBtn === "function"
   ? helpBtn(key)
@@ -121,8 +125,45 @@ function kpiRow(items) {
   return `<div class="kpi-row">${items.map(k => `
     <div class="kpi card glass reveal">
       <span>${k.label}</span>
-      <b class="num">${k.value}${k.delta ? ` <span class="delta">${k.delta}</span>` : ""}</b>
+      <b class="num"><span class="kpi-val" data-val="${k.value}">${k.value}</span>${k.delta ? ` <span class="delta">${k.delta}</span>` : ""}</b>
     </div>`).join("")}</div>`;
+}
+
+/* count each KPI up from zero on view switch; strings without digits stay put */
+function countUpKPIs() {
+  if (noMotion) return;
+  $$(".kpi-val", content).forEach(el => {
+    const m = el.dataset.val.match(/^([^\d]*)([\d,]+(?:\.\d+)?)(.*)$/);
+    if (!m) return;
+    const target = parseFloat(m[2].replace(/,/g, ""));
+    const decimals = (m[2].split(".")[1] || "").length;
+    const fmt = v => decimals ? v.toFixed(decimals) : Math.round(v).toLocaleString("en-US");
+    const t0 = performance.now(), dur = 900;
+    const tick = now => {
+      const k = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - k, 3);
+      el.textContent = m[1] + fmt(k < 1 ? target * eased : target) + m[3];
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+/* staggered entrance for KPI tiles and glass panels; delay clears after reveal */
+function staggerCards() {
+  if (noMotion) return;
+  const stagger = (els, step, cap) => els.forEach((el, i) => {
+    const delay = Math.min(i * step, cap);
+    if (!delay) return;
+    el.style.transitionDelay = delay + "ms";
+    el.addEventListener("transitionend", function clear(e) {
+      if (e.propertyName !== "opacity") return;
+      el.style.transitionDelay = "";
+      el.removeEventListener("transitionend", clear);
+    });
+  });
+  stagger($$(".kpi", content), 60, 300);
+  stagger($$("section.card.glass.reveal", content), 90, 360);
 }
 
 function tableHTML(cols, rows) {
@@ -138,6 +179,28 @@ function updateCheckCount() {
   const done = store.get("sell-checklist", {});
   const n = CHECKLIST.filter(c => done[c.key]).length;
   el.textContent = `${n} of ${CHECKLIST.length} done`;
+}
+
+/* ---------- welcome strip ---------- */
+
+const ROLE_LINES = {
+  buyer: "Here is where your search stands today.",
+  seller: "Here is how your listing is doing.",
+  agent: "Your week is taking shape. Leads first.",
+  admin: "The platform is steady. Today at a glance."
+};
+
+function welcomeStrip(role) {
+  const h = new Date().getHours();
+  const greet = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  const user = store.get("user", null);
+  const who = user && user.email
+    ? `<span class="welcome-who small muted num" title="Signed in">${esc(user.email)}</span>`
+    : `<a class="btn btn-sm" href="signin.html">Sign in</a>`;
+  return `<div class="welcome-strip card glass reveal">
+    <p><b class="text-aurora">${greet}.</b> <span class="muted">${ROLE_LINES[role]}</span></p>
+    ${who}
+  </div>`;
 }
 
 /* ---------- buyer ---------- */
@@ -259,7 +322,13 @@ function sellerView() {
 
   updateCheckCount();
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    $$(".bars i", content).forEach(el => { el.style.height = el.dataset.h + "%"; });
+    $$(".bars i", content).forEach((el, i) => {
+      if (!noMotion) {
+        el.style.transitionDelay = Math.min(i * 70, 420) + "ms";
+        el.addEventListener("transitionend", () => { el.style.transitionDelay = ""; }, { once: true });
+      }
+      el.style.height = el.dataset.h + "%";
+    });
   }));
 }
 
@@ -368,15 +437,35 @@ const TITLES = {
   agent: "Agent workspace", admin: "Admin console"
 };
 
-function setRole(role) {
-  const r = VIEWS[role] ? role : "buyer";
-  $$("#dash-nav button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.role === r)));
+let currentRole = null;
+let switchTimer;
+
+function renderRole(r) {
   VIEWS[r]();
+  content.insertAdjacentHTML("afterbegin", welcomeStrip(r));
   observeReveals(content);
+  staggerCards();
+  countUpKPIs();
   document.title = `${TITLES[r]} · Solhaven`;
   const p = new URLSearchParams(location.search);
   p.set("role", r);
   history.replaceState(null, "", "?" + p);
+}
+
+function setRole(role) {
+  const r = VIEWS[role] ? role : "buyer";
+  if (r === currentRole) return;
+  $$("#dash-nav button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.role === r)));
+  const first = currentRole === null;
+  currentRole = r;
+  if (first || noMotion) { renderRole(r); return; }
+  /* 150ms out, 250ms back in; durations live in the page style block */
+  content.classList.add("is-switching");
+  clearTimeout(switchTimer);
+  switchTimer = setTimeout(() => {
+    renderRole(r);
+    requestAnimationFrame(() => requestAnimationFrame(() => content.classList.remove("is-switching")));
+  }, 150);
 }
 
 $$("#dash-nav button").forEach(b => b.addEventListener("click", () => setRole(b.dataset.role)));

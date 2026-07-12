@@ -67,8 +67,7 @@ const favorites = {
 /* ---------- theme ---------- */
 function initTheme() {
   const saved = store.get("theme", null);
-  if (saved) document.documentElement.dataset.theme = saved;
-  else if (matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.dataset.theme = "dark";
+  document.documentElement.dataset.theme = saved || "dark";
 }
 function toggleTheme() {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
