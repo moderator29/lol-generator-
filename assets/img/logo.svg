@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236 48" role="img" aria-label="Solhaven">
+  <!-- Horizontal lockup: arch mark plus wordmark. Strokes and text use currentColor; the sun stays brass. -->
+  <path d="M24 7C14.6 7 7 14.6 7 24v17h34V24c0-9.4-7.6-17-17-17z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M31 30a7 7 0 0 0-14 0z" fill="#D9AE63"/>
+  <path d="M13 30h22" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <text x="56" y="33.5" font-family="Fraunces, Georgia, serif" font-size="26" font-weight="600" letter-spacing="-0.3" fill="currentColor">Solhaven</text>
+</svg>
