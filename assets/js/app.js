@@ -14,6 +14,7 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 const fmtPrice = n => "$" + n.toLocaleString("en-US");
 const fmtNum = n => n.toLocaleString("en-US");
+const fmtShort = n => n >= 1e6 ? "$" + (n / 1e6).toFixed(1).replace(/\.0$/, "") + "M" : "$" + Math.round(n / 1e3) + "K";
 const perSqft = p => p.sqft ? Math.round(p.price / p.sqft) : 0;
 const byId = id => PROPERTIES.find(p => p.id === id);
 const toneOf = p => "tone-" + (parseInt(p.id.slice(-3), 10) % 6);
@@ -225,8 +226,11 @@ function propertyCard(p) {
   card.className = "property-card reveal";
   card.innerHTML = `
     <a class="pc-media ${toneOf(p)}" href="property.html?id=${p.id}" aria-label="View ${p.address}, ${p.city}">
-      <span class="pc-art">${ICONS.home}</span>
-      <span class="pc-badges"><span class="badge ${BADGE_CLASS[p.status] || ""}">${p.status}</span></span>
+      ${p.images?.front ? `<img class="pc-img" src="${p.images.front.replace("w=1600", "w=800")}" alt="" loading="lazy" onerror="this.remove()" />` : `<span class="pc-art">${ICONS.home}</span>`}
+      <span class="pc-badges">
+        ${p.featured ? `<span class="badge badge-featured">Featured</span>` : ""}
+        <span class="badge ${BADGE_CLASS[p.status] || ""}">${p.status}</span>
+      </span>
     </a>
     <div class="pc-actions">
       <button class="btn-icon btn fav ${favorites.has(p.id) ? "is-active" : ""}" aria-label="Favorite this home" aria-pressed="${favorites.has(p.id)}">${ICONS.heart}</button>
@@ -234,12 +238,16 @@ function propertyCard(p) {
       <button class="btn-icon btn save" aria-label="Save to a collection">${ICONS.bookmark}</button>
     </div>
     <div class="pc-body">
+      <address class="pc-addr" style="font-style:normal"><b>${p.address}</b>${p.neighborhood}, ${p.city}, ${p.state}</address>
       <div class="pc-price num">${fmtPrice(p.price)}<span class="per num">$${perSqft(p)}/sqft</span></div>
-      <div class="pc-specs num">${specHTML(p)}</div>
-      <address class="pc-addr" style="font-style:normal"><b>${p.address}</b>${p.city}, ${p.state} ${p.zip}</address>
-      <div class="pc-foot">
-        <span class="pc-type">${p.type}</span>
-        <span class="small muted num">${p.dom} day${p.dom === 1 ? "" : "s"} on Havnora</span>
+      <div class="pc-specs num">
+        <span class="spec-chip"><b>${p.beds}</b> Beds</span>
+        <span class="spec-chip"><b>${p.baths}</b> Baths</span>
+        <span class="spec-chip"><b>${fmtNum(p.sqft)}</b> sqft</span>
+      </div>
+      <div class="pay-row">
+        <a class="pay-btn pay-down" href="property.html?id=${p.id}#payment"><b class="num">${fmtShort(p.downPayment)}</b><span>Down Payment</span></a>
+        <a class="pay-btn pay-full" href="property.html?id=${p.id}#payment"><b class="num">${fmtShort(p.price)}</b><span>Full Payment</span></a>
       </div>
     </div>`;
 
@@ -268,15 +276,23 @@ function quickView(p) {
   quickModal.innerHTML = `
     <div class="modal-card" style="position:relative">
       <button class="btn btn-icon modal-close glass" aria-label="Close quick view">${ICONS.close}</button>
-      <div class="pc-media ${toneOf(p)}" style="aspect-ratio:16/8"><span class="pc-art">${ICONS.home}</span>
-        <span class="pc-badges"><span class="badge ${BADGE_CLASS[p.status] || ""}">${p.status}</span></span>
+      <div class="pc-media ${toneOf(p)}" style="aspect-ratio:16/8">
+        ${p.images?.front ? `<img class="pc-img" src="${p.images.front.replace("w=1600", "w=1000")}" alt="" loading="lazy" onerror="this.remove()" />` : `<span class="pc-art">${ICONS.home}</span>`}
+        <span class="pc-badges">
+          ${p.featured ? `<span class="badge badge-featured">Featured</span>` : ""}
+          <span class="badge ${BADGE_CLASS[p.status] || ""}">${p.status}</span>
+        </span>
       </div>
       <div style="padding:26px">
         <div class="pc-price num" style="font-size:28px">${fmtPrice(p.price)}<span class="per num">$${perSqft(p)}/sqft</span></div>
         <p class="pc-addr" style="margin:6px 0 10px"><b style="display:inline">${p.address}</b> · ${p.city}, ${p.state} ${p.zip}</p>
         <div class="pc-specs num" style="margin-bottom:14px">${specHTML(p)}<span><b>${p.type}</b></span><span>Built <b class="num">${p.yearBuilt}</b></span></div>
         <p class="muted" style="font-size:14.5px">${p.blurb}</p>
-        <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap">
+        <div class="pay-row" style="margin-top:16px">
+          <a class="pay-btn pay-down" href="property.html?id=${p.id}#payment"><b class="num">${fmtShort(p.downPayment)}</b><span>Down Payment</span></a>
+          <a class="pay-btn pay-full" href="property.html?id=${p.id}#payment"><b class="num">${fmtShort(p.price)}</b><span>Full Payment</span></a>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap">
           <a class="btn btn-primary" href="property.html?id=${p.id}">View full listing</a>
           <button class="btn" data-close>Keep browsing</button>
         </div>
