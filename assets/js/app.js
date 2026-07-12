@@ -110,6 +110,9 @@ function renderNav(current) {
         <button class="btn btn-icon btn-ghost" id="theme-toggle" aria-label="Toggle color theme" title="Toggle theme">
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/></svg>
         </button>
+        ${store.get("user", null)
+          ? `<a class="btn btn-ghost" href="dashboard.html" title="Your dashboard">My Solhaven</a>`
+          : `<a class="btn btn-ghost" href="signin.html">Sign in</a>`}
         <a class="btn btn-primary" href="dashboard.html?role=seller">List your home</a>
         <button class="btn btn-icon btn-ghost nav-toggle" aria-label="Open menu" aria-expanded="false">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -127,11 +130,30 @@ function renderNav(current) {
   const onScroll = () => nav.classList.toggle("is-scrolled", scrollY > 8);
   addEventListener("scroll", onScroll, { passive: true });
   onScroll();
+  renderTabbar(current);
+}
+
+/* mobile bottom tab bar (styles hide it above 900px) */
+function renderTabbar(current) {
+  const user = store.get("user", null);
+  const items = [
+    { label: "Home", href: "index.html", key: "home", icon: ICONS.home },
+    { label: "Search", href: "search.html", key: "search", icon: ICONS.eye },
+    { label: "Saved", href: "dashboard.html", key: "dashboard", icon: ICONS.heart },
+    { label: "Account", href: user ? "dashboard.html" : "signin.html", key: "account", icon: ICONS.bookmark }
+  ];
+  const bar = document.createElement("nav");
+  bar.className = "tabbar";
+  bar.setAttribute("aria-label", "Quick navigation");
+  bar.innerHTML = items.map(it =>
+    `<a href="${it.href}" ${current === it.key ? 'aria-current="page"' : ""}>${it.icon}<span>${it.label}</span></a>`
+  ).join("");
+  document.body.appendChild(bar);
 }
 
 function renderFooter() {
   const slot = (label, value) =>
-    `<div class="slot"><span>${label}</span><i>${value || "—"}</i></div>`;
+    `<div class="slot"><span>${label}</span><i>${value || "Coming soon"}</i></div>`;
   const social = ["IG", "FB", "X", "TT", "IN", "YT"];
   const footer = document.createElement("footer");
   footer.className = "footer";
@@ -173,7 +195,7 @@ function renderFooter() {
       <div class="footer-base">
         <span>© Solhaven. Equal Housing Opportunity. Listings shown are design placeholders.</span>
         <div class="social-row" aria-label="Social media (links coming soon)">
-          ${social.map(s => `<button class="btn btn-icon" aria-label="${s} — link coming soon" title="Coming soon">${s}</button>`).join("")}
+          ${social.map(s => `<button class="btn btn-icon" aria-label="${s} link coming soon" title="Coming soon">${s}</button>`).join("")}
         </div>
       </div>
     </div>`;
@@ -221,7 +243,7 @@ function propertyCard(p) {
   $(".quick", card).addEventListener("click", () => quickView(p));
   $(".save", card).addEventListener("click", () => {
     if (!favorites.has(p.id)) favorites.toggle(p.id);
-    toast("Saved — find it in your dashboard");
+    toast("Saved. Find it in your dashboard");
   });
   return card;
 }

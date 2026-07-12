@@ -1,8 +1,8 @@
-# Phase 1 — Market Research: Extracted Principles
+# Phase 1, Market Research: Extracted Principles
 
 Findings distilled from studying the leading U.S. platforms (Zillow, Redfin,
 Realtor.com, Homes.com, Movoto, Compass) and luxury brokerage sites. Layouts
-were not copied — only principles were extracted.
+were not copied, only principles were extracted.
 
 ## Home discovery
 
@@ -19,7 +19,7 @@ were not copied — only principles were extracted.
 - Restraint reads as expensive: generous whitespace, one serif display voice,
   muted palettes with a single warm accent.
 - Photography-first layouts; chrome recedes. Where photos are absent, the
-  placeholder must still look composed — never broken.
+  placeholder must still look composed, never broken.
 - Motion is slow, eased, and rare. Nothing bounces.
 
 ## Detail pages
@@ -34,7 +34,7 @@ were not copied — only principles were extracted.
 ## Search & filtering
 
 - Desktop: persistent sidebar filters beside results. Mobile: a bottom
-  drawer with an "Apply" commit action — never inline accordions.
+  drawer with an "Apply" commit action, never inline accordions.
 - Filter state must live in the URL so results are shareable and the back
   button works.
 - Sort defaults matter: "Newest" for repeat visitors, "Recommended" for new.
@@ -56,6 +56,6 @@ were not copied — only principles were extracted.
 ## Performance & accessibility
 
 - Core Web Vitals correlate directly with lead volume; LCP is almost always
-  the hero or first card image — reserve dimensions, lazy-load the rest.
+  the hero or first card image, reserve dimensions, lazy-load the rest.
 - Keyboard-complete galleries and filter forms; visible focus; honored
   `prefers-reduced-motion`; 4.5:1 minimum contrast.

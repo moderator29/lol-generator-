@@ -1,8 +1,8 @@
-# Phase 2 & 3 — Brand & Logo System
+# Phase 2 & 3, Brand & Logo System
 
 ## Name
 
-**Solhaven** — from *sol* (sun, light) and *haven* (safe harbor, home).
+**Solhaven**, from *sol* (sun, light) and *haven* (safe harbor, home).
 
 Shortlist considered and rejected: Keystead (too rustic), Northdoor (too
 regional), Domara (too abstract), Vantage Homes (generic). Solhaven won for
@@ -21,7 +21,7 @@ speech, print, and an app icon.
 Buying a home in America has become a spreadsheet exercise run through
 websites that feel like classified ads. Solhaven starts from the opposite
 premise: the search for a home is one of the most hopeful things a person
-ever does, and the software should feel that way — calm, warm, and honest.
+ever does, and the software should feel that way, calm, warm, and honest.
 
 ## Mission
 
@@ -30,7 +30,7 @@ worthy of the moment.
 
 ## Vision
 
-To be the most trusted way Americans move — a platform where every number is
+To be the most trusted way Americans move, a platform where every number is
 honest, every photo is real, and every step is clear.
 
 ## Voice
@@ -51,10 +51,10 @@ Alternates: *Find your light.* / *The clear way home.*
    ink text. Dark mode is dusk, not black.
 2. **Photography leads, chrome recedes.** Interface elements stay quiet so
    homes can speak.
-3. **Motion with purpose.** Everything eases; nothing bounces. 200–500 ms,
+3. **Motion with purpose.** Everything eases; nothing bounces. 200 to 500 ms,
    `cubic-bezier(0.22, 1, 0.36, 1)`.
 4. **Honest by default.** Real numbers, labeled estimates, visible placeholders
-   — never fake data pretending to be real.
+  , never fake data pretending to be real.
 
 ---
 
@@ -62,7 +62,7 @@ Alternates: *Find your light.* / *The clear way home.*
 
 ### Mark
 
-A minimal **arch doorway with a rising sun** — home as shelter, dawn as the
+A minimal **arch doorway with a rising sun**, home as shelter, dawn as the
 new chapter. One continuous geometry, drawn in `currentColor` so it adapts to
 any surface, with the sun disc in brand brass.
 
@@ -88,8 +88,8 @@ SVG-first, stroke-based, legible from 16 px favicon to billboard.
 
 ### Typography
 
-- **Display:** Fraunces (variable serif) — headlines, prices, the wordmark.
-- **UI/Body:** Inter — everything else.
+- **Display:** Fraunces (variable serif), headlines, prices, the wordmark.
+- **UI/Body:** Inter, everything else.
 - Fallbacks: Georgia / system-ui stacks so the product never blocks on fonts.
 
 Scale: 12 / 14 / 16 / 18 / 22 / 28 / 36 / 48 / 64, line-height 1.5 body,

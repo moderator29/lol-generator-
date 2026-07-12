@@ -48,7 +48,7 @@
 
     /* ---------- role rail ---------- */
     .dash-nav.card { padding: 12px; }
-    .dash-nav button { border-radius: 999px; }
+    .dash-nav button { border-radius: 12px; }
     .dash-nav button[aria-pressed="true"] { box-shadow: 0 0 0 1px var(--brass-soft), 0 8px 26px var(--brass-soft); }
     [data-theme="dark"] .dash-nav button[aria-pressed="true"] { background: var(--brass); color: #14100a; }
 
@@ -99,9 +99,9 @@
     .who { display: flex; align-items: center; gap: 10px; }
     .mini-avatar { width: 34px; height: 34px; font-size: 12.5px; }
 
-    /* small circular glass help trigger (shared look, kept in sync with main.css) */
+    /* small glass help trigger (shared look, kept in sync with main.css) */
     .help-btn {
-      width: 30px; height: 30px; min-width: 30px; flex-shrink: 0; border-radius: 50%;
+      width: 30px; height: 30px; min-width: 30px; flex-shrink: 0; border-radius: 8px;
       border: 1px solid var(--line); background: var(--glass);
       -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
       font-size: 14px; font-weight: 650; color: var(--ink-2);
@@ -113,7 +113,7 @@
     @media (max-width: 900px) {
       .panel-grid { grid-template-columns: 1fr; }
       .recent-row { grid-template-columns: repeat(2, 1fr); }
-      .dash-nav.card { border-radius: 999px; }
+      .dash-nav.card { border-radius: 16px; }
     }
   </style>
 </head>

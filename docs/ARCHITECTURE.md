@@ -1,4 +1,4 @@
-# Phases 11–13 — Production Architecture, Performance & Security
+# Phases 11 to 13, Production Architecture, Performance & Security
 
 The prototype in this repo is dependency-free by design. This document is the
 recommended production stack once real data, auth, and scale arrive.
@@ -19,7 +19,7 @@ recommended production stack once real data, auth, and scale arrive.
 | Caching | **Redis (Upstash)** | Session data, rate-limit counters, hot search results, ISR tag invalidation. |
 | Email | **Resend + React Email** | Deliverability plus templates in the same component language as the app. |
 | Notifications | **Web Push + Twilio SMS** | Saved-search alerts are the platform's strongest retention loop; SMS for tour confirmations. |
-| Analytics | **PostHog** | Product analytics, funnels, session replay, and feature flags — self-hostable if data residency demands it. |
+| Analytics | **PostHog** | Product analytics, funnels, session replay, and feature flags, self-hostable if data residency demands it. |
 | Monitoring | **Sentry + OpenTelemetry → Grafana** | Error tracking with release health; traces across web → API → search. |
 | Testing | **Vitest + Playwright + axe-core** | Unit, end-to-end, and automated accessibility in CI. |
 | CI/CD | **GitHub Actions** | Preview deploys per PR, migration gates, Lighthouse CI budgets enforced on every merge. |
@@ -30,7 +30,7 @@ recommended production stack once real data, auth, and scale arrive.
   JS < 170 KB gzipped per route.
 - Hero and first-row card images are the LCP: preloaded, sized, AVIF with
   WebP fallback; everything below the fold lazy-loads.
-- All media rendered with explicit dimensions — zero layout shift.
+- All media rendered with explicit dimensions, zero layout shift.
 - Route-level code splitting; maps and galleries hydrate on interaction.
 - Fonts: two families, variable, `font-display: swap`, subset to Latin.
 - Search results cached at the edge keyed by filter signature.
@@ -55,7 +55,7 @@ recommended production stack once real data, auth, and scale arrive.
 - **Encryption:** TLS 1.3 everywhere, AES-256 at rest, KMS-managed keys;
   PII columns encrypted application-side.
 - **Uploads:** pre-signed URLs only; server-side MIME sniffing, image
-  re-encoding (strips EXIF/GPS — critical for seller privacy), size caps,
+  re-encoding (strips EXIF/GPS, critical for seller privacy), size caps,
   malware scanning before publish.
 - **Input validation:** schema validation (Zod) at every boundary;
   parameterized queries only; output encoding by default.
@@ -68,7 +68,7 @@ recommended production stack once real data, auth, and scale arrive.
 - **Monitoring:** WAF managed rules, anomaly alerts on auth failures and
   scraping patterns, quarterly penetration tests.
 
-## Dashboards (Phase 8) — production notes
+## Dashboards (Phase 8), production notes
 
 The prototype's four dashboards (buyer, seller, agent, admin) are wired to
 placeholder data. In production each becomes a role-gated route group sharing

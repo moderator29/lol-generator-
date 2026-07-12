@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sign in · Solhaven</title>
-  <meta name="description" content="Sign in to Solhaven with a secure magic link. No passwords, ever. Save homes, track searches, and pick up right where you left off." />
+  <title>Create account · Solhaven</title>
+  <meta name="description" content="Create your free Solhaven account with one email. Save homes, set search alerts, and tour on your schedule. No passwords, ever." />
   <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -164,14 +164,14 @@
       <div class="auth-logo" id="auth-logo" aria-hidden="true"></div>
 
       <div class="auth-head">
-        <h1 id="auth-title">Welcome home</h1>
+        <h1 id="auth-title">Your key is one email away</h1>
         <button class="help-btn" data-help="sign-in" aria-label="How this works" type="button">?</button>
       </div>
-      <p class="auth-sub" id="auth-sub">Good to see you again. Your saved homes are right where you left them.</p>
+      <p class="auth-sub" id="auth-sub">One email is all it takes. A calmer home search starts here.</p>
 
       <div class="auth-seg" role="group" aria-label="Sign in or create an account">
-        <button type="button" id="mode-signin" aria-pressed="true">Sign in</button>
-        <button type="button" id="mode-create" aria-pressed="false">Create account</button>
+        <button type="button" id="mode-signin" aria-pressed="false">Sign in</button>
+        <button type="button" id="mode-create" aria-pressed="true">Create account</button>
       </div>
 
       <form class="auth-form" id="auth-form" novalidate>
@@ -182,7 +182,7 @@
         </label>
         <p class="auth-error" id="email-error" hidden>Enter a valid email address, like you@example.com.</p>
         <button class="btn btn-brass btn-glow btn-block" id="submit-btn" type="submit">
-          <span id="submit-label">Continue with email</span>
+          <span id="submit-label">Create account with email</span>
         </button>
       </form>
 
@@ -224,7 +224,7 @@
         cta: "Create account with email"
       }
     };
-    let mode = "signin";
+    let mode = "create";
     const modeBtns = { signin: $("#mode-signin"), create: $("#mode-create") };
     const subEl = $("#auth-sub");
     const submitLabel = $("#submit-label");
@@ -237,8 +237,8 @@
       subEl.textContent = COPY[next].sub;
       submitLabel.textContent = COPY[next].cta;
     }
-    modeBtns.signin.addEventListener("click", () => setMode("signin"));
-    modeBtns.create.addEventListener("click", () => { location.href = "signup.html"; });
+    modeBtns.signin.addEventListener("click", () => { location.href = "signin.html"; });
+    modeBtns.create.addEventListener("click", () => setMode("create"));
 
     /* ---------- email form ---------- */
     const form = $("#auth-form");
