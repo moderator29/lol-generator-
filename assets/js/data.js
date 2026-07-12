@@ -1,4 +1,4 @@
-/* Solhaven placeholder listings.
+/* Havnora placeholder listings.
    Design placeholders only, replace with API/database records of the same
    shape. `images` is intentionally empty everywhere; the UI renders composed
    placeholder art until real photo URLs are supplied. */
@@ -48,17 +48,17 @@ const COMMUNITIES = [
 
 /* Testimonials, placeholder voices in brand tone */
 const TESTIMONIALS = [
-  { quote: "We toured on a Tuesday and closed in three weeks. Every number Solhaven showed us matched the paperwork, that honesty is why we'd never use anything else.", name: "Maya & Jordan T.", role: "First-time buyers · Denver, CO", tone: 1 },
+  { quote: "We toured on a Tuesday and closed in three weeks. Every number Havnora showed us matched the paperwork, that honesty is why we'd never use anything else.", name: "Maya & Jordan T.", role: "First-time buyers · Denver, CO", tone: 1 },
   { quote: "As a seller, the performance dashboard changed everything. I could see exactly how my listing was doing instead of wondering. We got four offers in nine days.", name: "Robert C.", role: "Seller · Nashville, TN", tone: 0 },
   { quote: "The saved-search alerts are genuinely fast. The home we bought hit the market at 8 a.m. and we were the first tour booked by 8:15.", name: "Priya S.", role: "Buyer · Seattle, WA", tone: 3 }
 ];
 
 const FAQS = [
-  { q: "Is Solhaven free for home buyers?", a: "Yes. Searching, saving homes, setting alerts, and scheduling tours are free for buyers. We're compensated through agent partnerships and seller services, never by charging buyers to look." },
-  { q: "How current are the listings?", a: "In production, listings sync from MLS feeds in near real time, and every listing shows its last-updated timestamp. Nothing on Solhaven pretends to be fresher than it is." },
-  { q: "Can I sell my home through Solhaven?", a: "Yes. The seller workspace walks you through valuation, photography, listing, and offers, with a dedicated agent and a live performance dashboard from day one." },
+  { q: "Is Havnora free for home buyers?", a: "Yes. Searching, saving homes, setting alerts, and scheduling tours are free for buyers. We're compensated through agent partnerships and seller services, never by charging buyers to look." },
+  { q: "How current are the listings?", a: "In production, listings sync from MLS feeds in near real time, and every listing shows its last-updated timestamp. Nothing on Havnora pretends to be fresher than it is." },
+  { q: "Can I sell my home through Havnora?", a: "Yes. The seller workspace walks you through valuation, photography, listing, and offers, with a dedicated agent and a live performance dashboard from day one." },
   { q: "How do tour requests work?", a: "Pick a day and time on any listing and we confirm with the listing agent, usually within the hour. You'll get reminders and can reschedule in one tap." },
-  { q: "Does Solhaven cover my city?", a: "We're building coverage market by market across the U.S. If your city isn't live yet, save a search and we'll notify you the moment it is." },
+  { q: "Does Havnora cover my city?", a: "We're building coverage market by market across the U.S. If your city isn't live yet, save a search and we'll notify you the moment it is." },
   { q: "How is my data handled?", a: "Your search history and saved homes are private to your account. We never sell personal data, and photo uploads are stripped of location metadata automatically." }
 ];
 

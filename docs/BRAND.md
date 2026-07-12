@@ -2,24 +2,24 @@
 
 ## Name
 
-**Solhaven**, from *sol* (sun, light) and *haven* (safe harbor, home).
+**Havnora**, from *sol* (sun, light) and *haven* (safe harbor, home).
 
 Shortlist considered and rejected: Keystead (too rustic), Northdoor (too
-regional), Domara (too abstract), Vantage Homes (generic). Solhaven won for
+regional), Domara (too abstract), Vantage Homes (generic). Havnora won for
 warmth, memorability, and a clean two-syllable-plus-one cadence that works in
 speech, print, and an app icon.
 
 ## Domains
 
-- `solhaven.com` (primary target)
-- `solhaven.homes`
-- `livesolhaven.com`
-- `solhaven.us`
+- `havnora.com` (primary target)
+- `havnora.homes`
+- `livehavnora.com`
+- `havnora.us`
 
 ## Brand story
 
 Buying a home in America has become a spreadsheet exercise run through
-websites that feel like classified ads. Solhaven starts from the opposite
+websites that feel like classified ads. Havnora starts from the opposite
 premise: the search for a home is one of the most hopeful things a person
 ever does, and the software should feel that way, calm, warm, and honest.
 
@@ -41,7 +41,7 @@ Active voice. Confidence without pressure.
 
 ## Tagline
 
-**Home, illuminated.**
+**Find your haven.**
 
 Alternates: *Find your light.* / *The clear way home.*
 
@@ -66,7 +66,7 @@ A minimal **arch doorway with a rising sun**, home as shelter, dawn as the
 new chapter. One continuous geometry, drawn in `currentColor` so it adapts to
 any surface, with the sun disc in brand brass.
 
-- **Main logo:** mark + "Solhaven" wordmark in the display serif.
+- **Main logo:** mark + "Havnora" wordmark in the display serif.
 - **App icon / social avatar:** mark alone on a rounded-square brass or ink
   field.
 - **Website logo:** horizontal lockup, 28 px mark height in the navbar.

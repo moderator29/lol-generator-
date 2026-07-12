@@ -1,4 +1,4 @@
-/* Solhaven shared runtime: theme, nav, favorites, card rendering,
+/* Havnora shared runtime: theme, nav, favorites, card rendering,
    quick view, footer, toasts. No dependencies. */
 
 /* ---------- launch placeholders (Phase 9): fill after launch ---------- */
@@ -36,19 +36,28 @@ const ICONS = {
 
 const LOGO_MARK = `
 <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-  <path d="M24 7C14.6 7 7 14.6 7 24v17h34V24c0-9.4-7.6-17-17-17z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
-  <path class="sun" d="M31 30a7 7 0 0 0-14 0z"/>
-  <path d="M13 30h22" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="hvGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F0DA9E"/>
+      <stop offset="0.5" stop-color="#D4A94E"/>
+      <stop offset="1" stop-color="#9C7426"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="40" height="40" rx="11" stroke="currentColor" stroke-opacity="0.55" stroke-width="2.6"/>
+  <path d="M14.5 12l7 3.2v21.3l-7-3.2z" fill="url(#hvGold)"/>
+  <rect x="25.5" y="26.5" width="3.4" height="8" rx="1" fill="currentColor" opacity="0.4"/>
+  <rect x="30.5" y="21.5" width="3.4" height="13" rx="1" fill="currentColor" opacity="0.55"/>
+  <path d="M35.5 16.5l4.5-2.2v20.4l-4.5-1.8z" fill="currentColor" opacity="0.3"/>
 </svg>`;
 
 /* ---------- persistent stores ---------- */
 const store = {
   get(key, fallback) {
-    try { return JSON.parse(localStorage.getItem("solhaven:" + key)) ?? fallback; }
+    try { return JSON.parse(localStorage.getItem("havnora:" + key)) ?? fallback; }
     catch { return fallback; }
   },
   set(key, value) {
-    try { localStorage.setItem("solhaven:" + key, JSON.stringify(value)); } catch { /* private mode */ }
+    try { localStorage.setItem("havnora:" + key, JSON.stringify(value)); } catch { /* private mode */ }
   }
 };
 
@@ -99,7 +108,7 @@ function renderNav(current) {
   nav.className = "nav";
   nav.innerHTML = `
     <div class="nav-inner">
-      <a class="logo" href="index.html" aria-label="Solhaven home">${LOGO_MARK}<span>Solhaven</span></a>
+      <a class="logo" href="index.html" aria-label="Havnora home">${LOGO_MARK}<span>HAVNORA</span></a>
       <nav class="nav-links" aria-label="Primary">
         <a href="index.html" ${current === "home" ? 'aria-current="page"' : ""}>Home</a>
         <a href="search.html" ${current === "search" ? 'aria-current="page"' : ""}>Buy</a>
@@ -111,7 +120,7 @@ function renderNav(current) {
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/></svg>
         </button>
         ${store.get("user", null)
-          ? `<a class="btn btn-ghost" href="dashboard.html" title="Your dashboard">My Solhaven</a>`
+          ? `<a class="btn btn-ghost" href="dashboard.html" title="Your dashboard">My Havnora</a>`
           : `<a class="btn btn-ghost" href="signin.html">Sign in</a>`}
         <a class="btn btn-primary" href="dashboard.html?role=seller">List your home</a>
         <button class="btn btn-icon btn-ghost nav-toggle" aria-label="Open menu" aria-expanded="false">
@@ -161,8 +170,8 @@ function renderFooter() {
     <div class="wrap">
       <div class="footer-grid">
         <div>
-          <a class="logo" href="index.html">${LOGO_MARK}<span>Solhaven</span></a>
-          <p class="muted" style="margin-top:14px; max-width:280px; font-size:14.5px;">Home, illuminated. A clearer, calmer way to find, buy, and sell homes across America.</p>
+          <a class="logo" href="index.html">${LOGO_MARK}<span>HAVNORA</span></a>
+          <p class="muted" style="margin-top:14px; max-width:280px; font-size:14.5px;">Find your haven. A clearer, calmer way to find, buy, and sell homes across America.</p>
         </div>
         <div>
           <h4>Explore</h4>
@@ -176,7 +185,7 @@ function renderFooter() {
         <div>
           <h4>Company</h4>
           <div class="footer-links">
-            <a href="index.html#why">Why Solhaven</a>
+            <a href="index.html#why">Why Havnora</a>
             <a href="index.html#stories">Buyer stories</a>
             <a href="dashboard.html?role=agent">For agents</a>
             <a href="dashboard.html?role=admin">Admin</a>
@@ -193,7 +202,7 @@ function renderFooter() {
         </div>
       </div>
       <div class="footer-base">
-        <span>© Solhaven. Equal Housing Opportunity. Listings shown are design placeholders.</span>
+        <span>© Havnora. Equal Housing Opportunity. Listings shown are design placeholders.</span>
         <div class="social-row" aria-label="Social media (links coming soon)">
           ${social.map(s => `<button class="btn btn-icon" aria-label="${s} link coming soon" title="Coming soon">${s}</button>`).join("")}
         </div>
@@ -230,7 +239,7 @@ function propertyCard(p) {
       <address class="pc-addr" style="font-style:normal"><b>${p.address}</b>${p.city}, ${p.state} ${p.zip}</address>
       <div class="pc-foot">
         <span class="pc-type">${p.type}</span>
-        <span class="small muted num">${p.dom} day${p.dom === 1 ? "" : "s"} on Solhaven</span>
+        <span class="small muted num">${p.dom} day${p.dom === 1 ? "" : "s"} on Havnora</span>
       </div>
     </div>`;
 

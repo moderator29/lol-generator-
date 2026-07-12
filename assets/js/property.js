@@ -66,10 +66,10 @@ function buildPage(p) {
   const walkScore = p.walkScore ?? Math.min(97, 46 + (seed % 38) + (p.type === "Condo" ? 13 : 0));
   const walkLabel = walkScore >= 90 ? "Walker's paradise" : walkScore >= 70 ? "Very walkable" : walkScore >= 50 ? "Somewhat walkable" : "Car-dependent";
 
-  document.title = `${p.address}, ${p.city} ${p.state} · Solhaven`;
+  document.title = `${p.address}, ${p.city} ${p.state} · Havnora`;
   const metaDesc = document.querySelector('meta[name="description"]');
   if (metaDesc) metaDesc.setAttribute("content",
-    `${p.beds} bed, ${p.baths} bath ${p.type.toLowerCase()} at ${p.address}, ${p.city}, ${p.state} ${p.zip}. ${fmtPrice(p.price)} on Solhaven.`);
+    `${p.beds} bed, ${p.baths} bath ${p.type.toLowerCase()} at ${p.address}, ${p.city}, ${p.state} ${p.zip}. ${fmtPrice(p.price)} on Havnora.`);
   injectJsonLd(p);
 
   crumbs.innerHTML = `
@@ -301,7 +301,7 @@ function headerHTML(p) {
         <div class="prop-price num">${fmtPrice(p.price)}</div>
         <p style="margin:6px 0 0; font-size:17px"><b>${p.address}</b> · ${p.city}, ${p.state} ${p.zip}</p>
         <div style="margin-top:10px"><span class="badge ${BADGE_CLASS[p.status] || ""}">${p.status}</span>
-          <span class="small muted num" style="margin-left:10px">${p.dom} day${p.dom === 1 ? "" : "s"} on Solhaven</span></div>
+          <span class="small muted num" style="margin-left:10px">${p.dom} day${p.dom === 1 ? "" : "s"} on Havnora</span></div>
         <div class="prop-specrow num">
           <span><b>${p.beds}</b> beds</span>
           <span><b>${p.baths}</b> baths</span>
@@ -330,7 +330,7 @@ function initHeaderActions(p) {
   });
 
   $("#act-share").addEventListener("click", async () => {
-    const payload = { title: document.title, text: `${p.address}, ${p.city}, ${p.state} on Solhaven`, url: location.href };
+    const payload = { title: document.title, text: `${p.address}, ${p.city}, ${p.state} on Havnora`, url: location.href };
     if (navigator.share) {
       try { await navigator.share(payload); return; } catch { /* user dismissed, fall through */ }
     }
@@ -646,7 +646,7 @@ function agentHTML() {
   return `
     <div class="card glass agent-card">
       <div class="avatar" style="background:var(--brass)" aria-hidden="true">SH</div>
-      <b style="font-family:var(--font-display); font-size:19px">Your Solhaven Agent</b>
+      <b style="font-family:var(--font-display); font-size:19px">Your Havnora Agent</b>
       <p class="small muted" style="margin:4px 0 16px">Matched at launch</p>
       <div style="display:grid; gap:10px">
         <button type="button" class="btn" id="agent-info" aria-expanded="false" aria-controls="agent-form">Request info</button>
