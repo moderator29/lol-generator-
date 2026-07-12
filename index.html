@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solhaven — Home, illuminated</title>
+  <meta name="description" content="Solhaven is a clearer, calmer way to find, buy, and sell homes across America. Honest numbers, beautiful homes, effortless search." />
+  <meta property="og:title" content="Solhaven — Home, illuminated" />
+  <meta property="og:description" content="A clearer, calmer way to find, buy, and sell homes across America." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..640&family=Inter:wght@400..700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="wrap hero-grid">
+        <div>
+          <span class="eyebrow">American real estate, reimagined</span>
+          <h1>Find the home that <em>finds you back</em></h1>
+          <p class="hero-sub">Honest numbers, beautiful homes, and a search that feels effortless. Solhaven is the clear way home.</p>
+
+          <form class="searchbar glass" id="hero-search" role="search" aria-label="Search homes">
+            <input type="search" name="q" placeholder="City, neighborhood, ZIP, or address" aria-label="Location or keywords" />
+            <select name="max" aria-label="Maximum price">
+              <option value="">Max price</option>
+              <option value="500000">$500K</option>
+              <option value="750000">$750K</option>
+              <option value="1000000">$1M</option>
+              <option value="2000000">$2M</option>
+              <option value="5000000">$5M</option>
+            </select>
+            <select name="beds" aria-label="Minimum bedrooms">
+              <option value="">Beds</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+              <option value="5">5+</option>
+            </select>
+            <button class="btn btn-primary" type="submit">Search</button>
+          </form>
+
+          <div class="hero-chips" id="hero-chips" aria-label="Popular searches"></div>
+        </div>
+
+        <div class="hero-stage">
+          <div class="hero-card" id="hero-card"></div>
+          <div class="float-tag glass float-a"><span class="dot" aria-hidden="true"></span>Tour available today</div>
+          <div class="float-tag glass float-b">★ Verified listing</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured listings -->
+    <section class="section" id="listings" style="padding-top:24px">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Featured homes</span>
+          <h2>Thirty homes worth a second look</h2>
+          <p class="muted">Hand-designed placeholder listings — every card is ready for live market data.</p>
+        </div>
+        <div class="property-grid" id="listing-grid" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- Communities -->
+    <section class="section" id="communities" style="background:var(--surface)">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Featured communities</span>
+          <h2>Cities we love right now</h2>
+        </div>
+        <div class="community-grid" id="community-grid"></div>
+      </div>
+    </section>
+
+    <!-- Why Solhaven -->
+    <section class="section" id="why">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Why Solhaven</span>
+          <h2>Built like a technology company, run like a promise</h2>
+        </div>
+        <div class="pillars" id="pillars"></div>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="section" style="padding-top:0">
+      <div class="wrap">
+        <div class="stats-band card glass" id="stats"></div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section" id="stories" style="background:var(--surface)">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Buyer & seller stories</span>
+          <h2>People moved. Here's how it felt.</h2>
+        </div>
+        <div class="quote-grid" id="quotes"></div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section faq" id="faq">
+      <div class="wrap" style="max-width:820px">
+        <div class="section-head">
+          <span class="eyebrow">Questions</span>
+          <h2>Everything you'd want to ask</h2>
+        </div>
+        <div id="faq-list"></div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section" style="padding-top:0">
+      <div class="wrap">
+        <div class="cta-band reveal">
+          <h2 style="margin-bottom:12px">Your next chapter starts at the front door</h2>
+          <p style="opacity:0.8; max-width:520px; margin:0 auto 28px">Search thirty markets, save the homes that stop you, and tour on your schedule.</p>
+          <a class="btn btn-brass" href="search.html">Start exploring</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/home.js"></script>
+</body>
+</html>
