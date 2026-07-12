@@ -62,6 +62,81 @@ const FAQS = [
   { q: "How is my data handled?", a: "Your search history and saved homes are private to your account. We never sell personal data, and photo uploads are stripped of location metadata automatically." }
 ];
 
+/* ---------- HAVNORA market rules + photography ----------
+   Every home sits under $800K with a minimum $30K down payment, and each
+   listing carries a real sample photo set: front, back yard, kitchen,
+   living room, bedroom, and bathroom views (Unsplash placeholders until
+   listing photography is uploaded). */
+
+const IMG = (id, w = 1600) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=70`;
+
+const VIEW_POOLS = {
+  front: [
+    "1600596542815-ffad4c1539a9", "1512917774080-9991f1c4c750", "1600585154340-be6161a56a0c",
+    "1600607687939-ce8a6c25118c", "1568605114967-8130f3a36994", "1570129477492-45c003edd2be",
+    "1523217582562-09d0def993a6", "1600047509807-ba8f99d2cdde", "1613977257363-707ba9348227",
+    "1600566753190-17f0baa2a6c3"
+  ],
+  back: [
+    "1613490493576-7fde63acd811", "1600607688969-a5bfcd646154", "1564013799919-ab600027ffc6",
+    "1600585154084-4e5fe7c39198", "1600210492486-724fe5c67fb0"
+  ],
+  kitchen: [
+    "1556911220-bff31c812dba", "1556912173-46c336c7fd55", "1600585152915-d208bec867a1",
+    "1600489000022-c2086d79f9d4", "1571508601891-ca5e7a713859"
+  ],
+  living: [
+    "1586023492125-27b2c045efd7", "1493809842364-78817add7ffb", "1554995207-c18c203602cb",
+    "1600210491892-03d54c0aaf87", "1615529182904-14819c35db37"
+  ],
+  bedroom: [
+    "1540518614846-7eded433c457", "1522708323590-d24dbb6b0267", "1560448204-e02f11c3d0e2",
+    "1616594039964-ae9021a400a0", "1616486338812-3dadae4b4ace"
+  ],
+  bath: [
+    "1620626011761-996317b8d101", "1584622650111-993a426fbf0a", "1600566752355-35792bedcfea",
+    "1552321554-5fefe8c9ef14"
+  ]
+};
+
+const VIEW_LABELS = {
+  front: "Front view", back: "Back yard", kitchen: "Kitchen",
+  living: "Living room", bedroom: "Primary bedroom", bath: "Bathroom"
+};
+
+const FEATURED_IDS = ["sh-001", "sh-011", "sh-017", "sh-022", "sh-027"];
+
+(function normalizeMarket() {
+  const byPrice = [...PROPERTIES].sort((a, b) => a.price - b.price);
+  const rank = new Map(byPrice.map((p, i) => [p.id, i]));
+  const strides = { front: [1, 0], back: [3, 1], kitchen: [2, 1], living: [7, 2], bedroom: [3, 2], bath: [1, 1] };
+
+  PROPERTIES.forEach((p, i) => {
+    /* reprice into the 225K to 795K band, preserving relative order */
+    const r = rank.get(p.id) / (PROPERTIES.length - 1);
+    p.price = Math.round((225000 + r * 570000) / 500) * 500;
+    p.downPayment = Math.max(30000, Math.round(p.price * 0.15 / 500) * 500);
+    p.taxes = Math.round(p.price * 0.013 / 10) * 10;
+    p.featured = FEATURED_IDS.includes(p.id);
+
+    /* keep price history consistent with the new price */
+    const listedDate = p.priceHistory?.[p.priceHistory.length - 1]?.date || "2026-06-20";
+    const soldDate = p.priceHistory?.[0]?.date || "2023-05-12";
+    p.priceHistory = [
+      { date: soldDate, event: "Previously sold", price: Math.round(p.price * 0.82 / 500) * 500 },
+      { date: listedDate, event: "Listed", price: p.price }
+    ];
+
+    /* assign the six-view photo set */
+    p.images = {};
+    for (const [view, pool] of Object.entries(VIEW_POOLS)) {
+      const [mul, off] = strides[view];
+      p.images[view] = IMG(pool[(i * mul + off) % pool.length]);
+    }
+    p.views = Object.keys(VIEW_POOLS).map(k => ({ key: k, label: VIEW_LABELS[k], src: p.images[k] }));
+  });
+})();
+
 const SCHOOL_DISTRICTS = [...new Set(PROPERTIES.map(p => p.district))].sort();
 const NEIGHBORHOODS = [...new Set(PROPERTIES.map(p => p.neighborhood))].sort();
 const CITIES = [...new Set(PROPERTIES.map(p => `${p.city}, ${p.state}`))].sort();
