@@ -1,8 +1,8 @@
-# Solhaven
+# Havnora
 
-**Home, illuminated.**
+**Find your haven.**
 
-Solhaven is a next-generation American real estate platform, a premium home
+Havnora is a next-generation American real estate platform, a premium home
 discovery experience designed to feel like a modern technology product, not a
 traditional listings site.
 

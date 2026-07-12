@@ -446,7 +446,7 @@ function renderRole(r) {
   observeReveals(content);
   staggerCards();
   countUpKPIs();
-  document.title = `${TITLES[r]} · Solhaven`;
+  document.title = `${TITLES[r]} · Havnora`;
   const p = new URLSearchParams(location.search);
   p.set("role", r);
   history.replaceState(null, "", "?" + p);

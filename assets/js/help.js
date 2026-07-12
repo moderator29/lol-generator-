@@ -1,4 +1,4 @@
-/* Solhaven help system: topic content, glass help modal, and the small
+/* Havnora help system: topic content, glass help modal, and the small
    circular "?" buttons that open it. No dependencies. Styling for
    .help-btn, .help-modal, .help-tabs, and .help-list lives in main.css. */
 
@@ -242,7 +242,7 @@ window.HELP_TOPICS = {
       ],
       why: [
         "Every trustworthy marketplace is trustworthy because someone tends it.",
-        "Buyers and sellers extend trust to Solhaven. Careful curation is how that trust is repaid."
+        "Buyers and sellers extend trust to Havnora. Careful curation is how that trust is repaid."
       ]
     }
   },
@@ -254,7 +254,7 @@ window.HELP_TOPICS = {
       how: [
         "Alerts attach to your saved searches and favorites, covering new matches, price changes, and status changes.",
         "Your preferences are stored on this device for now.",
-        "Delivery by email arrives at launch. In this preview, alerts appear inside Solhaven."
+        "Delivery by email arrives at launch. In this preview, alerts appear inside Havnora."
       ],
       use: [
         "Turn on new match alerts for the one or two searches you check most.",
@@ -274,7 +274,7 @@ window.HELP_TOPICS = {
       how: [
         "Right now, favorites and recently viewed homes live in this browser on this device. No account is required to browse.",
         "Signing in links that activity to you, so it can follow you across devices at launch.",
-        "Solhaven does not sell your personal information, and you can browse every listing without an account."
+        "Havnora does not sell your personal information, and you can browse every listing without an account."
       ],
       use: [
         "Browse freely first. Create an account when you notice you keep coming back.",
@@ -312,7 +312,7 @@ window.HELP_TOPICS = {
     intro: "Market stats condense listing activity into a few honest numbers, like median price and days on market.",
     tabs: {
       how: [
-        "Figures are computed from the listings currently on Solhaven, so they shift as inventory shifts.",
+        "Figures are computed from the listings currently on Havnora, so they shift as inventory shifts.",
         "Days on market counts from the day a home is listed here.",
         "In this preview the numbers describe placeholder listings and are meant to show the format, not the market."
       ],
