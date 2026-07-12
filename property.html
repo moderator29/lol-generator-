@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Property details · Solhaven</title>
+  <meta name="description" content="Full listing details on Solhaven: photos, honest pricing, mortgage estimates, schools, price history, and easy tour scheduling." />
+  <meta property="og:title" content="Property details · Solhaven" />
+  <meta property="og:description" content="Full listing details: photos, honest pricing, mortgage estimates, schools, price history, and easy tour scheduling." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..640&family=Inter:wght@400..700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <style>
+    /* page-specific tweaks only; everything else comes from main.css */
+    .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 18px 0 20px; font-size: 13.5px; color: var(--ink-3); }
+    .crumbs a { color: var(--ink-2); transition: color 0.2s; }
+    .crumbs a:hover { color: var(--ink); }
+    .crumbs .sep { opacity: 0.55; }
+    .crumbs [aria-current="page"] { color: var(--ink); font-weight: 550; }
+
+    .gallery-help { position: absolute; top: 14px; left: 14px; z-index: 3; display: flex; }
+    .slide-shade { position: absolute; inset: 0; background: #0f1218; pointer-events: none; }
+    .gallery-track.is-dragging { transition: none; cursor: grabbing; }
+    .thumbs button { position: relative; color: #fff; }
+    .thumbs .t-num { position: absolute; right: 5px; bottom: 3px; font-size: 10px; font-weight: 700; opacity: 0.85; }
+
+    .prop-specrow { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 12px; font-size: 14.5px; color: var(--ink-2); }
+    .prop-specrow b { color: var(--ink); font-weight: 650; }
+    .prop-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .prop-actions .is-active { color: var(--brass); }
+    .prop-actions .is-active svg { fill: currentColor; }
+
+    .sec-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .sec-head h2 { margin-bottom: 0; }
+
+    .calc-rows { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+    .calc-rows li { display: flex; justify-content: space-between; gap: 12px; color: var(--ink-2); border-bottom: 1px dashed var(--line); padding-bottom: 8px; }
+    .calc-rows li:last-child { border-bottom: none; padding-bottom: 0; }
+    .calc-rows b { color: var(--ink); font-weight: 600; }
+    .calc-form { display: grid; gap: 14px; margin-top: 16px; }
+    .calc-form input[type="range"] { width: 100%; accent-color: var(--brass); }
+    .calc-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .media-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .similar-grid, .recent-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .aside-form { display: grid; gap: 12px; text-align: left; margin-top: 14px; }
+
+    @media (max-width: 1000px) {
+      .similar-grid, .recent-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .media-duo, .similar-grid, .recent-grid, .calc-split { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <main id="main">
+    <div class="wrap">
+      <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+      <div id="prop-root"></div>
+    </div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/help.js"></script>
+  <script src="assets/js/property.js"></script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Search homes · Solhaven</title>
+  <meta name="description" content="Search homes for sale across America with fast, honest filters: price, beds, baths, type, lot size, pools, school districts, and more." />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..640&family=Inter:wght@400..700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <style>
+    /* search page polish (page-scoped) */
+    .title-row { display: flex; align-items: center; gap: 10px; }
+    .title-row .help-btn { margin-top: 2px; }
+
+    .map-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+
+    /* active filter chips */
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px; }
+    .chip-row:empty { display: none; }
+    .chip-x { cursor: pointer; }
+    .chip-x i {
+      font-style: normal; font-size: 11px; font-weight: 700; line-height: 1;
+      width: 16px; height: 16px; border-radius: 5px; display: grid; place-items: center;
+      background: var(--brass-soft); color: var(--brass-strong);
+      transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+    }
+    [data-theme="dark"] .chip-x i { color: var(--brass); }
+    .chip-x:hover i { background: var(--rust-soft); color: var(--rust); }
+    .chip-clear { border-style: dashed; }
+    .chip-in { animation: chip-in 0.45s var(--ease) backwards; }
+    @keyframes chip-in {
+      from { opacity: 0; transform: translateY(6px) scale(0.96); }
+      to { opacity: 1; transform: none; }
+    }
+
+    /* skeleton result placeholders */
+    .sk-card { height: 340px; border-radius: var(--r-lg); border: 1px solid var(--line); }
+    [data-theme="dark"] .sk-card { background: rgba(21, 29, 41, 0.58); border-color: rgba(255, 255, 255, 0.08); }
+
+    /* map pin pop-in + cross highlight */
+    .map-pin.pin-pop { animation: pin-in 0.5s var(--ease) backwards; }
+    @keyframes pin-in {
+      from { opacity: 0; transform: translate(-50%, -60%) scale(0.55); }
+      to { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+    }
+    .property-card.is-hot { border-color: var(--brass); box-shadow: var(--shadow-2); transform: translateY(-4px); }
+    [data-theme="dark"] .property-card.is-hot {
+      border-color: rgba(217, 174, 99, 0.45);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 18px 44px rgba(0, 0, 0, 0.5), 0 0 42px rgba(217, 174, 99, 0.16);
+    }
+
+    @media (max-width: 560px) {
+      .results-tools { width: 100%; flex-wrap: wrap; }
+      .results-tools .field { flex: 1; min-width: 150px; }
+      .results-tools .btn { padding: 0 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .chip-in, .map-pin.pin-pop { animation: none; }
+      .property-card.is-hot { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <main id="main">
+    <div class="wrap search-layout">
+      <!-- Desktop sidebar filters -->
+      <aside class="filters-panel" aria-label="Filters">
+        <div class="filters" id="filters-host"></div>
+      </aside>
+
+      <!-- Results -->
+      <section>
+        <div class="results-head fade-up">
+          <div>
+            <div class="title-row">
+              <h1 id="results-title">Homes for sale</h1>
+              <button class="help-btn" data-help="search-filters" aria-label="How search filters work">?</button>
+            </div>
+            <p class="small muted num" id="results-count" aria-live="polite" style="margin:2px 0 0"></p>
+          </div>
+          <div class="results-tools">
+            <button class="btn mobile-filter-btn" id="open-filters">Filters</button>
+            <button class="btn glass btn-glow" id="save-search">Save this search</button>
+            <label class="field" style="min-width:180px">
+              <span class="visually-hidden" style="position:absolute; left:-9999px">Sort results</span>
+              <select id="sort" class="input" aria-label="Sort results">
+                <option value="recommended">Recommended</option>
+                <option value="newest">Newest</option>
+                <option value="price-asc">Price: low to high</option>
+                <option value="price-desc">Price: high to low</option>
+                <option value="sqft-desc">Largest</option>
+                <option value="ppsf-asc">$/sqft: low to high</option>
+              </select>
+            </label>
+            <button class="help-btn" data-help="quick-view" aria-label="How quick view works">?</button>
+          </div>
+        </div>
+
+        <div class="chip-row fade-up" id="filter-chips" role="group" aria-label="Active filters"></div>
+
+        <div class="map-head fade-up">
+          <span class="small muted">Map view · pins follow your filters</span>
+          <button class="help-btn" data-help="map" aria-label="How the map works">?</button>
+        </div>
+        <div class="map-panel reveal is-in" id="map" role="img" aria-label="Map of matching homes (interactive map placeholder)" style="margin-bottom:24px; height:320px">
+          <div class="map-note" id="map-note"><b>Interactive map placeholder</b><br />Reserved for MapLibre / Mapbox integration. Pins reflect live results.</div>
+        </div>
+
+        <div class="results-grid" id="results" aria-live="polite"></div>
+        <div id="results-empty"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Mobile filter drawer -->
+  <div class="scrim" id="scrim" hidden></div>
+  <div class="drawer" id="filter-drawer" role="dialog" aria-modal="true" aria-label="Filters" hidden>
+    <div class="drawer-head">
+      <b style="font-family:var(--font-display); font-size:19px">Filters</b>
+      <button class="btn btn-icon btn-ghost" id="close-filters" aria-label="Close filters">✕</button>
+    </div>
+    <div class="drawer-body" id="drawer-host"></div>
+    <div class="drawer-foot">
+      <button class="btn" id="drawer-reset" style="flex:1">Reset</button>
+      <button class="btn btn-primary" id="drawer-apply" style="flex:2">Show results</button>
+    </div>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/help.js"></script>
+  <script src="assets/js/search.js"></script>
+</body>
+</html>

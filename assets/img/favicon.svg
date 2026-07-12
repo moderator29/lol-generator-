@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Solhaven mark: arch doorway with a rising sun -->
+  <rect width="64" height="64" rx="14" fill="#0E131B"/>
+  <path d="M32 12c-11.05 0-20 8.95-20 20v20h40V32c0-11.05-8.95-20-20-20z" fill="none" stroke="#F2EDE3" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M41 40a9 9 0 0 0-18 0z" fill="#D9AE63"/>
+  <path d="M18 40h28" stroke="#F2EDE3" stroke-width="4" stroke-linecap="round"/>
+</svg>
