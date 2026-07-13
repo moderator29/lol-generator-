@@ -29,9 +29,11 @@
     }
     [data-theme="light"] .gold-text { background: none; -webkit-text-fill-color: currentColor; color: var(--brass-strong); }
 
+    #payment, .prop-section { scroll-margin-top: calc(var(--nav-h, 72px) + 16px); }
+
     /* ---------- gallery ---------- */
     .slide-shade { position: absolute; inset: 0; background: #0f1218; pointer-events: none; }
-    .slide-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .slide-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
     .slide-label {
       position: absolute; left: 14px; bottom: 14px; z-index: 2;
       display: inline-flex; align-items: center; gap: 6px;
