@@ -381,6 +381,7 @@ function paymentHTML(p) {
             ${checkRow("Secure Property")}
             ${checkRow("Flexible Payment Plan")}
           </ul>
+          <a class="btn btn-block" style="margin-top:14px" href="payment.html?id=${p.id}&kind=down">Reserve with a down payment</a>
         </div>
         <div class="card glass pay-card pay-card-full">
           <span class="pay-kicker">Full Payment</span>
@@ -390,6 +391,7 @@ function paymentHTML(p) {
             ${checkRow("Best Price")}
             ${checkRow("Instant Ownership")}
           </ul>
+          <a class="btn btn-brass btn-glow btn-block" style="margin-top:14px" href="payment.html?id=${p.id}&kind=full">Proceed to full payment</a>
         </div>
       </div>
       <p class="pay-note small muted">Minimum down payment on Havnora is $30,000. ${helpBit("mortgage-calculator")}</p>

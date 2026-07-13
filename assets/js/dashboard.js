@@ -522,18 +522,47 @@ function renderPaymentsView() {
         <h2>Payment History</h2>
         ${helpBtn("mortgage-calculator")}
       </div>
-      <div class="table-wrap">
-        <table class="table">
-          <thead><tr><th scope="col">Reference</th><th scope="col">Property</th><th scope="col">Amount</th><th scope="col">Status</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <div id="pay-history"></div>
+    </div>`;
+
+  const list = (typeof getPayments === "function" ? getPayments() : []);
+  const host = $("#pay-history", dashMain);
+  if (!list.length) {
+    host.innerHTML = `
       <div class="empty" style="padding:40px 20px">
         ${SICONS.payments}
-        <b>Payment processing connects at launch</b>
-        <p class="small" style="margin:0">Your down payments and settlements will be tracked here once payments go live.</p>
-      </div>
-    </div>`;
+        <b>No payments yet</b>
+        <p class="small" style="margin:0 0 14px">Reserve any home with a down payment and your receipt lands here.</p>
+        <button class="btn btn-brass" id="pay-cta">Browse properties</button>
+      </div>`;
+    $("#pay-cta", host).addEventListener("click", () => switchView("properties"));
+    return;
+  }
+  const statusBadge = s =>
+    s === "succeeded" ? `<span class="badge badge-new">Paid</span>`
+    : s === "test" ? `<span class="badge badge-featured">Test</span>`
+    : s === "refunded" ? `<span class="badge badge-cut">Refunded</span>`
+    : `<span class="badge badge-pending">${s.replace(/_/g, " ")}</span>`;
+  host.innerHTML = `
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">Receipt</th><th scope="col">Property</th><th scope="col">Type</th><th scope="col">Amount</th><th scope="col">Date</th><th scope="col">Status</th></tr></thead>
+        <tbody>
+          ${list.map(pay => {
+            const p = byId(pay.propertyId);
+            return `<tr>
+              <td class="num"><b>${pay.receipt}</b></td>
+              <td>${p ? `<a href="property.html?id=${p.id}" style="text-decoration:underline; text-underline-offset:3px">${p.address}, ${p.city}</a>` : "Listing removed"}</td>
+              <td>${pay.kind === "full_payment" ? "Full payment" : "Down payment"}</td>
+              <td class="num"><b>${fmtPrice(pay.amount)}</b></td>
+              <td class="num">${new Date(pay.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</td>
+              <td>${statusBadge(pay.status)}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted" style="margin:14px 0 0">Test receipts become live charges automatically once Stripe is connected. Every payment is refundable per your purchase agreement.</p>`;
 }
 
 /* ---------- view: analytics ---------- */

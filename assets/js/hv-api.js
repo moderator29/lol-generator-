@@ -77,6 +77,15 @@ const hvDb = {
   }
 };
 
+/* local payments ledger (mirrors what syncs to Supabase) */
+function getPayments() { return store.get("payments", []); }
+function addLocalPayment(payment) {
+  const list = getPayments();
+  list.unshift(payment);
+  store.set("payments", list);
+  return payment;
+}
+
 const hvApi = {
   userId: () => hvSession.user()?.id || null,
 
@@ -112,6 +121,45 @@ const hvApi = {
       const rows = await hvDb.insert("messages", [{ conversation_id: conversationId, sender: "user", body }]);
       return rows?.[0] || null;
     } catch { return null; }
+  },
+
+  /* ---------- payments ----------
+     Live path: the create-checkout Edge Function (requires the owner's
+     Stripe secret key on the server). Until that is deployed and keyed,
+     checkout runs in clearly-labeled test mode. */
+  async createCheckout(propertyId, kind, amount) {
+    const session = hvSession.get();
+    if (!session) return { live: false, reason: "signed-out" };
+    try {
+      const res = await fetch(`${HV_SUPA.url}/functions/v1/create-checkout`, {
+        method: "POST",
+        headers: {
+          "apikey": HV_SUPA.key,
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          propertyId, kind, amount,
+          successUrl: location.origin + location.pathname + `?id=${propertyId}&kind=${kind}&paid=1`,
+          cancelUrl: location.href
+        })
+      });
+      const body = await res.json().catch(() => null);
+      if (res.ok && body?.url) return { live: true, url: body.url, receipt: body.receipt };
+      return { live: false, reason: body?.error || "not-configured" };
+    } catch { return { live: false, reason: "offline" }; }
+  },
+
+  async recordTestPayment(payment) {
+    const uid = this.userId();
+    if (!uid) return;
+    try {
+      await hvDb.insert("payments", [{
+        user_id: uid, property_id: payment.propertyId, kind: payment.kind,
+        amount: payment.amount, status: "test", provider: "demo",
+        receipt_code: payment.receipt
+      }]);
+    } catch { /* local record remains */ }
   },
 
   async sendInquiry({ propertyId, name, email, message }) {
