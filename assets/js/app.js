@@ -321,3 +321,43 @@ function trackViewed(id) {
   list.unshift(id);
   store.set("recent", list.slice(0, 8));
 }
+
+/* ---------- bookings + manager conversations (local-first) ---------- */
+function getBookings() { return store.get("bookings", []); }
+function addBooking(propertyId, date, time, note) {
+  const list = getBookings();
+  const booking = { id: "b" + Date.now(), propertyId, date, time, note: note || "", status: "pending", createdAt: Date.now() };
+  list.unshift(booking);
+  store.set("bookings", list);
+  if (typeof hvApi !== "undefined") hvApi.bookViewing(propertyId, date, time, note);
+  return booking;
+}
+
+function getConversations() { return store.get("conversations", []); }
+function saveConversations(list) { store.set("conversations", list); }
+/* find or create the conversation for a property, then open the chat */
+function messageManagerAbout(propertyId) {
+  const list = getConversations();
+  let convo = propertyId ? list.find(c => c.propertyId === propertyId) : null;
+  if (!convo) {
+    const p = propertyId ? byId(propertyId) : null;
+    convo = {
+      id: "c" + Date.now(),
+      propertyId: propertyId || null,
+      subject: p ? `${p.address}, ${p.city}` : "General inquiry",
+      createdAt: Date.now(),
+      messages: []
+    };
+    list.unshift(convo);
+    saveConversations(list);
+    if (typeof hvApi !== "undefined") {
+      hvApi.startConversation(propertyId, convo.subject).then(remote => {
+        if (!remote) return;
+        const l = getConversations();
+        const c = l.find(x => x.id === convo.id);
+        if (c) { c.remoteId = remote.id; saveConversations(l); }
+      });
+    }
+  }
+  location.href = "messages.html?c=" + convo.id;
+}

@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Property details · Havnora</title>
-  <meta name="description" content="Full listing details on Havnora: photos, honest pricing, mortgage estimates, schools, price history, and easy tour scheduling." />
+  <meta name="description" content="Full listing details on Havnora: photos, honest pricing, payment options, mortgage estimates, schools, price history, and easy tour scheduling." />
   <meta property="og:title" content="Property details · Havnora" />
-  <meta property="og:description" content="Full listing details: photos, honest pricing, mortgage estimates, schools, price history, and easy tour scheduling." />
+  <meta property="og:description" content="Full listing details: photos, honest pricing, payment options, mortgage estimates, schools, price history, and easy tour scheduling." />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,45 +14,141 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400..700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/main.css" />
   <style>
-    /* page-specific tweaks only; everything else comes from main.css */
+    /* page-specific styles only; everything else comes from main.css */
     .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 18px 0 20px; font-size: 13.5px; color: var(--ink-3); }
     .crumbs a { color: var(--ink-2); transition: color 0.2s; }
     .crumbs a:hover { color: var(--ink); }
     .crumbs .sep { opacity: 0.55; }
     .crumbs [aria-current="page"] { color: var(--ink); font-weight: 550; }
 
-    .gallery-help { position: absolute; top: 14px; left: 14px; z-index: 3; display: flex; }
-    .slide-shade { position: absolute; inset: 0; background: #0f1218; pointer-events: none; }
-    .gallery-track.is-dragging { transition: none; cursor: grabbing; }
-    .thumbs button { position: relative; color: #fff; }
-    .thumbs .t-num { position: absolute; right: 5px; bottom: 3px; font-size: 10px; font-weight: 700; opacity: 0.85; }
+    /* gold gradient text, solid brass in the light theme for contrast */
+    .gold-text {
+      background: linear-gradient(115deg, #E4C173 8%, #C79A3E 92%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: #C79A3E;
+    }
+    [data-theme="light"] .gold-text { background: none; -webkit-text-fill-color: currentColor; color: var(--brass-strong); }
 
-    .prop-specrow { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 12px; font-size: 14.5px; color: var(--ink-2); }
-    .prop-specrow b { color: var(--ink); font-weight: 650; }
-    .prop-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    /* ---------- gallery ---------- */
+    .slide-shade { position: absolute; inset: 0; background: #0f1218; pointer-events: none; }
+    .slide-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .slide-label {
+      position: absolute; left: 14px; bottom: 14px; z-index: 2;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 8px;
+      font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; color: #fff;
+      background: rgba(12, 14, 18, 0.55); border: 1px solid rgba(255, 255, 255, 0.16);
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    }
+    .gallery-track.is-dragging { transition: none; cursor: grabbing; }
+
+    .thumbs button {
+      position: relative; aspect-ratio: auto; overflow: visible; border-radius: 10px;
+      display: flex; flex-direction: column; gap: 5px; text-align: left;
+      opacity: 0.62; outline-offset: 3px;
+    }
+    .thumbs button.is-active { opacity: 1; }
+    .thumbs .t-img {
+      position: relative; display: block; width: 100%; aspect-ratio: 4 / 3;
+      border-radius: 8px; overflow: hidden; border: 2px solid transparent;
+      transition: border-color 0.2s var(--ease), box-shadow 0.25s var(--ease);
+    }
+    .thumbs button.is-active .t-img { border-color: var(--brass); box-shadow: 0 0 16px var(--glow-brass-2); }
+    .thumbs .t-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .thumbs .t-num { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, 0.9); }
+    .thumbs .t-label { font-size: 10.5px; font-weight: 600; line-height: 1.25; color: var(--ink-3); }
+    .thumbs button.is-active .t-label { color: var(--brass); }
+
+    /* ---------- header ---------- */
+    .prop-addr { font-size: clamp(26px, 3.2vw, 38px); margin: 0 0 2px; }
+    .prop-sub { color: var(--ink-2); margin: 0 0 10px; font-size: 15.5px; }
+    .prop-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .prop-price { margin: 2px 0 14px; }
+    .prop-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .prop-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
     .prop-actions .is-active { color: var(--brass); }
     .prop-actions .is-active svg { fill: currentColor; }
 
+    /* ---------- payment options ---------- */
+    .pay-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .pay-card { position: relative; padding: 26px 26px 24px; overflow: hidden; }
+    .pay-kicker { font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+    .pay-amount { display: block; font-family: var(--font-display); font-size: clamp(30px, 3.4vw, 40px); font-weight: 600; margin: 8px 0 2px; }
+    .pay-caption { color: var(--ink-2); font-size: 14px; margin: 0 0 16px; }
+    .pay-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+    .pay-checks li { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 550; color: var(--ink-2); }
+    .pay-card-full {
+      border-color: rgba(228, 193, 115, 0.5);
+      box-shadow: 0 0 0 1px rgba(228, 193, 115, 0.22), 0 10px 30px var(--glow-brass-2), 0 0 44px var(--glow-brass-2);
+    }
+    [data-theme="dark"] .pay-card-full {
+      background: linear-gradient(180deg, rgba(228, 193, 115, 0.10), rgba(21, 29, 41, 0.58) 46%);
+      border-color: rgba(228, 193, 115, 0.42);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 10px 30px var(--glow-brass-2), 0 0 44px var(--glow-brass-2);
+    }
+    .pay-card-full::before {
+      content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+      background: linear-gradient(90deg, #E4C173, #C79A3E);
+    }
+    .pay-note { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; }
+
+    /* gold check tiles */
+    .check-ic {
+      width: 22px; height: 22px; min-width: 22px; border-radius: 7px;
+      display: inline-grid; place-items: center;
+      background: var(--brass-soft); color: var(--brass);
+      box-shadow: 0 0 10px var(--brass-soft);
+    }
+    [data-theme="light"] .check-ic { color: var(--brass-strong); }
+    .check-ic svg { width: 12px; height: 12px; }
+
+    /* ---------- key features checklist ---------- */
+    .feat-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; }
+    .feat-list li { display: flex; align-items: center; gap: 11px; font-size: 14.5px; color: var(--ink-2); padding: 4px 0; }
+
+    /* ---------- sections ---------- */
     .sec-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
     .sec-head h2 { margin-bottom: 0; }
+    .prop-section .table-wrap {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+      padding: 6px 18px 10px; box-shadow: var(--shadow-1);
+    }
+    [data-theme="dark"] .prop-section .table-wrap {
+      background: rgba(21, 29, 41, 0.58); border-color: rgba(255, 255, 255, 0.10);
+      -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--shadow-1);
+    }
+    .nb-sub { display: block; font-size: 12px; color: var(--ink-3); font-weight: 400; }
 
+    /* ---------- aside ---------- */
     .calc-rows { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
     .calc-rows li { display: flex; justify-content: space-between; gap: 12px; color: var(--ink-2); border-bottom: 1px dashed var(--line); padding-bottom: 8px; }
     .calc-rows li:last-child { border-bottom: none; padding-bottom: 0; }
     .calc-rows b { color: var(--ink); font-weight: 600; }
     .calc-form { display: grid; gap: 14px; margin-top: 16px; }
-    .calc-form input[type="range"] { width: 100%; accent-color: var(--brass); }
     .calc-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .pm-avatar {
+      width: 66px; height: 66px; margin: 0 auto 12px; border-radius: 14px;
+      display: grid; place-items: center; color: var(--brass);
+      border: 1.5px solid var(--brass);
+      background: linear-gradient(180deg, rgba(228, 193, 115, 0.16), rgba(199, 154, 62, 0.06));
+      box-shadow: 0 0 22px var(--glow-brass-2), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    }
+    .pm-avatar svg { width: 38px; height: 38px; }
+    .aside-form { display: grid; gap: 12px; text-align: left; margin-top: 14px; }
 
     .media-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .similar-grid, .recent-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    .aside-form { display: grid; gap: 12px; text-align: left; margin-top: 14px; }
 
     @media (max-width: 1000px) {
       .similar-grid, .recent-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 768px) {
-      .media-duo, .similar-grid, .recent-grid, .calc-split { grid-template-columns: 1fr; }
+      .media-duo, .similar-grid, .recent-grid, .calc-split, .pay-duo, .feat-list { grid-template-columns: 1fr; }
+      .prop-actions { width: 100%; }
+      .prop-actions .btn { flex: 1; }
+      .thumbs .t-label { font-size: 10px; }
     }
   </style>
 </head>
@@ -69,6 +165,7 @@
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/help.js"></script>
+  <script src="assets/js/hv-api.js"></script>
   <script src="assets/js/property.js"></script>
 </body>
 </html>
