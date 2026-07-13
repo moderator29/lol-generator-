@@ -1,25 +1,28 @@
-/* Property detail page: gallery, listing facts, mortgage estimate,
-   agent + tour cards, similar and recently viewed homes. */
+/* Property detail page: photo gallery from p.views, payment options,
+   key features checklist, mortgage estimate, property manager card,
+   tour booking, similar and recently viewed homes. */
 
 renderNav("search");
 renderFooter();
 
 const PHOTO_COUNT = 10;
-const SLIDE_SHADES = [0, 0.12, 0.24, 0.05, 0.18, 0.3, 0.02, 0.15, 0.27, 0.09];
+const SLIDE_SHADES = [0.06, 0.1, 0.08, 0.12, 0.09, 0.11, 0.02, 0.15, 0.27, 0.09];
 
 const PROP_ICONS = {
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="2.6"/><circle cx="17.5" cy="5.5" r="2.6"/><circle cx="17.5" cy="18.5" r="2.6"/><path d="M8.3 10.8 15.2 6.7M8.3 13.2l6.9 4.1"/></svg>',
   expand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>',
   zoom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5M8.5 11h5M11 8.5v5"/></svg>',
-  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
+  message: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h16v11H12l-4.5 3.8v-3.8H4z"/><path d="M8 9.5h8M8 12.5h5"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.6v6.8l5.6-3.4z"/></svg>',
   cube: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 7.3v9.4L12 21l7.5-4.3V7.3z"/><path d="M4.5 7.3 12 11.6l7.5-4.3M12 11.6V21"/></svg>',
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M12 4v7M12 11h8M12 15h-8"/></svg>',
-  pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>'
+  pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.6l5 5L19.5 6.4"/></svg>'
 };
 
 const helpBit = key => (typeof window.helpBtn === "function" ? window.helpBtn(key) : "");
 const secHead = (title, key) => `<div class="sec-head"><h2>${title}</h2>${key ? helpBit(key) : ""}</div>`;
+const checkRow = text => `<li><span class="check-ic" aria-hidden="true">${PROP_ICONS.check}</span>${text}</li>`;
 const fmtDate = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 /* ---------- load property ---------- */
@@ -27,20 +30,6 @@ const propId = new URLSearchParams(location.search).get("id") || "";
 const prop = propId ? byId(propId) : null;
 const root = $("#prop-root");
 const crumbs = $("#crumbs");
-
-if (!prop) {
-  crumbs.innerHTML = `<a href="index.html">Home</a><span class="sep" aria-hidden="true">·</span>
-    <a href="search.html">Buy</a><span class="sep" aria-hidden="true">·</span>
-    <span aria-current="page">Listing</span>`;
-  root.innerHTML = `
-    <div class="empty card" style="margin-bottom:64px">${ICONS.home}
-      <b>We could not find that listing</b>
-      <p>It may have sold, or the link may be incomplete. The search page has every home we know about.</p>
-      <a class="btn btn-primary" href="search.html">Browse homes for sale</a>
-    </div>`;
-} else {
-  buildPage(prop);
-}
 
 /* ============================================================
    page build
@@ -81,6 +70,7 @@ function buildPage(p) {
   root.innerHTML = `
     ${galleryHTML(p)}
     ${headerHTML(p)}
+    ${paymentHTML(p)}
     <div class="prop-layout">
       <div class="prop-main">
         ${overviewHTML(p, { annualTax, hoaMonthly, heating, cooling, parkingDesc, walkScore })}
@@ -89,7 +79,7 @@ function buildPage(p) {
         ${roomsHTML(p, seed)}
         ${floorPlanHTML()}
         ${locationHTML(p)}
-        ${priceHistoryHTML(p, seed)}
+        ${priceHistoryHTML(p)}
         ${nearbyHTML(p, seed)}
         ${walkScoreHTML(walkScore, walkLabel)}
         ${mediaHTML()}
@@ -102,7 +92,7 @@ function buildPage(p) {
           <div class="recent-grid" id="recent-grid"></div>
         </section>
       </div>
-      <aside class="prop-aside" aria-label="Cost estimate, agent, and tours">
+      <aside class="prop-aside" aria-label="Cost estimate, property manager, and tours">
         ${calcHTML(p)}
         ${agentHTML()}
         ${tourHTML()}
@@ -112,7 +102,7 @@ function buildPage(p) {
   initGallery(p);
   initHeaderActions(p);
   initCalc(p, { annualTax, hoaMonthly });
-  initAgentCard();
+  initAgentCard(p);
   initTourCard(p);
   renderSimilar(p);
   renderRecent(recentBefore);
@@ -129,6 +119,7 @@ function injectJsonLd(p) {
     "name": `${p.address}, ${p.city}, ${p.state} ${p.zip}`,
     "url": location.href,
     "description": p.blurb,
+    "image": (p.views || []).map(v => v.src),
     "offers": { "@type": "Offer", "price": p.price, "priceCurrency": "USD", "availability": "https://schema.org/InStock" },
     "about": {
       "@type": "Residence",
@@ -153,28 +144,51 @@ function injectJsonLd(p) {
 }
 
 /* ============================================================
-   gallery
+   gallery: six labeled photos from p.views, then reserved slots
    ============================================================ */
+const viewsOf = p => Array.isArray(p.views) ? p.views.slice(0, PHOTO_COUNT) : [];
+
 function slideHTML(p, i) {
+  const views = viewsOf(p);
+  const v = views[i];
+  if (v) {
+    return `
+      <div class="gallery-slide ${toneOf(p)}" data-i="${i}" role="group" aria-roledescription="slide" aria-label="${v.label}, photo ${i + 1} of ${PHOTO_COUNT}">
+        <div class="slide-shade" style="opacity:${SLIDE_SHADES[i]}" aria-hidden="true"></div>
+        <img class="slide-img" src="${v.src}" alt="${v.label} of ${p.address}, ${p.city}" ${i === 0 ? "" : 'loading="lazy"'} onerror="this.remove()" />
+        <span class="slide-label">${v.label}</span>
+      </div>`;
+  }
   return `
-    <div class="gallery-slide ${toneOf(p)}" data-i="${i}" role="group" aria-roledescription="slide" aria-label="Photo ${i + 1} of ${PHOTO_COUNT}">
+    <div class="gallery-slide ${toneOf(p)}" data-i="${i}" role="group" aria-roledescription="slide" aria-label="Photo ${i + 1} of ${PHOTO_COUNT}, reserved for photography">
       <div class="slide-shade" style="opacity:${SLIDE_SHADES[i]}" aria-hidden="true"></div>
       <div class="slide-ph">${ICONS.camera}<b>Photo ${i + 1} of ${PHOTO_COUNT}</b><span>Reserved for photography</span></div>
     </div>`;
 }
 
+function thumbHTML(p, i) {
+  const views = viewsOf(p);
+  const v = views[i];
+  const label = v ? v.label : `Photo ${i + 1}`;
+  return `
+    <button type="button" class="${i === 0 ? "is-active" : ""}" data-thumb="${i}" aria-label="Go to photo ${i + 1}, ${label}" aria-pressed="${i === 0}">
+      <span class="t-img ${toneOf(p)}">
+        <span class="slide-shade" style="opacity:${SLIDE_SHADES[i]}" aria-hidden="true"></span>
+        ${v
+          ? `<img src="${v.src.replace("w=1600", "w=400")}" alt="" loading="lazy" onerror="this.remove()" />`
+          : `<span class="t-num num" aria-hidden="true">${i + 1}</span>`}
+      </span>
+      <span class="t-label">${label}</span>
+    </button>`;
+}
+
 function galleryHTML(p) {
   const slides = [...Array(PHOTO_COUNT)].map((_, i) => slideHTML(p, i)).join("");
-  const thumbs = [...Array(PHOTO_COUNT)].map((_, i) => `
-    <button type="button" class="${toneOf(p)} ${i === 0 ? "is-active" : ""}" data-thumb="${i}" aria-label="Go to photo ${i + 1}" aria-pressed="${i === 0}">
-      <span class="slide-shade" style="opacity:${SLIDE_SHADES[i]}" aria-hidden="true"></span>
-      <span class="t-num num" aria-hidden="true">${i + 1}</span>
-    </button>`).join("");
+  const thumbs = [...Array(PHOTO_COUNT)].map((_, i) => thumbHTML(p, i)).join("");
   return `
     <section aria-label="Photo gallery">
       <div class="gallery" id="gallery" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Listing photos, use arrow keys to browse">
         <div class="gallery-track" id="gallery-track">${slides}</div>
-        <span class="gallery-help">${helpBit("gallery")}</span>
         <button type="button" class="gallery-nav gallery-prev" id="g-prev" aria-label="Previous photo">${ICONS.left}</button>
         <button type="button" class="gallery-nav gallery-next" id="g-next" aria-label="Next photo">${ICONS.right}</button>
         <button type="button" class="btn btn-icon glass gallery-expand" id="g-expand" aria-label="Open full-screen photo viewer">${PROP_ICONS.expand}</button>
@@ -239,6 +253,7 @@ function initGallery(p) {
   };
   track.addEventListener("pointerup", endSwipe);
   track.addEventListener("pointercancel", endSwipe);
+  track.addEventListener("dragstart", e => e.preventDefault());
 
   /* lightbox */
   function renderLightboxSlide() {
@@ -298,23 +313,27 @@ function headerHTML(p) {
   return `
     <header class="prop-head" style="margin-top:28px">
       <div>
-        <div class="prop-price num">${fmtPrice(p.price)}</div>
-        <p style="margin:6px 0 0; font-size:17px"><b>${p.address}</b> · ${p.city}, ${p.state} ${p.zip}</p>
-        <div style="margin-top:10px"><span class="badge ${BADGE_CLASS[p.status] || ""}">${p.status}</span>
-          <span class="small muted num" style="margin-left:10px">${p.dom} day${p.dom === 1 ? "" : "s"} on Havnora</span></div>
-        <div class="prop-specrow num">
-          <span><b>${p.beds}</b> beds</span>
-          <span><b>${p.baths}</b> baths</span>
-          <span><b>${fmtNum(p.sqft)}</b> sqft</span>
-          <span><b>$${perSqft(p)}</b> per sqft</span>
-          <span>Built <b>${p.yearBuilt}</b></span>
-          <span>Lot <b>${p.lot ? p.lot + " ac" : "n/a"}</b></span>
+        <h1 class="prop-addr">${p.address}</h1>
+        <p class="prop-sub">${p.neighborhood} · ${p.city}, ${p.state} ${p.zip}</p>
+        <div class="prop-meta">
+          ${p.featured ? '<span class="badge badge-featured">Featured</span>' : ""}
+          <span class="badge ${BADGE_CLASS[p.status] || ""}">${p.status}</span>
+          <span class="small muted num">${p.dom} day${p.dom === 1 ? "" : "s"} on Havnora</span>
+        </div>
+        <div class="prop-price num gold-text">${fmtPrice(p.price)}</div>
+        <div class="prop-chips num">
+          <span class="spec-chip"><b>${p.beds}</b> Beds</span>
+          <span class="spec-chip"><b>${p.baths}</b> Baths</span>
+          <span class="spec-chip"><b>${fmtNum(p.sqft)}</b> sqft</span>
+          <span class="spec-chip"><b>$${perSqft(p)}</b> per sqft</span>
+          <span class="spec-chip">Built <b>${p.yearBuilt}</b></span>
+          <span class="spec-chip">Lot <b>${p.lot ? p.lot + " ac" : "n/a"}</b></span>
         </div>
       </div>
       <div class="prop-actions">
         <button type="button" class="btn ${saved ? "is-active" : ""}" id="act-save" aria-pressed="${saved}">${ICONS.heart} ${saved ? "Saved" : "Save"}</button>
         <button type="button" class="btn" id="act-share">${PROP_ICONS.share} Share</button>
-        <button type="button" class="btn btn-brass" id="act-tour">${PROP_ICONS.calendar} Schedule tour</button>
+        <button type="button" class="btn btn-brass" id="act-message">${PROP_ICONS.message} Message manager</button>
       </div>
     </header>`;
 }
@@ -322,6 +341,7 @@ function headerHTML(p) {
 function initHeaderActions(p) {
   $("#act-save").addEventListener("click", e => {
     const added = favorites.toggle(p.id);
+    if (typeof hvApi !== "undefined") hvApi.syncFavorite(p.id, added);
     const btn = e.currentTarget;
     btn.classList.toggle("is-active", added);
     btn.setAttribute("aria-pressed", String(added));
@@ -342,10 +362,40 @@ function initHeaderActions(p) {
     }
   });
 
-  $("#act-tour").addEventListener("click", () => {
-    $("#tour-card").scrollIntoView({ behavior: "smooth", block: "center" });
-    setTimeout(() => $("#tour-card .tour-days button")?.focus(), 450);
-  });
+  $("#act-message").addEventListener("click", () => messageManagerAbout(p.id));
+}
+
+/* ============================================================
+   payment options
+   ============================================================ */
+function paymentHTML(p) {
+  return `
+    <section class="prop-section" id="payment" style="border-top:none" aria-labelledby="pay-h">
+      <div class="sec-head"><h2 id="pay-h">Payment options</h2></div>
+      <div class="pay-duo">
+        <div class="card glass pay-card">
+          <span class="pay-kicker">Down Payment</span>
+          <b class="pay-amount num gold-text">${fmtShort(p.downPayment)}</b>
+          <p class="pay-caption">Initial deposit to secure this property</p>
+          <ul class="pay-checks">
+            ${checkRow("Secure Property")}
+            ${checkRow("Flexible Payment Plan")}
+          </ul>
+          <a class="btn btn-block" style="margin-top:14px" href="payment.html?id=${p.id}&kind=down">Reserve with a down payment</a>
+        </div>
+        <div class="card glass pay-card pay-card-full">
+          <span class="pay-kicker">Full Payment</span>
+          <b class="pay-amount num gold-text">${fmtPrice(p.price)}</b>
+          <p class="pay-caption">Pay in full and save more</p>
+          <ul class="pay-checks">
+            ${checkRow("Best Price")}
+            ${checkRow("Instant Ownership")}
+          </ul>
+          <a class="btn btn-brass btn-glow btn-block" style="margin-top:14px" href="payment.html?id=${p.id}&kind=full">Proceed to full payment</a>
+        </div>
+      </div>
+      <p class="pay-note small muted">Minimum down payment on Havnora is $30,000. ${helpBit("mortgage-calculator")}</p>
+    </section>`;
 }
 
 /* ============================================================
@@ -354,7 +404,7 @@ function initHeaderActions(p) {
 function overviewHTML(p, d) {
   const spec = (label, value) => `<div class="spec"><span>${label}</span><b>${value}</b></div>`;
   return `
-    <section class="prop-section" style="border-top:none; padding-top:28px" aria-label="Overview">
+    <section class="prop-section" style="border-top:none; padding-top:8px" aria-label="Overview">
       ${secHead("Overview")}
       <div class="spec-grid">
         ${spec("Property type", p.type)}
@@ -385,34 +435,38 @@ function descriptionHTML(p) {
 
 function featuresHTML(p) {
   return `
-    <section class="prop-section" aria-label="Features">
-      ${secHead("Features")}
-      <ul class="feature-list">${p.features.map(f => `<li>${f}</li>`).join("")}</ul>
+    <section class="prop-section" aria-label="Key features">
+      ${secHead("Key features")}
+      <ul class="feat-list">${p.features.map(checkRow).join("")}</ul>
     </section>`;
 }
 
 function roomsHTML(p, seed) {
-  const dim = i => `${11 + (seed + i * 7) % 8} x ${13 + (seed + i * 13) % 9}`;
-  const rooms = [
-    ["Living room", "Main"], ["Kitchen", "Main"], ["Dining", "Main"],
-    ["Primary bedroom", p.type === "Condo" || p.beds < 3 ? "Main" : "Upper"]
-  ];
-  for (let b = 2; b <= p.beds; b++) rooms.push([`Bedroom ${b}`, p.type === "Condo" ? "Main" : "Upper"]);
-  rooms.push(["Laundry", "Main"]);
-  const row = ([name, level], i) => {
-    const [w, l] = dim(i).split(" x ").map(Number);
-    return `<tr><td><b>${name}</b></td><td>${level}</td><td class="num">${dim(i)} ft</td><td class="num">${w * l} sqft</td></tr>`;
-  };
+  let rows;
+  if (Array.isArray(p.rooms) && p.rooms.length) {
+    rows = p.rooms.map(r => {
+      const [w, l] = r.size.split(" x ").map(Number);
+      const area = w && l ? `<span class="num">${fmtNum(w * l)}</span> sqft` : "·";
+      return `<tr><td><b>${r.name}</b></td><td class="num">${r.size} ft</td><td>${area}</td></tr>`;
+    }).join("");
+  } else {
+    const dim = i => `${11 + (seed + i * 7) % 8} x ${13 + (seed + i * 13) % 9}`;
+    const names = ["Living room", "Kitchen", "Dining", "Primary bedroom", "Laundry"];
+    rows = names.map((name, i) => {
+      const [w, l] = dim(i).split(" x ").map(Number);
+      return `<tr><td><b>${name}</b></td><td class="num">${dim(i)} ft</td><td><span class="num">${fmtNum(w * l)}</span> sqft</td></tr>`;
+    }).join("");
+  }
   return `
     <section class="prop-section" aria-label="Rooms">
       ${secHead("Rooms")}
       <div class="table-wrap">
         <table class="table">
-          <thead><tr><th scope="col">Room</th><th scope="col">Level</th><th scope="col">Dimensions</th><th scope="col">Approx. area</th></tr></thead>
-          <tbody>${rooms.map(row).join("")}</tbody>
+          <thead><tr><th scope="col">Room</th><th scope="col">Dimensions</th><th scope="col">Approx. area</th></tr></thead>
+          <tbody>${rows}</tbody>
         </table>
       </div>
-      <p class="small muted" style="margin:10px 0 0">Room dimensions are placeholder estimates until the floor plan is measured.</p>
+      <p class="small muted" style="margin:10px 0 0">Room dimensions are approximate until the floor plan is professionally measured.</p>
     </section>`;
 }
 
@@ -435,14 +489,16 @@ function locationHTML(p) {
     </section>`;
 }
 
-function priceHistoryHTML(p, seed) {
-  const events = buildPriceHistory(p, seed);
+function priceHistoryHTML(p) {
+  const events = (Array.isArray(p.priceHistory) && p.priceHistory.length
+    ? [...p.priceHistory].sort((a, b) => new Date(b.date) - new Date(a.date))
+    : [{ date: new Date().toISOString().slice(0, 10), event: "Listed", price: p.price }]);
   const rows = events.map((e, i) => {
     const prev = events[i + 1];
     const change = prev && prev.price ? Math.round((e.price / prev.price - 1) * 100) : null;
     const chip = change === null ? '<span class="muted">·</span>'
       : `<span class="badge ${change < 0 ? "badge-cut" : "badge-new"}">${change > 0 ? "+" : ""}${change}%</span>`;
-    return `<tr><td class="num">${fmtDate(e.date)}</td><td><b>${e.label}</b></td><td class="num">${fmtPrice(e.price)}</td><td>${chip}</td></tr>`;
+    return `<tr><td class="num">${fmtDate(new Date(e.date + "T12:00:00"))}</td><td><b>${e.event}</b></td><td class="num">${fmtPrice(e.price)}</td><td>${chip}</td></tr>`;
   }).join("");
   return `
     <section class="prop-section" aria-label="Price history">
@@ -456,60 +512,39 @@ function priceHistoryHTML(p, seed) {
     </section>`;
 }
 
-function buildPriceHistory(p, seed) {
-  const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d; };
-  const events = [];
-  if (p.status === "Price Cut") {
-    const original = Math.round(p.price * (1.04 + (seed % 4) / 100) / 1000) * 1000;
-    events.push({ date: daysAgo(Math.max(1, Math.floor(p.dom / 2))), label: "Price cut", price: p.price });
-    events.push({ date: daysAgo(p.dom), label: "Listed for sale", price: original });
-  } else {
-    events.push({ date: daysAgo(p.dom), label: "Listed for sale", price: p.price });
-  }
-  const yearsBack = 5 + (seed % 6);
-  const soldYear = new Date().getFullYear() - yearsBack;
-  if (p.yearBuilt <= soldYear) {
-    const d = daysAgo(yearsBack * 365 + (seed % 200));
-    events.push({ date: d, label: "Sold", price: Math.round(p.price * (0.62 + (seed % 15) / 100) / 1000) * 1000 });
-  }
-  return events;
-}
-
 function nearbyHTML(p, seed) {
-  const r = o => 6 + (seed + o) % 5; /* ratings 6 to 10 */
-  const mi = o => ((seed + o) % 14 / 10 + 0.2).toFixed(1);
-  const li = (name, val) => `<li><b>${name}</b><span class="num">${val}</span></li>`;
+  const mi = o => ((seed + o) % 14 / 10 + 0.2).toFixed(1) + " mi";
+  const li = (name, sub, val) => `<li><b>${name}${sub ? `<span class="nb-sub">${sub}</span>` : ""}</b><span class="num">${val}</span></li>`;
   const chip = n => `<span class="badge ${n >= 8 ? "badge-new" : ""} num">${n}/10</span>`;
+
+  const schools = (Array.isArray(p.schools) && p.schools.length
+    ? p.schools.map(s => li(s.name, `${s.level} · ${s.distance}`, chip(s.rating)))
+    : [li("Assigned elementary", "", chip(6 + (seed + 1) % 5)), li("Assigned middle school", "", chip(6 + (seed + 3) % 5)), li("Assigned high school", "", chip(6 + (seed + 5) % 5))]).join("");
+  const transit = (Array.isArray(p.transit) && p.transit.length
+    ? p.transit.map(t => li(t.name, t.type, t.distance))
+    : [li("Nearest bus stop", "", mi(2)), li("Rail or light rail", "", mi(9)), li("Bike route access", "", mi(4))]).join("");
+  const shopping = (Array.isArray(p.shopping) && p.shopping.length
+    ? p.shopping.map(s => li(s.name, "", s.distance))
+    : [li("Grocery store", "", mi(6)), li("Coffee and cafes", "", mi(7)), li("Pharmacy", "", mi(11))]).join("");
+
   return `
     <section class="prop-section" aria-label="What's nearby">
       ${secHead("What's nearby")}
       <div class="nearby-grid">
-        <div class="card">
+        <div class="card glass">
           <h3>Schools</h3>
-          <ul class="nearby-list">
-            ${li("Assigned elementary", chip(r(1)))}
-            ${li("Assigned middle school", chip(r(3)))}
-            ${li("Assigned high school", chip(r(5)))}
-          </ul>
-          <p class="small muted" style="margin:12px 0 0">${p.district} · ratings are placeholders pending a schools data feed.</p>
+          <ul class="nearby-list">${schools}</ul>
+          <p class="small muted" style="margin:12px 0 0">${p.district} · verify enrollment boundaries with the district.</p>
         </div>
-        <div class="card">
+        <div class="card glass">
           <h3>Transit</h3>
-          <ul class="nearby-list">
-            ${li("Nearest bus stop", mi(2) + " mi")}
-            ${li("Rail or light rail", mi(9) + " mi")}
-            ${li("Bike route access", mi(4) + " mi")}
-          </ul>
-          <p class="small muted" style="margin:12px 0 0">Distances are placeholder estimates.</p>
+          <ul class="nearby-list">${transit}</ul>
+          <p class="small muted" style="margin:12px 0 0">Distances are straight-line estimates.</p>
         </div>
-        <div class="card">
+        <div class="card glass">
           <h3>Shopping</h3>
-          <ul class="nearby-list">
-            ${li("Grocery store", mi(6) + " mi")}
-            ${li("Coffee and cafes", mi(7) + " mi")}
-            ${li("Pharmacy", mi(11) + " mi")}
-          </ul>
-          <p class="small muted" style="margin:12px 0 0">Points of interest arrive with the live map.</p>
+          <ul class="nearby-list">${shopping}</ul>
+          <p class="small muted" style="margin:12px 0 0">More points of interest arrive with the live map.</p>
         </div>
       </div>
     </section>`;
@@ -519,11 +554,11 @@ function walkScoreHTML(score, label) {
   return `
     <section class="prop-section" aria-label="Walk Score">
       ${secHead("Walk Score", "walk-score")}
-      <div class="card walk-dial">
+      <div class="card glass walk-dial">
         <div class="ring" style="--score:${score}" role="img" aria-label="Walk Score ${score} out of 100"><i class="num">${score}</i></div>
         <div>
           <b>${label}</b>
-          <p class="small muted" style="margin:4px 0 0; max-width:420px">A placeholder estimate of how easily daily errands can be done on foot from this address. A live pedestrian data feed replaces it at launch.</p>
+          <p class="small muted" style="margin:4px 0 0; max-width:420px">An estimate of how easily daily errands can be done on foot from this address. A live pedestrian data feed replaces it at launch.</p>
         </div>
       </div>
     </section>`;
@@ -569,12 +604,14 @@ function renderRecent(recentIds) {
 /* ============================================================
    aside: mortgage estimate
    ============================================================ */
+const MIN_DOWN = 30000;
+
 function calcHTML(p) {
   return `
     <div class="card glass" id="calc-card">
       <div class="sec-head" style="margin-bottom:0"><h3 style="margin:0">Mortgage estimate</h3>${helpBit("mortgage-calculator")}</div>
       <div class="calc-out" aria-live="polite">
-        <b class="num" id="calc-total">$0</b>
+        <b class="num gold-text" id="calc-total">$0</b>
         <span>Estimate per month</span>
       </div>
       <form class="calc-form" id="calc-form">
@@ -584,7 +621,7 @@ function calcHTML(p) {
         </label>
         <label class="field">
           <span>Down payment · <b class="num" id="calc-dp-out"></b></span>
-          <input type="range" id="calc-dp" min="0" max="60" step="1" value="20" aria-label="Down payment percent" />
+          <input class="input num" type="number" id="calc-dp" inputmode="numeric" min="${MIN_DOWN}" step="500" value="${Math.max(MIN_DOWN, p.downPayment)}" />
         </label>
         <div class="calc-split">
           <label class="field">
@@ -601,23 +638,25 @@ function calcHTML(p) {
         </div>
       </form>
       <ul class="calc-rows num" id="calc-rows"></ul>
-      <p class="small muted" style="margin:14px 0 0">Every figure here is an estimate for planning only, not a quote or an offer of credit.</p>
+      <p class="small muted" style="margin:14px 0 0">Minimum down payment on Havnora is $30,000. Every figure here is an estimate for planning only, not a quote or an offer of credit.</p>
     </div>`;
 }
 
 function initCalc(p, d) {
   const out = $("#calc-total");
   const rows = $("#calc-rows");
+  const dpInput = $("#calc-dp");
   const dpOut = $("#calc-dp-out");
   const fmtMo = n => "$" + fmtNum(Math.round(n));
 
   function recalc() {
     const price = Math.max(0, +$("#calc-price").value || 0);
-    const dpPct = +$("#calc-dp").value;
+    const rawDown = +dpInput.value || 0;
+    const down = Math.min(Math.max(MIN_DOWN, rawDown), Math.max(MIN_DOWN, price));
+    const dpPct = price ? Math.round(down / price * 1000) / 10 : 0;
     const rate = Math.max(0, +$("#calc-rate").value || 0);
     const years = +$("#calc-term").value;
-    const down = price * dpPct / 100;
-    const loan = price - down;
+    const loan = Math.max(0, price - down);
     const r = rate / 100 / 12;
     const n = years * 12;
     const pi = n === 0 ? 0 : r ? loan * r / (1 - Math.pow(1 + r, -n)) : loan / n;
@@ -634,23 +673,27 @@ function initCalc(p, d) {
       <li><span>HOA dues (estimate)</span><b>${d.hoaMonthly ? fmtMo(d.hoaMonthly) : "$0"}</b></li>`;
   }
 
+  dpInput.addEventListener("change", () => {
+    const v = +dpInput.value || 0;
+    if (v < MIN_DOWN) { dpInput.value = MIN_DOWN; recalc(); }
+  });
   $("#calc-form").addEventListener("input", recalc);
   $("#calc-form").addEventListener("submit", e => e.preventDefault());
   recalc();
 }
 
 /* ============================================================
-   aside: agent card
+   aside: property manager card
    ============================================================ */
 function agentHTML() {
   return `
     <div class="card glass agent-card">
-      <div class="avatar" style="background:var(--brass)" aria-hidden="true">SH</div>
-      <b style="font-family:var(--font-display); font-size:19px">Your Havnora Agent</b>
-      <p class="small muted" style="margin:4px 0 16px">Matched at launch</p>
+      <div class="pm-avatar" aria-hidden="true">${LOGO_MARK}</div>
+      <b style="font-family:var(--font-display); font-size:19px">Havnora Property Manager</b>
+      <p class="small muted" style="margin:4px 0 16px">Usually replies within the hour</p>
       <div style="display:grid; gap:10px">
+        <button type="button" class="btn btn-brass btn-block" id="agent-msg">Contact Agent</button>
         <button type="button" class="btn" id="agent-info" aria-expanded="false" aria-controls="agent-form">Request info</button>
-        <button type="button" class="btn btn-primary" id="agent-tour">Schedule tour</button>
       </div>
       <form class="aside-form" id="agent-form" hidden>
         <label class="field"><span>Name</span><input class="input" type="text" id="req-name" autocomplete="name" required /></label>
@@ -661,9 +704,17 @@ function agentHTML() {
     </div>`;
 }
 
-function initAgentCard() {
+function initAgentCard(p) {
   const form = $("#agent-form");
   const infoBtn = $("#agent-info");
+  const user = store.get("user", null);
+  if (user) {
+    if (user.name) $("#req-name").value = user.name;
+    if (user.email) $("#req-email").value = user.email;
+  }
+
+  $("#agent-msg").addEventListener("click", () => messageManagerAbout(p.id));
+
   infoBtn.addEventListener("click", () => {
     form.hidden = !form.hidden;
     infoBtn.setAttribute("aria-expanded", String(!form.hidden));
@@ -671,14 +722,14 @@ function initAgentCard() {
   });
   form.addEventListener("submit", e => {
     e.preventDefault();
+    const name = $("#req-name").value.trim();
+    const email = $("#req-email").value.trim();
+    const message = $("#req-msg").value.trim() || "I would like to know more about this home.";
+    if (typeof hvApi !== "undefined") hvApi.sendInquiry({ propertyId: p.id, name, email, message });
     form.reset();
     form.hidden = true;
     infoBtn.setAttribute("aria-expanded", "false");
-    toast("Request saved, we will reach out");
-  });
-  $("#agent-tour").addEventListener("click", () => {
-    $("#tour-card").scrollIntoView({ behavior: "smooth", block: "center" });
-    setTimeout(() => $("#tour-card .tour-days button")?.focus(), 450);
+    toast("Request sent to the manager");
   });
 }
 
@@ -692,21 +743,21 @@ function tourHTML() {
     return d;
   });
   const dayBtns = days.map((d, i) => `
-    <button type="button" data-day="${d.toISOString()}" aria-pressed="${i === 0}">
+    <button type="button" data-day="${d.toISOString().slice(0, 10)}" aria-pressed="${i === 0}">
       <span>${d.toLocaleDateString("en-US", { weekday: "short" })}</span>
       <b class="num">${d.getDate()}</b>
     </button>`).join("");
   const times = ["9:00 AM", "11:00 AM", "1:00 PM", "3:00 PM", "5:00 PM"];
   return `
     <div class="card glass" id="tour-card">
-      <div class="sec-head" style="margin-bottom:14px"><h3 style="margin:0">Book a tour</h3>${helpBit("tours")}</div>
+      <div class="sec-head" style="margin-bottom:14px"><h3 style="margin:0">Book a tour</h3></div>
       <div class="tour-days" role="group" aria-label="Pick a day">${dayBtns}</div>
       <label class="field" style="margin-bottom:14px">
         <span>Time</span>
         <select class="input" id="tour-time">${times.map(t => `<option>${t}</option>`).join("")}</select>
       </label>
       <button type="button" class="btn btn-brass btn-block" id="tour-request">Request this tour</button>
-      <p class="small muted" style="margin:12px 0 0">Free, no obligation. We confirm with the listing agent, usually within the hour.</p>
+      <p class="small muted" style="margin:12px 0 0">Free, no obligation. The manager confirms your time, usually within the hour.</p>
     </div>`;
 }
 
@@ -719,7 +770,24 @@ function initTourCard(p) {
   });
   $("#tour-request").addEventListener("click", () => {
     const day = $('.tour-days button[aria-pressed="true"]', card);
-    const when = new Date(day.dataset.day).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
-    toast(`Tour requested for ${when} at ${$("#tour-time").value}. We will confirm shortly.`);
+    const date = day.dataset.day;
+    const time = $("#tour-time").value;
+    addBooking(p.id, date, time);
+    toast("Viewing requested. The manager will confirm shortly.");
   });
+}
+
+/* ---------- boot, after every declaration above is initialized ---------- */
+if (!prop) {
+  crumbs.innerHTML = `<a href="index.html">Home</a><span class="sep" aria-hidden="true">·</span>
+    <a href="search.html">Buy</a><span class="sep" aria-hidden="true">·</span>
+    <span aria-current="page">Listing</span>`;
+  root.innerHTML = `
+    <div class="empty card" style="margin-bottom:64px">${ICONS.home}
+      <b>We could not find that listing</b>
+      <p>It may have sold, or the link may be incomplete. The search page has every home we know about.</p>
+      <a class="btn btn-primary" href="search.html">Browse homes for sale</a>
+    </div>`;
+} else {
+  buildPage(prop);
 }

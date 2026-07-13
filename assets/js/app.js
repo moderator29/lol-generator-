@@ -113,7 +113,7 @@ function renderNav(current) {
       <nav class="nav-links" aria-label="Primary">
         <a href="index.html" ${current === "home" ? 'aria-current="page"' : ""}>Home</a>
         <a href="search.html" ${current === "search" ? 'aria-current="page"' : ""}>Buy</a>
-        <a href="dashboard.html?role=seller" ${current === "sell" ? 'aria-current="page"' : ""}>Sell</a>
+        <a href="dashboard.html" ${current === "sell" ? 'aria-current="page"' : ""}>Sell</a>
         <a href="dashboard.html" ${current === "dashboard" ? 'aria-current="page"' : ""}>Dashboard</a>
       </nav>
       <div class="nav-cta">
@@ -123,7 +123,7 @@ function renderNav(current) {
         ${store.get("user", null)
           ? `<a class="btn btn-ghost" href="dashboard.html" title="Your dashboard">My Havnora</a>`
           : `<a class="btn btn-ghost" href="signin.html">Sign in</a>`}
-        <a class="btn btn-primary" href="dashboard.html?role=seller">List your home</a>
+        <a class="btn btn-primary" href="dashboard.html">List your home</a>
         <button class="btn btn-icon btn-ghost nav-toggle" aria-label="Open menu" aria-expanded="false">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
@@ -178,7 +178,7 @@ function renderFooter() {
           <h4>Explore</h4>
           <div class="footer-links">
             <a href="search.html">Buy a home</a>
-            <a href="dashboard.html?role=seller">Sell a home</a>
+            <a href="dashboard.html">Sell a home</a>
             <a href="index.html#communities">Communities</a>
             <a href="index.html#faq">FAQ</a>
           </div>
@@ -188,8 +188,8 @@ function renderFooter() {
           <div class="footer-links">
             <a href="index.html#why">Why Havnora</a>
             <a href="index.html#stories">Buyer stories</a>
-            <a href="dashboard.html?role=agent">For agents</a>
-            <a href="dashboard.html?role=admin">Admin</a>
+            <a href="dashboard.html">For agents</a>
+            <a href="dashboard.html">Admin</a>
           </div>
         </div>
         <div>
@@ -320,4 +320,44 @@ function trackViewed(id) {
   const list = store.get("recent", []).filter(x => x !== id);
   list.unshift(id);
   store.set("recent", list.slice(0, 8));
+}
+
+/* ---------- bookings + manager conversations (local-first) ---------- */
+function getBookings() { return store.get("bookings", []); }
+function addBooking(propertyId, date, time, note) {
+  const list = getBookings();
+  const booking = { id: "b" + Date.now(), propertyId, date, time, note: note || "", status: "pending", createdAt: Date.now() };
+  list.unshift(booking);
+  store.set("bookings", list);
+  if (typeof hvApi !== "undefined") hvApi.bookViewing(propertyId, date, time, note);
+  return booking;
+}
+
+function getConversations() { return store.get("conversations", []); }
+function saveConversations(list) { store.set("conversations", list); }
+/* find or create the conversation for a property, then open the chat */
+function messageManagerAbout(propertyId) {
+  const list = getConversations();
+  let convo = propertyId ? list.find(c => c.propertyId === propertyId) : null;
+  if (!convo) {
+    const p = propertyId ? byId(propertyId) : null;
+    convo = {
+      id: "c" + Date.now(),
+      propertyId: propertyId || null,
+      subject: p ? `${p.address}, ${p.city}` : "General inquiry",
+      createdAt: Date.now(),
+      messages: []
+    };
+    list.unshift(convo);
+    saveConversations(list);
+    if (typeof hvApi !== "undefined") {
+      hvApi.startConversation(propertyId, convo.subject).then(remote => {
+        if (!remote) return;
+        const l = getConversations();
+        const c = l.find(x => x.id === convo.id);
+        if (c) { c.remoteId = remote.id; saveConversations(l); }
+      });
+    }
+  }
+  location.href = "messages.html?c=" + convo.id;
 }

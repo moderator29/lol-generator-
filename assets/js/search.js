@@ -1,5 +1,5 @@
-/* Search page: filter form (sidebar + mobile drawer), URL-synced state,
-   sorting, results grid, and map placeholder pins. */
+/* Search page: top filter bar, full filter drawer, URL-synced state,
+   sorting, grid/list view toggle, results, and map placeholder pins. */
 
 renderNav("search");
 renderFooter();
@@ -7,9 +7,18 @@ renderFooter();
 const TYPES = ["Single-Family", "Condo", "Townhouse", "Multi-Family"];
 const STATUSES = ["For Sale", "New Listing", "Open House", "Pending", "Price Cut"];
 
+/* Preset price ranges for the top bar (max price anywhere is 800000) */
+const PRICE_RANGES = [
+  { v: "any", label: "Any Price", min: "", max: "" },
+  { v: "u300", label: "Under 300K", min: "", max: "300000" },
+  { v: "300-500", label: "300K to 500K", min: "300000", max: "500000" },
+  { v: "500-650", label: "500K to 650K", min: "500000", max: "650000" },
+  { v: "650-800", label: "650K to 800K", min: "650000", max: "800000" }
+];
+
 /* ---------- filter state ---------- */
 const defaults = () => ({
-  q: "", min: "", max: "", beds: 0, baths: 0, types: [], status: "",
+  q: "", city: "", min: "", max: "", beds: 0, baths: 0, types: [], status: "",
   sqftMin: "", lotMin: "", garage: false, pool: false,
   yearMin: "", yearMax: "", district: "", neighborhood: "", sort: "recommended"
 });
@@ -18,7 +27,7 @@ let state = defaults();
 function readURL() {
   const p = new URLSearchParams(location.search);
   const s = defaults();
-  for (const k of ["q", "min", "max", "sqftMin", "lotMin", "yearMin", "yearMax", "district", "neighborhood", "status", "sort"])
+  for (const k of ["q", "city", "min", "max", "sqftMin", "lotMin", "yearMin", "yearMax", "district", "neighborhood", "status", "sort"])
     if (p.has(k)) s[k] = p.get(k);
   if (p.has("beds")) s.beds = +p.get("beds") || 0;
   if (p.has("baths")) s.baths = +p.get("baths") || 0;
@@ -39,7 +48,52 @@ function writeURL() {
   history.replaceState(null, "", p.size ? "?" + p : location.pathname);
 }
 
-/* ---------- filter form ---------- */
+/* ---------- top filter bar ---------- */
+function initBar() {
+  $("#fb-type").innerHTML = `<option value="">All Types</option>` +
+    TYPES.map(t => `<option value="${t}">${t}</option>`).join("");
+  $("#fb-city").innerHTML = `<option value="">All Locations</option>` +
+    CITIES.map(c => `<option value="${c}">${c}</option>`).join("");
+  $("#fb-price").innerHTML = PRICE_RANGES.map(r =>
+    `<option value="${r.v}">${r.label}</option>`).join("");
+  $("#fb-beds").innerHTML = `<option value="0">Any Beds</option>` +
+    [1, 2, 3, 4, 5].map(n => `<option value="${n}">${n}+ Beds</option>`).join("");
+
+  $("#fb-type").addEventListener("change", e => {
+    state.types = e.target.value ? [e.target.value] : [];
+    apply();
+  });
+  $("#fb-city").addEventListener("change", e => { state.city = e.target.value; apply(); });
+  $("#fb-price").addEventListener("change", e => {
+    const r = PRICE_RANGES.find(x => x.v === e.target.value);
+    if (r) { state.min = r.min; state.max = r.max; }
+    syncBar();
+    apply();
+  });
+  $("#fb-beds").addEventListener("change", e => { state.beds = +e.target.value || 0; apply(); });
+}
+
+function syncBar() {
+  const type = $("#fb-type"), city = $("#fb-city"), price = $("#fb-price"), beds = $("#fb-beds");
+  type.value = state.types.length === 1 ? state.types[0] : "";
+  city.value = CITIES.includes(state.city) ? state.city : "";
+  const r = PRICE_RANGES.find(x => String(state.min || "") === x.min && String(state.max || "") === x.max);
+  let custom = $("option[value='custom']", price);
+  if (r) {
+    if (custom) custom.remove();
+    price.value = r.v;
+  } else {
+    if (!custom) price.insertAdjacentHTML("beforeend", `<option value="custom">Custom price</option>`);
+    price.value = "custom";
+  }
+  beds.value = String(state.beds || 0);
+  type.classList.toggle("is-set", !!type.value);
+  city.classList.toggle("is-set", !!city.value);
+  price.classList.toggle("is-set", price.value !== "any");
+  beds.classList.toggle("is-set", beds.value !== "0");
+}
+
+/* ---------- drawer filter form (More Filters) ---------- */
 function segButtons(name, current) {
   return `<div class="seg" role="group" aria-label="Minimum ${name}">
     ${[0, 1, 2, 3, 4, 5].map(n =>
@@ -54,20 +108,7 @@ function filterFormHTML() {
       <b>Keywords</b>
       <input class="input" type="search" data-f="q" value="${state.q.replace(/"/g, "&quot;")}" placeholder="City, ZIP, address, feature…" aria-label="Keywords" />
     </div>
-    <div class="filter-group">
-      <b>Price</b>
-      <div class="range-row">
-        <input class="input num" type="number" inputmode="numeric" data-f="min" value="${state.min}" placeholder="Min" aria-label="Minimum price" min="0" step="10000" />
-        <span>to</span>
-        <input class="input num" type="number" inputmode="numeric" data-f="max" value="${state.max}" placeholder="Max" aria-label="Maximum price" min="0" step="10000" />
-      </div>
-    </div>
-    <div class="filter-group"><b>Bedrooms</b>${segButtons("beds", state.beds)}</div>
     <div class="filter-group"><b>Bathrooms</b>${segButtons("baths", state.baths)}</div>
-    <div class="filter-group">
-      <b>Property type</b>
-      ${TYPES.map(t => `<label class="check"><input type="checkbox" data-type="${t}" ${state.types.includes(t) ? "checked" : ""}/> ${t}</label>`).join("")}
-    </div>
     <div class="filter-group">
       <b>Size & lot</b>
       <div class="range-row" style="grid-template-columns:1fr 1fr; margin-bottom:8px">
@@ -111,17 +152,14 @@ function filterFormHTML() {
     </div>`;
 }
 
-function bindFilterForm(host, live) {
+function bindFilterForm(host) {
   host.innerHTML = filterFormHTML();
+  if (host.dataset.bound) return; /* delegation listeners attach once; re-renders only swap markup */
+  host.dataset.bound = "1";
   host.addEventListener("input", e => {
     const f = e.target.dataset.f;
     if (f) state[f] = e.target.value;
     if (e.target.dataset.fBool) state[e.target.dataset.fBool] = e.target.checked;
-    if (e.target.dataset.type) {
-      const t = e.target.dataset.type;
-      state.types = e.target.checked ? [...state.types, t] : state.types.filter(x => x !== t);
-    }
-    if (live) apply();
   });
   host.addEventListener("click", e => {
     const seg = e.target.closest("[data-seg]");
@@ -129,12 +167,12 @@ function bindFilterForm(host, live) {
       state[seg.dataset.seg] = +seg.dataset.val;
       $$(`[data-seg="${seg.dataset.seg}"]`, host).forEach(b =>
         b.setAttribute("aria-pressed", String(b === seg)));
-      if (live) apply();
     }
     if (e.target.closest("[data-reset]")) {
+      const sort = state.sort;
       state = defaults();
-      bindFilterForm(host, live);
-      if (live) apply();
+      state.sort = sort;
+      bindFilterForm(host);
     }
   });
 }
@@ -146,6 +184,7 @@ function matches(p) {
     const hay = [p.address, p.city, p.state, p.zip, p.neighborhood, p.type, p.blurb, ...p.features].join(" ").toLowerCase();
     if (!q.split(/\s+/).every(word => hay.includes(word))) return false;
   }
+  if (state.city && `${p.city}, ${p.state}` !== state.city) return false;
   if (state.min && p.price < +state.min) return false;
   if (state.max && p.price > +state.max) return false;
   if (state.beds && p.beds < state.beds) return false;
@@ -183,11 +222,24 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)");
 const escapeHTML = s => String(s).replace(/[&<>"]/g,
   c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+/* ---------- grid / list view toggle ---------- */
+let view = store.get("searchView", "grid");
+function setView(v) {
+  view = v === "list" ? "list" : "grid";
+  store.set("searchView", view);
+  resultsEl.classList.toggle("is-list", view === "list");
+  $("#view-grid").setAttribute("aria-pressed", String(view === "grid"));
+  $("#view-list").setAttribute("aria-pressed", String(view === "list"));
+}
+$("#view-grid").addEventListener("click", () => setView("grid"));
+$("#view-list").addEventListener("click", () => setView("list"));
+
 /* ---------- active-filter chips ---------- */
 function chipList() {
   const chips = [];
   const add = (key, label, val) => chips.push({ key, label, val });
   if (state.q.trim()) add("q", `"${state.q.trim()}"`);
+  if (state.city) add("city", state.city);
   if (state.min) add("min", `Min ${fmtPrice(+state.min)}`);
   if (state.max) add("max", `Max ${fmtPrice(+state.max)}`);
   if (state.beds) add("beds", `${state.beds}+ beds`);
@@ -230,7 +282,7 @@ chipsEl.addEventListener("click", e => {
   if (!clear && !chip) return;
   if (clear) { const sort = state.sort; state = defaults(); state.sort = sort; }
   else removeChip(chip.dataset.chip, chip.dataset.chipval);
-  bindSidebar();
+  syncBar();
   apply();
 });
 
@@ -252,7 +304,7 @@ function apply() {
 }
 
 /* Deterministic pseudo-position for map pins (placeholder for real geo) */
-function pinPos(p, i, total) {
+function pinPos(p) {
   const hash = [...p.id].reduce((a, c) => a * 31 + c.charCodeAt(0), 7);
   return {
     left: 8 + ((hash % 89) * 0.94),
@@ -266,7 +318,7 @@ function render() {
   writeURL();
   renderChips();
 
-  countEl.textContent = `${list.length} home${list.length === 1 ? "" : "s"} · placeholder listings`;
+  countEl.textContent = `${list.length} home${list.length === 1 ? "" : "s"} for sale`;
   $("#results-title").innerHTML = state.q
     ? `Homes matching <span class="text-aurora">${escapeHTML(state.q)}</span>`
     : "Homes for sale";
@@ -279,8 +331,10 @@ function render() {
       <p>Try widening the price range or clearing a filter or two.</p>
       <button class="btn btn-primary" id="empty-reset">Reset filters</button></div>`;
     $("#empty-reset").addEventListener("click", () => {
+      const sort = state.sort;
       state = defaults();
-      bindFilterForm($("#filters-host"), true);
+      state.sort = sort;
+      syncBar();
       apply();
     });
   } else {
@@ -305,7 +359,7 @@ function render() {
   $$(".map-pin", mapEl).forEach(el => el.remove());
   $("#map-note").style.display = list.length ? "none" : "";
   list.slice(0, 14).forEach((p, i) => {
-    const pos = pinPos(p, i, list.length);
+    const pos = pinPos(p);
     const pin = document.createElement("button");
     pin.className = "map-pin num";
     if (!instant) {
@@ -359,16 +413,16 @@ $("#save-search").addEventListener("click", () => {
   const name = chipList().map(c => c.label).join(" · ") || "All homes";
   saved.unshift({ name, query, savedAt: new Date().toISOString() });
   store.set("savedSearches", saved.slice(0, 20));
-  toast("Search saved · see your dashboard");
+  toast("Search saved on this device");
 });
 
-/* ---------- mobile drawer ---------- */
+/* ---------- filter drawer (all viewports) ---------- */
 const drawer = $("#filter-drawer");
 const scrim = $("#scrim");
 function openDrawer() {
   drawer.hidden = false; scrim.hidden = false;
   requestAnimationFrame(() => { drawer.classList.add("is-open"); scrim.classList.add("is-on"); });
-  bindFilterForm($("#drawer-host"), false);
+  bindFilterForm($("#drawer-host"));
   $("#close-filters").focus();
 }
 function closeDrawer() {
@@ -381,20 +435,23 @@ $("#close-filters").addEventListener("click", closeDrawer);
 scrim.addEventListener("click", closeDrawer);
 addEventListener("keydown", e => { if (e.key === "Escape" && !drawer.hidden) closeDrawer(); });
 $("#drawer-apply").addEventListener("click", () => {
-  bindSidebar();
+  syncBar();
   apply();
   closeDrawer();
 });
 $("#drawer-reset").addEventListener("click", () => {
+  const sort = state.sort;
   state = defaults();
-  bindFilterForm($("#drawer-host"), false);
+  state.sort = sort;
+  bindFilterForm($("#drawer-host"));
 });
 
 /* ---------- init ---------- */
-function bindSidebar() { bindFilterForm($("#filters-host"), true); }
 state = readURL();
 $("#sort").value = state.sort;
 $("#sort").addEventListener("change", e => { state.sort = e.target.value; apply(); });
-bindSidebar();
+initBar();
+syncBar();
+setView(view);
 render(); /* first paint is instant; skeletons only cover later filter changes */
 observeReveals();

@@ -1,5 +1,5 @@
-/* Landing page: hero, 30 listing cards, communities, pillars, stats,
-   testimonials, FAQ. */
+/* Landing page: photo-first hero, featured-first listing grid, payment
+   explainers, community photo tiles, pillars, stats, testimonials, FAQ. */
 
 renderNav("home");
 renderFooter();
@@ -15,29 +15,41 @@ $("#hero-search").addEventListener("submit", e => {
 
 /* popular search chips */
 const chipWrap = $("#hero-chips");
-["Austin, TX", "Denver, CO", "Homes with pools", "Under $750K", "New listings"].forEach(label => {
+["Austin, TX", "Denver, CO", "Homes with pools", "Under $800K", "New listings"].forEach(label => {
   const a = document.createElement("a");
   a.className = "chip";
   a.textContent = label;
   a.href = "search.html?" + (
     label === "Homes with pools" ? "pool=1" :
-    label === "Under $750K" ? "max=750000" :
+    label === "Under $800K" ? "max=800000" :
     label === "New listings" ? "status=New%20Listing" :
     "q=" + encodeURIComponent(label.split(",")[0]));
   chipWrap.appendChild(a);
 });
 
-/* interactive hero property: featured card + gentle pointer tilt */
-const heroProp = PROPERTIES[21]; // La Jolla contemporary
+/* full-bleed hero photo: a featured home's front view under the scrim */
+const heroBgProp = byId("sh-001") || PROPERTIES.find(p => p.featured) || PROPERTIES[0];
+if (heroBgProp?.images?.front) {
+  $("#hero-photo").innerHTML =
+    `<img src="${heroBgProp.images.front.replace("w=1600", "w=2000")}" alt="" fetchpriority="high" onerror="this.remove()" />`;
+}
+
+/* interactive hero property: featured card with real photo + pay buttons */
+const heroProp = byId("sh-022") || PROPERTIES.find(p => p.featured) || PROPERTIES[0];
 const heroCard = $("#hero-card");
 heroCard.innerHTML = `
   <a class="pc-media ${toneOf(heroProp)}" href="property.html?id=${heroProp.id}" aria-label="View featured home: ${heroProp.address}, ${heroProp.city}">
-    <span class="pc-art">${ICONS.home}</span>
+    ${heroProp.images?.front ? `<img class="pc-img" src="${heroProp.images.front.replace("w=1600", "w=1200")}" alt="" onerror="this.remove()" />` : `<span class="pc-art">${ICONS.home}</span>`}
+    <span class="pc-badges"><span class="badge badge-featured">Featured</span></span>
   </a>
   <div class="hero-card-info glass">
     <div class="pc-price num">${fmtPrice(heroProp.price)}</div>
     <div class="pc-specs num">${specHTML(heroProp)}</div>
     <div class="small muted">${heroProp.address} · ${heroProp.city}, ${heroProp.state}</div>
+    <div class="pay-row">
+      <a class="pay-btn pay-down" href="property.html?id=${heroProp.id}#payment"><b class="num">${fmtShort(heroProp.downPayment)}</b><span>Down Payment</span></a>
+      <a class="pay-btn pay-full" href="property.html?id=${heroProp.id}#payment"><b class="num">${fmtShort(heroProp.price)}</b><span>Full Payment</span></a>
+    </div>
   </div>`;
 
 const stage = $(".hero-stage");
@@ -84,20 +96,34 @@ function staggerReveal(els, step, cap) {
   });
 }
 
-/* 30 listing cards */
+/* all 30 homes: featured properties first, then the rest */
 const grid = $("#listing-grid");
-PROPERTIES.forEach(p => grid.appendChild(propertyCard(p)));
+const ordered = [...PROPERTIES.filter(p => p.featured), ...PROPERTIES.filter(p => !p.featured)];
+ordered.forEach(p => grid.appendChild(propertyCard(p)));
 staggerReveal($$(".property-card", grid), 40, 400);
 staggerReveal($$(".how-step"), 120, 400);
 
-/* communities */
+/* communities: each city's best front photo behind the gradient,
+   deduped so neighboring tiles never repeat an image */
+const usedCityPhotos = new Set();
+function cityPhoto(city) {
+  const homes = PROPERTIES.filter(p => p.city === city);
+  const candidates = [...homes.filter(p => p.featured), ...homes.filter(p => !p.featured)];
+  const pick = candidates.find(p => p.images?.front && !usedCityPhotos.has(p.images.front)) || candidates[0];
+  if (!pick?.images?.front) return "";
+  usedCityPhotos.add(pick.images.front);
+  return pick.images.front.replace("w=1600", "w=900");
+}
 const communityGrid = $("#community-grid");
 COMMUNITIES.forEach(c => {
   const count = PROPERTIES.filter(p => p.city === c.city).length;
+  const photo = cityPhoto(c.city);
   const a = document.createElement("a");
   a.className = `community tone-${c.tone} reveal`;
   a.href = "search.html?q=" + encodeURIComponent(c.city);
-  a.innerHTML = `<div class="community-info"><b>${c.city}, ${c.state}</b><span>${c.note} · ${count} listing${count === 1 ? "" : "s"}</span></div>`;
+  a.innerHTML = `
+    ${photo ? `<img src="${photo}" alt="" loading="lazy" onerror="this.remove()" />` : ""}
+    <div class="community-info"><b>${c.city}, ${c.state}</b><span>${c.note} · ${count} listing${count === 1 ? "" : "s"}</span></div>`;
   communityGrid.appendChild(a);
 });
 staggerReveal($$(".community", communityGrid), 80, 400);

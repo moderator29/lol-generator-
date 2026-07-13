@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sign in · Havnora</title>
-  <meta name="description" content="Sign in to Havnora with a secure magic link. No passwords, ever. Save homes, track searches, and pick up right where you left off." />
+  <meta name="description" content="Sign in to Havnora. Save homes, book viewings, and pick up right where you left off." />
   <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,20 +21,20 @@
       overflow: hidden;
     }
 
-    /* aurora backdrop: soft pastel on paper, luminous on ink */
+    /* aurora backdrop: warm gold light on ink, soft champagne on paper */
     .auth-aurora { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
     .auth-aurora i {
-      position: absolute; display: block; border-radius: 50%;
+      position: absolute; display: block;
       filter: blur(70px); opacity: 0.5;
       animation: auth-drift 26s var(--ease) infinite alternate;
     }
-    .au-1 { width: 520px; height: 520px; top: -160px; left: -120px; background: radial-gradient(circle, rgba(139, 118, 209, 0.30), transparent 70%); }
-    .au-2 { width: 460px; height: 460px; bottom: -140px; right: -100px; background: radial-gradient(circle, rgba(94, 148, 148, 0.28), transparent 70%); animation-delay: -9s; animation-duration: 32s; }
-    .au-3 { width: 420px; height: 420px; top: 30%; left: 55%; background: radial-gradient(circle, rgba(179, 131, 62, 0.24), transparent 70%); animation-delay: -18s; animation-duration: 38s; }
-    [data-theme="dark"] .auth-aurora i { opacity: 0.65; }
-    [data-theme="dark"] .au-1 { background: radial-gradient(circle, rgba(124, 96, 224, 0.34), transparent 70%); }
-    [data-theme="dark"] .au-2 { background: radial-gradient(circle, rgba(64, 168, 168, 0.28), transparent 70%); }
-    [data-theme="dark"] .au-3 { background: radial-gradient(circle, rgba(217, 174, 99, 0.26), transparent 70%); }
+    .au-1 { width: 520px; height: 520px; top: -160px; left: -120px; background: radial-gradient(circle, rgba(228, 193, 115, 0.26), transparent 70%); }
+    .au-2 { width: 460px; height: 460px; bottom: -140px; right: -100px; background: radial-gradient(circle, rgba(199, 154, 62, 0.22), transparent 70%); animation-delay: -9s; animation-duration: 32s; }
+    .au-3 { width: 420px; height: 420px; top: 30%; left: 55%; background: radial-gradient(circle, rgba(179, 131, 62, 0.18), transparent 70%); animation-delay: -18s; animation-duration: 38s; }
+    [data-theme="dark"] .auth-aurora i { opacity: 0.6; }
+    [data-theme="dark"] .au-1 { background: radial-gradient(circle, rgba(228, 193, 115, 0.20), transparent 70%); }
+    [data-theme="dark"] .au-2 { background: radial-gradient(circle, rgba(199, 154, 62, 0.18), transparent 70%); }
+    [data-theme="dark"] .au-3 { background: radial-gradient(circle, rgba(217, 174, 99, 0.16), transparent 70%); }
     @keyframes auth-drift {
       0% { transform: translate(0, 0) scale(1); }
       50% { transform: translate(60px, -40px) scale(1.08); }
@@ -104,6 +104,18 @@
       border-color: var(--rust); box-shadow: 0 0 0 3px var(--rust-soft);
     }
     .auth-error { margin: -6px 0 0; font-size: 13px; color: var(--rust); }
+
+    /* password field with show and hide toggle */
+    .pw-wrap { position: relative; }
+    .pw-wrap input { width: 100%; padding-right: 76px; }
+    .pw-toggle {
+      position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+      min-height: 32px; padding: 4px 12px; border-radius: 8px;
+      font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+      border: 1px solid var(--line); background: var(--glass);
+      transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+    }
+    .pw-toggle:hover { color: var(--brass); border-color: var(--brass); }
 
     /* glowing brass primary */
     .btn-glow {
@@ -181,8 +193,22 @@
             placeholder="you@example.com" spellcheck="false" aria-describedby="email-error" />
         </label>
         <p class="auth-error" id="email-error" hidden>Enter a valid email address, like you@example.com.</p>
+
+        <div class="field">
+          <span><label for="password">Password</label></span>
+          <div class="pw-wrap">
+            <input id="password" name="password" type="password" required autocomplete="current-password"
+              placeholder="Your password" aria-describedby="pw-error" />
+            <button class="pw-toggle" id="pw-toggle" type="button" aria-pressed="false"
+              aria-label="Show password">Show</button>
+          </div>
+        </div>
+        <p class="auth-error" id="pw-error" hidden>Enter your password.</p>
+
+        <p class="auth-error" id="form-error" role="alert" hidden></p>
+
         <button class="btn btn-brass btn-glow btn-block" id="submit-btn" type="submit">
-          <span id="submit-label">Continue with email</span>
+          <span>Sign in</span>
         </button>
       </form>
 
@@ -199,7 +225,7 @@
         </button>
       </div>
 
-      <p class="auth-note">We will email you a secure magic link. No passwords, ever.</p>
+      <p class="auth-note">Protected by Supabase Auth. We never store your password.</p>
       <p class="auth-terms">By continuing, you agree to our <a href="#" data-soon>Terms of Service</a> and <a href="#" data-soon>Privacy Policy</a>.</p>
     </section>
   </main>
@@ -207,72 +233,103 @@
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/help.js"></script>
+  <script src="assets/js/hv-api.js"></script>
   <script>
     renderNav("");
     renderFooter();
 
     $("#auth-logo").innerHTML = LOGO_MARK;
 
-    /* ---------- mode toggle ---------- */
-    const COPY = {
-      signin: {
-        sub: "Good to see you again. Your saved homes are right where you left them.",
-        cta: "Continue with email"
-      },
-      create: {
-        sub: "One email is all it takes. A calmer home search starts here.",
-        cta: "Create account with email"
-      }
-    };
-    let mode = "signin";
-    const modeBtns = { signin: $("#mode-signin"), create: $("#mode-create") };
-    const subEl = $("#auth-sub");
-    const submitLabel = $("#submit-label");
+    /* ---------- cross-page toggle ---------- */
+    $("#mode-signin").addEventListener("click", () => { /* already here */ });
+    $("#mode-create").addEventListener("click", () => { location.href = "signup.html"; });
 
-    function setMode(next) {
-      mode = next;
-      for (const key of Object.keys(modeBtns)) {
-        modeBtns[key].setAttribute("aria-pressed", String(key === next));
-      }
-      subEl.textContent = COPY[next].sub;
-      submitLabel.textContent = COPY[next].cta;
-    }
-    modeBtns.signin.addEventListener("click", () => setMode("signin"));
-    modeBtns.create.addEventListener("click", () => { location.href = "signup.html"; });
-
-    /* ---------- email form ---------- */
+    /* ---------- form elements ---------- */
     const form = $("#auth-form");
     const emailInput = $("#email");
-    const errorEl = $("#email-error");
+    const pwInput = $("#password");
+    const emailError = $("#email-error");
+    const pwError = $("#pw-error");
+    const formError = $("#form-error");
     const submitBtn = $("#submit-btn");
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     let sending = false;
 
-    function setError(on) {
-      errorEl.hidden = !on;
-      emailInput.setAttribute("aria-invalid", String(on));
-    }
-    emailInput.addEventListener("input", () => setError(false));
+    /* show and hide password */
+    const pwToggle = $("#pw-toggle");
+    pwToggle.addEventListener("click", () => {
+      const show = pwInput.type === "password";
+      pwInput.type = show ? "text" : "password";
+      pwToggle.textContent = show ? "Hide" : "Show";
+      pwToggle.setAttribute("aria-pressed", String(show));
+      pwToggle.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      pwInput.focus();
+    });
 
-    form.addEventListener("submit", e => {
+    function setFieldError(input, errEl, on) {
+      errEl.hidden = !on;
+      input.setAttribute("aria-invalid", String(on));
+    }
+    function setFormError(msg) {
+      formError.textContent = msg || "";
+      formError.hidden = !msg;
+    }
+    emailInput.addEventListener("input", () => { setFieldError(emailInput, emailError, false); setFormError(""); });
+    pwInput.addEventListener("input", () => { setFieldError(pwInput, pwError, false); setFormError(""); });
+
+    function setBusy(on, label) {
+      sending = on;
+      submitBtn.disabled = on;
+      submitBtn.setAttribute("aria-busy", String(on));
+      submitBtn.innerHTML = on
+        ? '<span class="btn-spin" aria-hidden="true"></span><span>' + label + '</span>'
+        : "<span>Sign in</span>";
+    }
+
+    function friendlyError(err) {
+      const code = err?.body?.error_code || err?.body?.code || "";
+      const msg = String(err?.message || "").toLowerCase();
+      if (code === "invalid_credentials" || msg.includes("invalid login")) {
+        return "That email and password do not match our records. Check them and try again.";
+      }
+      if (code === "email_not_confirmed" || msg.includes("not confirmed")) {
+        return "Your email is not confirmed yet. Open the confirmation link in your inbox, then sign in.";
+      }
+      if (msg.includes("rate limit") || err?.status === 429) {
+        return "Too many attempts. Wait a moment, then try again.";
+      }
+      if (err instanceof TypeError || msg.includes("failed to fetch") || msg.includes("network")) {
+        return "We could not reach the sign-in service. Check your connection and try again.";
+      }
+      return "Something went wrong on our end. Try again in a moment.";
+    }
+
+    form.addEventListener("submit", async e => {
       e.preventDefault();
       if (sending) return;
       form.classList.add("was-tried");
-      const email = emailInput.value.trim();
-      if (!emailInput.checkValidity() || !EMAIL_RE.test(email)) {
-        setError(true);
-        emailInput.focus();
-        return;
-      }
-      setError(false);
-      sending = true;
-      submitBtn.disabled = true;
-      submitBtn.setAttribute("aria-busy", "true");
-      submitBtn.innerHTML = '<span class="btn-spin" aria-hidden="true"></span><span>Sending your link</span>';
+      setFormError("");
 
-      store.set("user", { email });
-      toast("Check your inbox at launch. Demo continues to your dashboard.");
-      setTimeout(() => { location.href = "dashboard.html"; }, 900);
+      const email = emailInput.value.trim();
+      const password = pwInput.value;
+      let bad = false;
+      if (!EMAIL_RE.test(email)) { setFieldError(emailInput, emailError, true); bad = true; }
+      if (!password) { setFieldError(pwInput, pwError, true); bad = true; }
+      if (bad) { (EMAIL_RE.test(email) ? pwInput : emailInput).focus(); return; }
+
+      setBusy(true, "Signing you in");
+      try {
+        const session = await hvAuth.signIn(email, password);
+        const name = session?.user?.user_metadata?.full_name || "";
+        const user = { email, id: hvSession.user()?.id };
+        if (name) user.name = name;
+        store.set("user", user);
+        toast("Welcome home.");
+        setTimeout(() => { location.href = "dashboard.html"; }, 600);
+      } catch (err) {
+        setBusy(false);
+        setFormError(friendlyError(err));
+      }
     });
 
     /* ---------- providers + placeholder links ---------- */
