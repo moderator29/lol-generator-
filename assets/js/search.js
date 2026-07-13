@@ -355,9 +355,14 @@ function render() {
     });
   }
 
+  /* live MapLibre map takes over when available; fallback pins otherwise */
+  document.dispatchEvent(new CustomEvent("hv:results", { detail: list }));
+  if (window.HV_MAP_LIVE) return;
+
   /* map pins */
   $$(".map-pin", mapEl).forEach(el => el.remove());
-  $("#map-note").style.display = list.length ? "none" : "";
+  const note = $("#map-note");
+  if (note) note.style.display = list.length ? "none" : "";
   list.slice(0, 14).forEach((p, i) => {
     const pos = pinPos(p);
     const pin = document.createElement("button");

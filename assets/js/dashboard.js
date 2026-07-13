@@ -420,6 +420,34 @@ function renderFavoritesView() {
         </div>`}`;
   if (saved.length) paintPropertyGrid(saved, $("#fav-grid", dashMain), "");
   else $("#fav-cta", dashMain).addEventListener("click", () => switchView("properties"));
+
+  /* saved searches with one-tap re-run */
+  const searches = store.get("savedSearches", []);
+  dashMain.insertAdjacentHTML("beforeend", `
+    <div class="card glass dv" style="margin-top:20px">
+      <div class="card-head"><h2>Saved Searches</h2>${typeof helpBtn === "function" ? helpBtn("saved-searches") : ""}</div>
+      ${searches.length ? `<div id="ss-list" style="display:grid; gap:10px"></div>`
+        : `<p class="muted small" style="margin:0">Dial in filters on the search page and tap "Save this search". It will live here with one-tap re-run.</p>`}
+    </div>`);
+  if (searches.length) {
+    $("#ss-list", dashMain).innerHTML = searches.map((s, i) => `
+      <div style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--line); border-radius:12px">
+        <div style="flex:1; min-width:0">
+          <b style="display:block; font-size:14.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${s.name}</b>
+          <span class="small muted num">Saved ${new Date(s.savedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+        </div>
+        <span class="badge badge-new">Alerts on</span>
+        <a class="btn btn-sm" href="search.html${s.query ? "?" + s.query : ""}">Run</a>
+        <button type="button" class="btn btn-sm btn-ghost" data-ss-del="${i}" aria-label="Delete saved search">${ICONS.close}</button>
+      </div>`).join("");
+    $$("[data-ss-del]", dashMain).forEach(b => b.addEventListener("click", () => {
+      const list = store.get("savedSearches", []);
+      list.splice(+b.dataset.ssDel, 1);
+      store.set("savedSearches", list);
+      refreshView();
+      toast("Saved search removed");
+    }));
+  }
 }
 
 /* ---------- view: bookings ---------- */
@@ -808,3 +836,20 @@ renderDetails(PROPERTIES.find(p => p.featured) || PROPERTIES[0]);
 
 const requestedView = new URLSearchParams(location.search).get("view");
 switchView(VIEWS[requestedView] ? requestedView : "dashboard", true);
+
+/* ---------- cloud sync: pull favorites saved on other devices ---------- */
+(async () => {
+  if (typeof hvSession === "undefined" || !hvSession.get()) return;
+  try {
+    const rows = await hvDb.select("favorites", "select=property_id");
+    if (!Array.isArray(rows) || !rows.length) return;
+    const local = new Set(favorites.all());
+    let added = 0;
+    rows.forEach(r => { if (!local.has(r.property_id)) { local.add(r.property_id); added++; } });
+    if (added) {
+      store.set("favorites", [...local]);
+      if (["dashboard", "favorites"].includes(currentView)) refreshView();
+      toast(`${added} saved home${added === 1 ? "" : "s"} synced from your account`);
+    }
+  } catch { /* offline: local list stands */ }
+})();
