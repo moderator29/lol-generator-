@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/social/avatar";
 import { RichBody } from "@/components/social/rich-body";
+import { Icon } from "@/components/ui/icon";
 import { fetchComments } from "@/lib/social/queries";
 import { timeAgo, type Comment } from "@/lib/social/types";
 import { realmFetch } from "@/lib/auth/api";
@@ -95,7 +96,8 @@ export function CommentThread({ postId }: { postId: string }) {
             disabled={busy || !draft.trim()}
             className="btn-gold px-3.5 py-1.5 text-xs disabled:opacity-50"
           >
-            Reply
+            <Icon name="send" className="h-3.5 w-3.5" />
+            {busy ? "Sending..." : "Reply"}
           </button>
         </div>
       ) : (
@@ -107,6 +109,12 @@ export function CommentThread({ postId }: { postId: string }) {
         </p>
       )}
       {error && <p className="mt-2 text-xs text-ember-deep">{error}</p>}
+
+      {!loading && comments.length > 0 && (
+        <p className="tnum mt-4 px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-bone-faint">
+          {comments.length} {comments.length === 1 ? "voice" : "voices"}
+        </p>
+      )}
 
       <div className="mt-2 divide-y divide-steel-line/40">
         {loading ? (

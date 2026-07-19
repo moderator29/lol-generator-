@@ -47,6 +47,14 @@ export default function PostPage({
               {post.view_count.toLocaleString()} views
             </p>
           )}
+          <div className="mt-6 flex items-center gap-3 px-1">
+            <span className="h-px flex-1 bg-gradient-to-r from-transparent to-gold/25" />
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold">
+              <Icon name="reply" className="h-3.5 w-3.5" />
+              The Thread
+            </span>
+            <span className="h-px flex-1 bg-gradient-to-l from-transparent to-gold/25" />
+          </div>
           <CommentThread postId={post.id} />
         </>
       )}

@@ -6,6 +6,7 @@ import { Avatar } from "@/components/social/avatar";
 import { RichBody } from "@/components/social/rich-body";
 import { PriceCard } from "@/components/social/price-card";
 import { Icon } from "@/components/ui/icon";
+import { TipDialog } from "@/components/tip/tip-dialog";
 import { realmFetch } from "@/lib/auth/api";
 import { muteMember, unmuteMember } from "@/lib/social/mutes";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
@@ -110,9 +111,7 @@ export function PostCard({ post }: { post: Post }) {
   const [hidden, setHidden] = useState<null | "mute" | "block">(null);
   const [undoBusy, setUndoBusy] = useState(false);
   const [tipOpen, setTipOpen] = useState(false);
-  const [tipBusy, setTipBusy] = useState(false);
-  const [tipped, setTipped] = useState<number | null>(null);
-  const [tipError, setTipError] = useState<string | null>(null);
+  const [tipSent, setTipSent] = useState(false);
 
   const requireAuth = () => {
     if (!authenticated) {
@@ -200,29 +199,6 @@ export function PostCard({ post }: { post: Post }) {
     setUndoBusy(false);
     if (ok) setHidden(null);
   };
-  const sendTip = async (points: number) => {
-    if (!requireAuth()) return;
-    if (tipBusy || tipped) return;
-    setTipBusy(true);
-    setTipError(null);
-    const res = await realmFetch<{ error?: string }>("/api/tips", {
-      method: "POST",
-      json: {
-        to: post.author_id,
-        subject_type: "post",
-        subject_id: post.id,
-        points,
-      },
-    });
-    setTipBusy(false);
-    if (res.ok) {
-      setTipped(points);
-      setTipOpen(false);
-    } else {
-      setTipError(res.data?.error ?? "The tribute could not be sent");
-    }
-  };
-
   const a = post.author;
   const firstTag = post.cashtags[0];
 
@@ -467,49 +443,37 @@ export function PostCard({ post }: { post: Post }) {
             />
             <ActionButton
               icon="coin"
-              active={tipped !== null || tipOpen}
+              active={tipSent || tipOpen}
               label="Tip"
               onClick={() => {
-                if (tipped !== null) return;
                 if (!requireAuth()) return;
-                setTipError(null);
-                setTipOpen((v) => !v);
+                setTipOpen(true);
               }}
             />
             <ActionButton icon="share" label="Copy link" onClick={share} />
           </div>
 
-          {tipped !== null && (
+          {tipSent && (
             <p className="mt-1 flex items-center gap-1.5 pl-1 text-xs text-gold">
               <Icon name="coin" className="h-3.5 w-3.5" />
-              Tribute of {tipped} points sent
+              Tribute sent
             </p>
-          )}
-
-          {tipOpen && tipped === null && (
-            <div className="glass-sm mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-steel-line bg-void px-3 py-2">
-              <span className="text-xs text-bone-mut">Send tribute</span>
-              {[5, 10, 25].map((n) => (
-                <button
-                  key={n}
-                  disabled={tipBusy}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    void sendTip(n);
-                  }}
-                  className="btn-glass tnum rounded-full px-3 py-1 text-xs text-gold transition hover:text-gold-bright disabled:opacity-50"
-                >
-                  {n}
-                </button>
-              ))}
-              {tipError && (
-                <span className="w-full text-[11px] text-ember">{tipError}</span>
-              )}
-            </div>
           )}
         </div>
       </div>
+
+      {tipOpen && (
+        <TipDialog
+          recipientId={post.author_id}
+          recipientName={
+            a.display_name ?? (a.handle ? `@${a.handle}` : "this member")
+          }
+          subjectType="post"
+          subjectId={post.id}
+          onClose={() => setTipOpen(false)}
+          onSent={() => setTipSent(true)}
+        />
+      )}
     </article>
   );
 }
