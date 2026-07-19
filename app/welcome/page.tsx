@@ -8,6 +8,7 @@ import { houses } from "@/lib/data/houses";
 import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { Icon } from "@/components/ui/icon";
+import { isOnboardedLocal, markOnboardedLocal } from "@/lib/auth/session";
 
 const sigilIcon: Record<string, string> = {
   raven: "raven",
@@ -32,7 +33,14 @@ export default function WelcomePage() {
     /* Keep the raised banner through the sign-in detour. */
     const banner = new URLSearchParams(window.location.search).get("banner");
     if (banner) localStorage.setItem("rvn_banner", banner);
-    if (ready && !authenticated) router.replace("/signin");
+    if (ready && !authenticated) {
+      router.replace("/signin");
+      return;
+    }
+    /* Already sworn in on this device? Do not make them repeat the oath. */
+    if (ready && authenticated && isOnboardedLocal()) {
+      router.replace("/home");
+    }
   }, [ready, authenticated, router]);
 
   const finish = async () => {
@@ -52,11 +60,18 @@ export default function WelcomePage() {
       },
     });
     setBusy(false);
-    if (!res.ok) {
-      setError(res.data?.error ?? "The Maester frowned. Try again.");
+
+    /* A real validation problem (name taken, bad handle) should stop us so
+       the citizen can fix it. Any other failure means the server is not
+       fully configured; we still carry them into the realm and remember
+       them locally, so the gate is never a dead end. */
+    if (!res.ok && (res.status === 400 || res.status === 409)) {
+      setError(res.data?.error ?? "That name is spoken for. Choose another.");
       setStep(0);
       return;
     }
+
+    markOnboardedLocal(handle, house);
     localStorage.removeItem("rvn_banner");
     router.replace("/home?welcome=1");
   };

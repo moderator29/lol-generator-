@@ -8,6 +8,7 @@ export interface RealmAuth {
   authenticated: boolean;
   address?: string;
   displayName?: string;
+  avatarUrl?: string;
   xHandle?: string;
   email?: string;
   signInX: () => void;

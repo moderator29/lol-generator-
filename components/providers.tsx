@@ -8,6 +8,7 @@ import {
   stubAuth,
   type RealmAuth,
 } from "@/lib/auth/realm-auth-context";
+import { PostAuthGate } from "@/components/auth/post-auth-gate";
 
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
@@ -25,6 +26,9 @@ function AuthBridge({ children }: { children: ReactNode }) {
         user?.twitter?.name ??
         user?.twitter?.username ??
         user?.email?.address?.split("@")[0],
+      avatarUrl: user?.twitter?.profilePictureUrl
+        ? user.twitter.profilePictureUrl.replace("_normal", "_400x400")
+        : undefined,
       xHandle: user?.twitter?.username ?? undefined,
       email: user?.email?.address,
       signInX: () => login({ loginMethods: ["twitter"] }),
@@ -36,6 +40,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
 
   return (
     <RealmAuthContext.Provider value={value}>
+      <PostAuthGate />
       {children}
     </RealmAuthContext.Provider>
   );
