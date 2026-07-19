@@ -1,21 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePrivy } from "@privy-io/react-auth";
+import encodeQR from "@paulmillr/qr";
+import { usePrivy, useSendTransaction } from "@privy-io/react-auth";
+import { parseEther, isAddress } from "viem";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { Icon } from "@/components/ui/icon";
 
+function copyFallback(text: string): boolean {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 function CopyButton({ value, label }: { value: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(value);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
+      setState("copied");
+      window.setTimeout(() => setState("idle"), 1600);
+      return;
     } catch {
-      /* clipboard unavailable; stay quiet and honest */
+      /* fall through to the legacy path for insecure contexts / webviews */
+    }
+    if (copyFallback(value)) {
+      setState("copied");
+      window.setTimeout(() => setState("idle"), 1600);
+    } else {
+      setState("failed");
+      window.setTimeout(() => setState("idle"), 2600);
     }
   };
 
@@ -25,9 +52,34 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
       onClick={() => void copy()}
       className="btn-glass inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs"
     >
-      <Icon name={copied ? "medal" : "scroll"} className="h-3.5 w-3.5" />
-      {copied ? "Copied" : (label ?? "Copy")}
+      <Icon
+        name={state === "copied" ? "medal" : "scroll"}
+        className="h-3.5 w-3.5"
+      />
+      {state === "copied"
+        ? "Copied"
+        : state === "failed"
+          ? "Long-press to copy"
+          : (label ?? "Copy")}
     </button>
+  );
+}
+
+function AddressQR({ address }: { address: string }) {
+  const svg = useMemo(() => {
+    try {
+      return encodeQR(address, "svg", { border: 1 });
+    } catch {
+      return null;
+    }
+  }, [address]);
+  if (!svg) return null;
+  return (
+    <div
+      className="h-40 w-40 rounded-2xl bg-bone p-2 [&>svg]:h-full [&>svg]:w-full"
+      aria-label="Wallet address QR code"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
   );
 }
 
@@ -84,9 +136,115 @@ function ExportSection() {
   );
 }
 
+/* Real EOA send. Gas is paid the normal way; gasless smart accounts can layer
+   on later. Only rendered under the Privy provider. */
+function SendSection() {
+  const { sendTransaction } = useSendTransaction();
+  const [to, setTo] = useState("");
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [hash, setHash] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const toValid = isAddress(to.trim());
+  const amountValid = /^\d*\.?\d+$/.test(amount.trim()) && Number(amount) > 0;
+  const canSend = toValid && amountValid && !busy;
+
+  const onSend = async () => {
+    if (!canSend) return;
+    setBusy(true);
+    setError(null);
+    setHash(null);
+    try {
+      const { hash: txHash } = await sendTransaction({
+        to: to.trim(),
+        value: parseEther(amount.trim()),
+        chainId: 1,
+      });
+      setHash(txHash);
+      setAmount("");
+      setTo("");
+    } catch {
+      setError("The send was not completed. Nothing left your vault.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="glass p-5 sm:p-6">
+      <div className="flex items-center gap-2.5">
+        <Icon name="send" className="h-4 w-4 text-gold" />
+        <h2 className="font-display text-base font-semibold text-bone">Send</h2>
+        <span className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
+          Ethereum
+        </span>
+      </div>
+
+      <label className="mt-4 block">
+        <span className="text-xs uppercase tracking-[0.2em] text-bone-faint">
+          Recipient address
+        </span>
+        <input
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          placeholder="0x..."
+          spellCheck={false}
+          className="glass-sm mt-2 w-full bg-transparent px-3.5 py-2.5 font-mono text-sm text-bone placeholder:text-bone-faint focus:outline-none"
+        />
+      </label>
+      {to.trim() !== "" && !toValid && (
+        <p className="mt-1.5 text-xs text-ember">
+          That is not a valid Ethereum address.
+        </p>
+      )}
+
+      <label className="mt-3 block">
+        <span className="text-xs uppercase tracking-[0.2em] text-bone-faint">
+          Amount (ETH)
+        </span>
+        <input
+          inputMode="decimal"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="0.0"
+          className="tnum glass-sm mt-2 w-full bg-transparent px-3.5 py-2.5 font-mono text-sm text-bone placeholder:text-bone-faint focus:outline-none"
+        />
+      </label>
+
+      <button
+        type="button"
+        disabled={!canSend}
+        onClick={() => void onSend()}
+        className="btn-gold mt-4 w-full px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+      >
+        {busy ? "Sending" : "Send on Ethereum"}
+      </button>
+
+      {hash && (
+        <p className="mt-3 break-all text-xs text-gold">
+          Sent. Transaction {hash.slice(0, 10)}...{hash.slice(-8)}
+        </p>
+      )}
+      {error && <p className="mt-3 text-xs text-ember">{error}</p>}
+      <p className="mt-3 text-xs text-bone-faint">
+        Confirm the destination chain before you send. This transfer goes out on
+        Ethereum mainnet and cannot be reversed.
+      </p>
+    </section>
+  );
+}
+
 export default function VaultPage() {
-  const { ready, enabled, authenticated, address, signInX, signInEmail, connectWallet } =
-    useRealmAuth();
+  const {
+    ready,
+    enabled,
+    authenticated,
+    address,
+    signInX,
+    signInEmail,
+    connectWallet,
+  } = useRealmAuth();
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
@@ -135,33 +293,54 @@ export default function VaultPage() {
             ) : (
               <p className="mt-6 text-xs text-bone-faint">
                 The Gatehouse is not mounted in this environment, so sign-in is
-                resting. <Link href="/signin" className="text-gold underline">The gate</Link> will open once it is.
+                resting.{" "}
+                <Link href="/signin" className="text-gold underline">
+                  The gate
+                </Link>{" "}
+                will open once it is.
               </p>
             )}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {/* Address */}
+            {/* Address and receiving (merged) */}
             <section className="glass p-5 sm:p-6">
               <div className="flex items-center gap-2.5">
                 <Icon name="wallet" className="h-4 w-4 text-gold" />
                 <h2 className="font-display text-base font-semibold text-bone">
                   Your address
                 </h2>
+                <span className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
+                  Receive
+                </span>
               </div>
               {address ? (
                 <>
-                  <div className="mt-3 flex items-start justify-between gap-3 rounded-2xl border border-steel-line bg-panel/60 p-3">
-                    <code className="tnum min-w-0 break-all font-mono text-xs leading-relaxed text-bone sm:text-sm">
-                      {address}
-                    </code>
-                    <CopyButton value={address} />
+                  <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+                    <AddressQR address={address} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3 rounded-2xl border border-steel-line bg-panel/60 p-3">
+                        <code className="tnum min-w-0 break-all font-mono text-xs leading-relaxed text-bone sm:text-sm">
+                          {address}
+                        </code>
+                        <CopyButton value={address} label="Copy" />
+                      </div>
+                      <p className="mt-3 flex items-start gap-2 text-xs text-ember">
+                        <Icon
+                          name="shield"
+                          className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                        />
+                        Send only Ethereum and EVM-network assets to this
+                        address. Depositing from another network can lose the
+                        funds.
+                      </p>
+                      <p className="mt-2 text-xs text-bone-faint">
+                        This wallet is non-custodial and truly yours. Ravenspire
+                        never holds your keys and cannot move your funds; only
+                        you can.
+                      </p>
+                    </div>
                   </div>
-                  <p className="mt-3 text-xs text-bone-faint">
-                    This wallet is non-custodial and truly yours. Ravenspire
-                    never holds your keys and cannot move your funds; only you
-                    can.
-                  </p>
                 </>
               ) : (
                 <div className="mt-3 text-sm text-bone-mut">
@@ -182,50 +361,11 @@ export default function VaultPage() {
               )}
             </section>
 
+            {/* Send (only when the Gatehouse is enabled and a wallet exists) */}
+            {enabled && address ? <SendSection /> : null}
+
             {/* Export (only when the Gatehouse is enabled) */}
             {enabled ? <ExportSection /> : null}
-
-            {/* Receive */}
-            <section className="glass p-5 sm:p-6">
-              <div className="flex items-center gap-2.5">
-                <Icon name="arrow" className="h-4 w-4 text-gold" />
-                <h2 className="font-display text-base font-semibold text-bone">
-                  Receive
-                </h2>
-              </div>
-              {address ? (
-                <>
-                  <p className="mt-3 text-sm text-bone-mut">
-                    Share this address to receive coin into your vault.
-                  </p>
-                  <div className="mt-3 flex items-start justify-between gap-3 rounded-2xl border border-steel-line bg-panel/60 p-3">
-                    <code className="tnum min-w-0 break-all font-mono text-xs leading-relaxed text-bone sm:text-sm">
-                      {address}
-                    </code>
-                    <CopyButton value={address} label="Copy address" />
-                  </div>
-                </>
-              ) : (
-                <p className="mt-3 text-sm text-bone-mut">
-                  Bind a wallet first and your receiving address will appear
-                  here.
-                </p>
-              )}
-            </section>
-
-            {/* Send */}
-            <section className="glass p-5 sm:p-6">
-              <div className="flex items-center gap-2.5">
-                <Icon name="send" className="h-4 w-4 text-gold" />
-                <h2 className="font-display text-base font-semibold text-bone">
-                  Send
-                </h2>
-              </div>
-              <div className="mt-3 rounded-2xl border border-steel-line bg-panel/60 p-4 text-sm text-bone-mut">
-                Send opens with gasless smart accounts shortly. Until then, the
-                drawbridge stays up rather than making you pay gas the old way.
-              </div>
-            </section>
 
             {/* $RAVEN balance */}
             <section className="glass-warm glass p-5 sm:p-6">
@@ -240,8 +380,8 @@ export default function VaultPage() {
               </p>
               <p className="mt-2 text-xs text-bone-faint">
                 Your balance awaits the token generation event. When $RAVEN
-                takes flight, it lands here first; we will not show you a
-                number that does not exist yet.
+                takes flight, it lands here first; we will not show you a number
+                that does not exist yet.
               </p>
             </section>
           </div>
