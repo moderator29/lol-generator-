@@ -28,6 +28,29 @@ export function ProfileView({
   const [counts, setCounts] = useState({ followers: 0, following: 0 });
   const [tab, setTab] = useState<"posts" | "calls">("posts");
   const [following, setFollowing] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  useEffect(() => {
+    if (!authenticated || own) return;
+    void realmFetch<{ blocked?: string[] }>("/api/blocks").then((res) => {
+      if (res.data?.blocked?.includes(profile.id)) setIsBlocked(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated, own, profile.id]);
+
+  const toggleBlock = async () => {
+    if (!authenticated) {
+      window.location.href = "/signin";
+      return;
+    }
+    const on = !isBlocked;
+    setIsBlocked(on);
+    if (on) setFollowing(false);
+    await realmFetch("/api/blocks", {
+      method: "POST",
+      json: { profile_id: profile.id, on },
+    });
+  };
 
   useEffect(() => {
     void fetchProfilePosts(profile.id).then(setPosts);
@@ -79,12 +102,25 @@ export function ProfileView({
               This is your Keep
             </span>
           ) : (
-            <button
-              onClick={toggleFollow}
-              className={`px-5 py-1.5 text-xs ${following ? "btn-glass text-bone-mut" : "btn-gold"}`}
-            >
-              {following ? "Following" : "Follow"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleBlock}
+                title={isBlocked ? "Unblock" : "Block"}
+                className={`btn-glass px-3 py-1.5 text-xs ${
+                  isBlocked ? "text-ember" : "text-bone-faint"
+                }`}
+              >
+                {isBlocked ? "Blocked" : "Block"}
+              </button>
+              {!isBlocked && (
+                <button
+                  onClick={toggleFollow}
+                  className={`px-5 py-1.5 text-xs ${following ? "btn-glass text-bone-mut" : "btn-gold"}`}
+                >
+                  {following ? "Following" : "Follow"}
+                </button>
+              )}
+            </div>
           )}
         </div>
 

@@ -17,6 +17,7 @@ export interface CallData {
 
 export interface Post {
   id: string;
+  author_id: string;
   kind: "raven" | "call" | "poll";
   body: string;
   media: { url: string; type: string }[];
@@ -27,6 +28,7 @@ export interface Post {
   like_count: number;
   reply_count: number;
   repost_count: number;
+  view_count: number;
   created_at: string;
   author: Author;
 }

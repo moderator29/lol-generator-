@@ -36,6 +36,13 @@ const openModes = [
     plain: "Weapons and gear",
     desc: "Legendary steel and the gear to carry it. Browse before you brawl.",
   },
+  {
+    href: "/war/rewards",
+    icon: "medal",
+    name: "Rewards & Progression",
+    plain: "Tribute and mastery",
+    desc: "Daily tribute, relic chests, the War Pass and champion mastery.",
+  },
 ];
 
 const lockedModes = [

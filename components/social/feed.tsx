@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PostCard } from "@/components/social/post-card";
 import { Composer } from "@/components/social/composer";
+import { Icon } from "@/components/ui/icon";
 import {
   fetchFeed,
   subscribeToFeed,
@@ -21,6 +22,12 @@ const TABS: { key: FeedTab; label: string }[] = [
   { key: "latest", label: "Latest" },
 ];
 
+interface FeedFilters {
+  hideHerald: boolean;
+  mediaOnly: boolean;
+  callsOnly: boolean;
+}
+
 export function Feed() {
   const { authenticated } = useRealmAuth();
   const [tab, setTab] = useState<FeedTab>("foryou");
@@ -28,8 +35,22 @@ export function Feed() {
   const [loading, setLoading] = useState(true);
   const [hasNew, setHasNew] = useState(false);
   const [done, setDone] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<FeedFilters>({
+    hideHerald: false,
+    mediaOnly: false,
+    callsOnly: false,
+  });
+  const [blocked, setBlocked] = useState<Set<string>>(new Set());
   const me = useRef<{ id: string; house_slug: string | null } | null>(null);
   const followingIds = useRef<string[] | null>(null);
+
+  useEffect(() => {
+    if (!authenticated) return;
+    void realmFetch<{ blocked?: string[] }>("/api/blocks").then((res) => {
+      if (res.data?.blocked) setBlocked(new Set(res.data.blocked));
+    });
+  }, [authenticated]);
 
   const load = useCallback(
     async (append = false) => {
@@ -75,20 +96,62 @@ export function Feed() {
     <div className="flex flex-col gap-3">
       <Composer onPosted={() => void load()} />
 
-      <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              tab === t.key
-                ? "btn-gold"
-                : "btn-glass text-bone-mut"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="relative">
+        <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pr-10">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                tab === t.key ? "btn-gold" : "btn-glass text-bone-mut"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setFiltersOpen((v) => !v)}
+          aria-label="Feed filters"
+          className={`absolute right-0 top-0 flex h-[30px] w-[30px] items-center justify-center rounded-full transition ${
+            filtersOpen || filters.hideHerald || filters.mediaOnly || filters.callsOnly
+              ? "btn-gold"
+              : "btn-glass text-bone-mut"
+          }`}
+        >
+          <Icon name="sliders" className="h-4 w-4" />
+        </button>
+        {filtersOpen && (
+          <div className="glass glass-sm absolute right-0 top-9 z-20 w-56 p-3">
+            {(
+              [
+                ["hideHerald", "Hide the Herald's posts"],
+                ["mediaOnly", "Media only"],
+                ["callsOnly", "Calls only"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() =>
+                  setFilters((f) => ({ ...f, [key]: !f[key] }))
+                }
+                className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-xs text-bone-mut hover:bg-panel"
+              >
+                {label}
+                <span
+                  className={`h-3.5 w-6 rounded-full border transition ${
+                    filters[key]
+                      ? "gold-metal border-gold-bright/60"
+                      : "border-steel-line bg-steel-deep"
+                  }`}
+                />
+              </button>
+            ))}
+            <p className="mt-1 px-2 text-[10px] text-bone-faint">
+              Blocked members never appear.
+            </p>
+          </div>
+        )}
       </div>
 
       {hasNew && (
@@ -120,9 +183,14 @@ export function Feed() {
         </div>
       ) : (
         <>
-          {posts.map((p) => (
-            <PostCard key={p.id} post={p} />
-          ))}
+          {posts
+            .filter((p) => !blocked.has(p.author_id))
+            .filter((p) => !filters.hideHerald || !p.author.is_agent)
+            .filter((p) => !filters.mediaOnly || p.media.length > 0)
+            .filter((p) => !filters.callsOnly || p.kind === "call")
+            .map((p) => (
+              <PostCard key={p.id} post={p} />
+            ))}
           {!done && (
             <button
               onClick={() => void load(true)}

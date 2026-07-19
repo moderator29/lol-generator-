@@ -1,6 +1,7 @@
 "use client";
 
-import { legendaryWeapons, gearSlots } from "@/lib/game/arsenal";
+import { legendaryWeapons } from "@/lib/game/arsenal";
+import { gearCatalog } from "@/lib/game/gear";
 import { Icon } from "@/components/ui/icon";
 
 export default function ArsenalPage() {
@@ -60,13 +61,28 @@ export default function ArsenalPage() {
       <p className="mt-1 text-sm text-bone-mut">
         Every slot a champion can fill, from crown to boot.
       </p>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {gearSlots.map((g) => (
-          <div key={g.slug} className="glass-sm p-3">
-            <div className="font-display text-sm font-semibold text-bone">
-              {g.name}
+      <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+        {gearCatalog.map((g) => (
+          <div
+            key={g.slug}
+            className={`rarity-${g.rarity} rarity-frame glass-sm overflow-hidden rounded-2xl bg-panel`}
+            title={g.effect}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={g.art}
+              alt={g.name}
+              loading="lazy"
+              className="aspect-square w-full object-cover"
+            />
+            <div className="p-2">
+              <p className="truncate font-display text-xs font-semibold text-bone">
+                {g.name}
+              </p>
+              <p className="text-[9px] uppercase tracking-wider text-bone-faint">
+                {g.slot}
+              </p>
             </div>
-            <p className="mt-1 text-xs text-bone-faint">{g.desc}</p>
           </div>
         ))}
       </div>

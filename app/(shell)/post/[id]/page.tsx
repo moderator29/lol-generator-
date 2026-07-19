@@ -7,6 +7,7 @@ import { CommentThread } from "@/components/social/comment-thread";
 import { fetchPost } from "@/lib/social/queries";
 import type { Post } from "@/lib/social/types";
 import { Icon } from "@/components/ui/icon";
+import { realmFetch } from "@/lib/auth/api";
 
 export default function PostPage({
   params,
@@ -18,6 +19,8 @@ export default function PostPage({
 
   useEffect(() => {
     void fetchPost(id).then(setPost);
+    /* A real view, counted once per member per day, server-side. */
+    void realmFetch("/api/views", { method: "POST", json: { post_id: id } });
   }, [id]);
 
   return (
@@ -38,6 +41,12 @@ export default function PostPage({
       ) : (
         <>
           <PostCard post={post} />
+          {post.view_count > 0 && (
+            <p className="tnum mt-2 flex items-center gap-1.5 px-2 text-xs text-bone-faint">
+              <Icon name="eye" className="h-3.5 w-3.5" />
+              {post.view_count.toLocaleString()} views
+            </p>
+          )}
           <CommentThread postId={post.id} />
         </>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BattleEngine, type BattleOutcome } from "@/components/war/battle-engine";
@@ -20,6 +20,17 @@ function BattleInner() {
   const [outcome, setOutcome] = useState<BattleOutcome | null>(null);
   const [serverGlory, setServerGlory] = useState<number | null>(null);
   const [key, setKey] = useState(0);
+  const [mastery, setMastery] = useState(0);
+
+  useEffect(() => {
+    if (!authenticated) return;
+    void realmFetch<{ state?: { mastery?: Record<string, number> } }>(
+      "/api/war/battle"
+    ).then((res) => {
+      const lvl = res.data?.state?.mastery?.[champion.slug] ?? 0;
+      setMastery(lvl);
+    });
+  }, [authenticated, champion.slug]);
 
   const handleEnd = async (o: BattleOutcome) => {
     setOutcome(o);
@@ -55,7 +66,12 @@ function BattleInner() {
       </div>
 
       {!outcome ? (
-        <BattleEngine key={key} champion={champion} onEnd={handleEnd} />
+        <BattleEngine
+          key={key}
+          champion={champion}
+          mastery={mastery}
+          onEnd={handleEnd}
+        />
       ) : (
         <div className="glass flex flex-col items-center p-10 text-center">
           <p className="text-xs uppercase tracking-[0.3em] text-bone-faint">

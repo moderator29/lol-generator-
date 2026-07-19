@@ -5,7 +5,7 @@ import type { Post, Comment, PublicProfile } from "@/lib/social/types";
 
 const AUTHOR_SELECT =
   "author:profiles!posts_author_id_fkey (handle, display_name, avatar_url, house_slug, tier, is_agent)";
-const POST_SELECT = `id, kind, body, media, cashtags, call, poll, house_slug, like_count, reply_count, repost_count, created_at, ${AUTHOR_SELECT}`;
+const POST_SELECT = `id, author_id, kind, body, media, cashtags, call, poll, house_slug, like_count, reply_count, repost_count, view_count, created_at, ${AUTHOR_SELECT}`;
 
 export type FeedTab = "foryou" | "following" | "houses" | "signal" | "latest";
 

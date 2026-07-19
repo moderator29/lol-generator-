@@ -56,9 +56,11 @@ const BATTLE_SECONDS = 150;
 
 export function BattleEngine({
   champion,
+  mastery = 0,
   onEnd,
 }: {
   champion: Champion;
+  mastery?: number;
   onEnd: (o: BattleOutcome) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -105,10 +107,11 @@ export function BattleEngine({
     const art = new Image();
     if (champion.art) art.src = champion.art;
 
-    /* Player scaled from champion stats. */
+    /* Player scaled from champion stats; mastery sharpens the blade. */
+    const m = 1 + Math.min(10, mastery) * 0.05;
     const pStats = {
-      maxHp: 260 + champion.stats.health / 60,
-      atk: 18 + champion.stats.attack / 90,
+      maxHp: (260 + champion.stats.health / 60) * m,
+      atk: (18 + champion.stats.attack / 90) * m,
       speed: 95 + champion.stats.speed / 6,
       range: 46,
     };
@@ -502,7 +505,7 @@ export function BattleEngine({
       canvas.removeEventListener("pointermove", pMove);
       window.removeEventListener("pointerup", pUp);
     };
-  }, [champion]);
+  }, [champion, mastery]);
 
   const mmss = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(
