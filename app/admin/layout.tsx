@@ -15,7 +15,9 @@ const navItems = [
   { href: "/admin/seasons", label: "Seasons", icon: "crown" },
   { href: "/admin/crests", label: "Crests", icon: "medal" },
   { href: "/admin/war", label: "The War", icon: "swords" },
+  { href: "/admin/reports", label: "Reports", icon: "scroll" },
   { href: "/admin/flags", label: "Feature Flags", icon: "sliders" },
+  { href: "/admin/settings", label: "Settings", icon: "wall" },
 ];
 
 type Gate = "checking" | "sealed" | "open";

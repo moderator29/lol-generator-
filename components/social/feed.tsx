@@ -43,7 +43,11 @@ export function Feed() {
   });
   const [blocked, setBlocked] = useState<Set<string>>(new Set());
   const [muted, setMuted] = useState<Set<string>>(new Set());
-  const me = useRef<{ id: string; house_slug: string | null } | null>(null);
+  const me = useRef<{
+    id: string;
+    handle: string | null;
+    house_slug: string | null;
+  } | null>(null);
   const followingIds = useRef<string[] | null>(null);
 
   useEffect(() => {
@@ -59,17 +63,15 @@ export function Feed() {
   const load = useCallback(
     async (append = false) => {
       setLoading(!append);
-      if (
-        authenticated &&
-        (tab === "following" || tab === "houses") &&
-        !me.current
-      ) {
+      /* Audience gating needs to know who is reading, on every tab, so a
+         follower-only or House raven can reach an eligible member here too. */
+      if (authenticated && !me.current) {
         const res = await realmFetch<{
-          profile?: { id: string; house_slug: string | null };
+          profile?: { id: string; handle: string | null; house_slug: string | null };
         }>("/api/me", { method: "POST" });
         if (res.data?.profile) me.current = res.data.profile;
       }
-      if (tab === "following" && me.current && followingIds.current === null) {
+      if (authenticated && me.current && followingIds.current === null) {
         followingIds.current = await fetchFollowingIds(me.current.id);
       }
       const last = posts[posts.length - 1];
@@ -81,6 +83,8 @@ export function Feed() {
         before,
         followingIds: followingIds.current ?? [],
         houseSlug: me.current?.house_slug ?? null,
+        viewerId: me.current?.id ?? null,
+        viewerHandle: me.current?.handle ?? null,
       });
       setDone(batch.length < 30);
       setPosts((prev) => (append ? [...prev, ...batch] : batch));
@@ -99,9 +103,36 @@ export function Feed() {
     return subscribeToFeed(() => setHasNew(true));
   }, []);
 
+  /* When a member sends a raven, show it at the very top at once, without
+     waiting on the realtime roundtrip or a refetch. The realtime subscription
+     stays in place; a later refresh simply reconciles by id. */
+  const onPosted = useCallback(
+    (created?: Post) => {
+      if (!created) {
+        void load();
+        return;
+      }
+      const fitsTab =
+        tab === "foryou" ||
+        tab === "latest" ||
+        (tab === "signal" && created.kind === "call") ||
+        (tab === "houses" &&
+          !!me.current?.house_slug &&
+          created.house_slug === me.current.house_slug);
+      if (!fitsTab) return;
+      setPosts((prev) =>
+        prev.some((p) => p.id === created.id && !p.repostedBy)
+          ? prev
+          : [{ ...created, effectiveTime: created.created_at }, ...prev]
+      );
+      setHasNew(false);
+    },
+    [tab, load]
+  );
+
   return (
     <div className="flex flex-col gap-3">
-      <Composer onPosted={() => void load()} />
+      <Composer onPosted={onPosted} />
 
       <div className="relative">
         <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pr-10">

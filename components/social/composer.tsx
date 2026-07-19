@@ -5,9 +5,20 @@ import { Avatar } from "@/components/social/avatar";
 import { Icon } from "@/components/ui/icon";
 import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
+import type { Post } from "@/lib/social/types";
 import Link from "next/link";
 
-export function Composer({ onPosted }: { onPosted?: () => void }) {
+/* Who a raven is sent to. Order sets the menu; the first is the default. */
+const AUDIENCES = [
+  { value: "public", label: "Everyone", icon: "eye" },
+  { value: "followers", label: "Followers", icon: "user" },
+  { value: "house", label: "My House", icon: "banner" },
+  { value: "mentions", label: "Mentioned only", icon: "reply" },
+] as const;
+
+type Audience = (typeof AUDIENCES)[number]["value"];
+
+export function Composer({ onPosted }: { onPosted?: (post?: Post) => void }) {
   const { authenticated, displayName } = useRealmAuth();
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
@@ -20,6 +31,22 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
   const [uploading, setUploading] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+  const [visibility, setVisibility] = useState<Audience>("public");
+  const [audienceOpen, setAudienceOpen] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+
+  const suggest = async () => {
+    if (suggesting || busy) return;
+    setSuggesting(true);
+    setError(null);
+    const res = await realmFetch<{ text?: string; error?: string }>(
+      "/api/compose-suggest",
+      { method: "POST", json: { draft: body } }
+    );
+    setSuggesting(false);
+    if (res.data?.text) setBody(res.data.text.slice(0, 1000));
+    else setError(res.data?.error ?? "The words would not come. Try again.");
+  };
 
   const attachImage = async (file: File) => {
     if (images.length >= 4 || uploading) return;
@@ -68,7 +95,8 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
       payload.kind = "poll";
       payload.poll = { options: validPoll };
     }
-    const res = await realmFetch<{ error?: string }>("/api/posts", {
+    payload.visibility = visibility;
+    const res = await realmFetch<{ error?: string; post?: Post }>("/api/posts", {
       method: "POST",
       json: payload,
     });
@@ -83,7 +111,9 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
     setImages([]);
     setPollOpen(false);
     setPollOptions(["", ""]);
-    onPosted?.();
+    setVisibility("public");
+    setAudienceOpen(false);
+    onPosted?.(res.data?.post);
   };
 
   return (
@@ -235,6 +265,22 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
               }`}
             >
               <Icon name="poll" className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => void suggest()}
+              disabled={suggesting}
+              aria-label="Let the Herald draft a raven"
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition disabled:cursor-wait ${
+                suggesting
+                  ? "bg-gold/15 text-gold"
+                  : "text-bone-faint hover:bg-panel hover:text-bone-mut"
+              }`}
+            >
+              <Icon
+                name="raven"
+                className={`h-4 w-4 ${suggesting ? "animate-pulse" : ""}`}
+              />
+              {suggesting && <span className="text-[11px]">Drafting...</span>}
             </button>
             <button
               onClick={() => setCallOpen((v) => !v)}

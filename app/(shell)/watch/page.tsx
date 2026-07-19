@@ -4,18 +4,43 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
+import type {
+  WatchCheck,
+  WatchVerdict,
+  CheckGroup,
+} from "@/lib/tools/watch-types";
 
-interface Check {
-  label: string;
-  status: "pass" | "caution" | "risk";
-  detail?: string;
-}
+const CHAINS = [
+  { id: "1", label: "Ethereum" },
+  { id: "8453", label: "Base" },
+  { id: "42161", label: "Arbitrum" },
+  { id: "10", label: "Optimism" },
+  { id: "56", label: "BNB" },
+] as const;
+
+const GROUPS: { id: CheckGroup; label: string }[] = [
+  { id: "contract", label: "Contract" },
+  { id: "trading", label: "Trading" },
+  { id: "holders", label: "Holders and liquidity" },
+];
 
 interface WatchResult {
   score?: number;
-  checks?: Check[];
-  raw?: { buyTax: number; sellTax: number };
+  verdict?: WatchVerdict;
+  headline?: string;
+  checks?: WatchCheck[];
+  raw?: {
+    buyTax: number;
+    sellTax: number;
+    taxSource: "simulation" | "static";
+    ownerPercent: number | null;
+    creatorPercent: number | null;
+    holderCount: number | null;
+    lpLockedPercent: number | null;
+  };
+  explorer?: string | null;
   error?: string;
+  status?: string;
 }
 
 interface Approval {
@@ -30,16 +55,25 @@ interface ApprovalsResult {
   error?: string;
 }
 
-const statusColor: Record<Check["status"], string> = {
+const statusColor: Record<WatchCheck["status"], string> = {
   pass: "text-gold",
   caution: "text-ember",
   risk: "text-ember-deep",
+  unknown: "text-bone-faint",
 };
 
-const statusIcon: Record<Check["status"], string> = {
+const statusIcon: Record<WatchCheck["status"], string> = {
   pass: "shield",
   caution: "eye",
   risk: "flame",
+  unknown: "search",
+};
+
+const verdictStyle: Record<WatchVerdict, string> = {
+  safe: "text-gold",
+  caution: "text-ember",
+  danger: "text-ember-deep",
+  unknown: "text-bone-faint",
 };
 
 const MAX_UINT =
@@ -62,6 +96,7 @@ export default function WatchPage() {
   const { authenticated, address } = useRealmAuth();
 
   const [contract, setContract] = useState("");
+  const [chain, setChain] = useState<string>("1");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<WatchResult | null>(null);
 
@@ -70,13 +105,13 @@ export default function WatchPage() {
 
   const valid = /^0x[a-fA-F0-9]{40}$/.test(contract.trim());
 
-  const scan = async () => {
-    if (!valid || loading) return;
+  const scanAddress = useCallback(async (addr: string, chainId: string) => {
+    if (!/^0x[a-fA-F0-9]{40}$/.test(addr.trim())) return;
     setLoading(true);
     setResult(null);
     try {
       const res = await fetch(
-        `/api/watch?address=${encodeURIComponent(contract.trim())}&chain=1`
+        `/api/watch?address=${encodeURIComponent(addr.trim())}&chain=${chainId}`
       );
       setResult((await res.json()) as WatchResult);
     } catch {
@@ -84,7 +119,22 @@ export default function WatchPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const scan = () => void scanAddress(contract, chain);
+
+  /* Deep link: /watch?address=0x..&chain=8453 (from the WatchBadge) runs a
+     scan on arrival so the badge and the tool stay one surface. */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const addr = params.get("address");
+    const c = params.get("chain");
+    if (addr && /^0x[a-fA-F0-9]{40}$/.test(addr)) {
+      setContract(addr);
+      if (c && CHAINS.some((ch) => ch.id === c)) setChain(c);
+      void scanAddress(addr, c && CHAINS.some((ch) => ch.id === c) ? c : "1");
+    }
+  }, [scanAddress]);
 
   const loadApprovals = useCallback(async () => {
     if (!authenticated || !address) return;
@@ -149,9 +199,25 @@ export default function WatchPage() {
             {loading ? "Scanning" : "Scan"}
           </button>
         </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {CHAINS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setChain(c.id)}
+              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                chain === c.id
+                  ? "border-gold bg-gold/15 text-gold-bright"
+                  : "border-steel-line bg-panel/70 text-bone-mut hover:text-bone"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
         {contract.trim() !== "" && !valid && (
           <p className="mt-2 text-xs text-bone-faint">
-            The Watch reads Ethereum contract addresses: 0x followed by 40 hex
+            The Watch reads EVM contract addresses: 0x followed by 40 hex
             characters.
           </p>
         )}
@@ -176,33 +242,72 @@ export default function WatchPage() {
             <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
               Defenses score
             </p>
+            {result.verdict && (
+              <p
+                className={`mt-3 font-display text-lg font-semibold ${verdictStyle[result.verdict]}`}
+              >
+                {result.headline}
+              </p>
+            )}
           </div>
 
-          <div className="glass mt-3 flex flex-col divide-y divide-steel-line p-2">
-            {(result.checks ?? []).map((c, i) => (
-              <div key={i} className="flex items-start gap-3 px-3 py-3">
-                <Icon
-                  name={statusIcon[c.status]}
-                  className={`mt-0.5 h-4.5 w-4.5 shrink-0 ${statusColor[c.status]}`}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className={`text-sm ${statusColor[c.status]}`}>{c.label}</p>
-                  {c.detail && (
-                    <p className="mt-0.5 text-xs text-bone-faint">{c.detail}</p>
-                  )}
+          {GROUPS.map((g) => {
+            const rows = (result.checks ?? []).filter((c) => c.group === g.id);
+            if (rows.length === 0) return null;
+            return (
+              <div key={g.id} className="glass mt-3 p-2">
+                <p className="px-3 pb-1 pt-2 text-[11px] uppercase tracking-[0.2em] text-bone-faint">
+                  {g.label}
+                </p>
+                <div className="flex flex-col divide-y divide-steel-line">
+                  {rows.map((c, i) => (
+                    <div key={i} className="flex items-start gap-3 px-3 py-3">
+                      <Icon
+                        name={statusIcon[c.status]}
+                        className={`mt-0.5 h-4.5 w-4.5 shrink-0 ${statusColor[c.status]}`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm ${statusColor[c.status]}`}>
+                          {c.label}
+                        </p>
+                        {c.detail && (
+                          <p className="mt-0.5 text-xs text-bone-faint">
+                            {c.detail}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
 
           {result.raw && (
             <div className="glass glass-sm mt-3 flex items-center justify-between px-4 py-3 text-sm">
-              <span className="text-bone-mut">Trade taxes</span>
+              <span className="text-bone-mut">
+                Trade taxes
+                {result.raw.taxSource === "simulation" && (
+                  <span className="ml-1 text-[11px] text-gold">simulated</span>
+                )}
+              </span>
               <span className="tnum text-bone">
                 Buy {result.raw.buyTax.toFixed(1)}% / Sell{" "}
                 {result.raw.sellTax.toFixed(1)}%
               </span>
             </div>
+          )}
+
+          {result.explorer && (
+            <a
+              href={result.explorer}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-glass mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm"
+            >
+              <Icon name="arrow" className="h-4 w-4" />
+              Verify on the block explorer
+            </a>
           )}
         </>
       )}

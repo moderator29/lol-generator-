@@ -32,11 +32,50 @@ export function ProfileView({
   const [following, setFollowing] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [viewerId, setViewerId] = useState<string | null>(null);
+  const [avatarOverride, setAvatarOverride] = useState<string | null>(null);
+  const [bannerOverride, setBannerOverride] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<"avatar" | "banner" | null>(null);
+  const [portraitError, setPortraitError] = useState<string | null>(null);
 
   /* This Keep belongs to the viewer either because the parent said so
      (own /keep) or because the signed-in member is looking at their own
      /u/handle. Either way the follow/block controls are hidden. */
   const isOwn = own || (viewerId !== null && viewerId === profile.id);
+
+  /* The portrait an owner can swap in place. Uploads through /api/upload
+     (4MB, images only) then seals the url onto the profile via the same
+     /api/profile path the Edit sheet uses. Preview is optimistic. */
+  const uploadPortrait = async (file: File, kind: "avatar" | "banner") => {
+    setUploading(kind);
+    setPortraitError(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    const up = await realmFetch<{ url?: string; error?: string }>(
+      "/api/upload",
+      { method: "POST", body: fd }
+    );
+    if (!up.ok || !up.data?.url) {
+      setUploading(null);
+      setPortraitError(up.data?.error ?? "The upload failed. Try again.");
+      return;
+    }
+    const url = up.data.url;
+    if (kind === "avatar") setAvatarOverride(url);
+    else setBannerOverride(url);
+    const saved = await realmFetch<{ ok?: boolean; error?: string }>(
+      "/api/profile",
+      {
+        method: "POST",
+        json: kind === "avatar" ? { avatar_url: url } : { banner_url: url },
+      }
+    );
+    setUploading(null);
+    if (!saved.ok || !saved.data?.ok) {
+      setPortraitError(
+        saved.data?.error ?? "The scribe failed to seal the portrait."
+      );
+    }
+  };
 
   useEffect(() => {
     if (!authenticated || own) return;
@@ -90,6 +129,13 @@ export function ProfileView({
   }, [profile.id]);
 
   const house = houses.find((h) => h.slug === profile.house_slug);
+  /* Profile with any freshly uploaded portrait applied for instant preview. */
+  const displayProfile = {
+    ...profile,
+    avatar_url: avatarOverride ?? profile.avatar_url,
+    banner_url: bannerOverride ?? profile.banner_url,
+  };
+  const portraitAccept = "image/jpeg,image/png,image/webp,image/gif";
   const callPosts = posts.filter((p) => p.kind === "call");
   const callsWon = callPosts.filter((p) => p.call?.verdict === "hit").length;
   const shown = tab === "calls" ? callPosts : posts;
@@ -117,11 +163,11 @@ export function ProfileView({
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
       {/* Banner */}
       <div
-        className="glass h-32 overflow-hidden sm:h-40"
+        className="glass relative h-32 overflow-hidden sm:h-40"
         style={
-          profile.banner_url
+          displayProfile.banner_url
             ? {
-                backgroundImage: `url(${profile.banner_url})`,
+                backgroundImage: `url(${displayProfile.banner_url})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }
@@ -129,10 +175,53 @@ export function ProfileView({
                 background: `radial-gradient(ellipse 70% 90% at 30% 0%, ${house?.color ?? "#C8A24C"}1e, transparent), linear-gradient(180deg, #101017, #0C0C11)`,
               }
         }
-      />
+      >
+        {isOwn && (
+          <label className="btn-glass absolute right-3 top-3 flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-[11px] text-bone-mut">
+            <Icon name="image" className="h-3.5 w-3.5" />
+            {uploading === "banner" ? "Uploading..." : "Change banner"}
+            <input
+              type="file"
+              accept={portraitAccept}
+              className="hidden"
+              disabled={uploading !== null}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void uploadPortrait(f, "banner");
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
+      </div>
       <div className="-mt-8 px-4">
         <div className="flex items-end justify-between">
-          <Avatar author={profile} size={76} />
+          {isOwn ? (
+            <label className="group relative inline-flex cursor-pointer">
+              <Avatar author={displayProfile} size={76} />
+              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition group-hover:opacity-100">
+                <Icon name="image" className="h-5 w-5 text-bone" />
+              </span>
+              {uploading === "avatar" && (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 text-[9px] font-semibold uppercase tracking-wider text-bone">
+                  ...
+                </span>
+              )}
+              <input
+                type="file"
+                accept={portraitAccept}
+                className="hidden"
+                disabled={uploading !== null}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadPortrait(f, "avatar");
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          ) : (
+            <Avatar author={displayProfile} size={76} />
+          )}
           {isOwn ? (
             <span className="btn-glass px-4 py-1.5 text-xs text-bone-mut">
               This is your Keep
@@ -159,6 +248,10 @@ export function ProfileView({
             </div>
           )}
         </div>
+
+        {isOwn && portraitError && (
+          <p className="mt-2 text-xs text-ember-deep">{portraitError}</p>
+        )}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <h1 className="font-display text-xl font-semibold text-bone">

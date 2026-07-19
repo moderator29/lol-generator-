@@ -29,7 +29,7 @@ export async function logAdminAction(
   action: string,
   opts?: {
     targetType?: string | null;
-    targetId?: string | null;
+    targetId?: string | number | null;
     payload?: Record<string, unknown>;
   }
 ): Promise<void> {

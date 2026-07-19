@@ -18,6 +18,7 @@ export default function ForgePage() {
   const [live, setLive] = useState<boolean | null>(null);
   const [amount, setAmount] = useState("");
   const [lock, setLock] = useState<LockId>("90d");
+  const [showWiring, setShowWiring] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +41,7 @@ export default function ForgePage() {
   }, []);
 
   const stoking = live !== true;
+  const amountValid = /^\d*\.?\d+$/.test(amount.trim()) && Number(amount) > 0;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
@@ -150,7 +152,8 @@ export default function ForgePage() {
 
           <button
             type="button"
-            disabled={stoking}
+            disabled={stoking || !amountValid}
+            onClick={() => setShowWiring(true)}
             className="btn-gold mt-5 w-full px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             Swear an Oath
@@ -159,6 +162,10 @@ export default function ForgePage() {
             <p className="mt-2 text-xs text-bone-faint">
               Oaths open when the forge_staking flag lights. Nothing to sign
               until then.
+            </p>
+          ) : !amountValid && amount.trim() !== "" ? (
+            <p className="mt-2 text-xs text-ember">
+              Enter a positive amount of $RAVEN to stake.
             </p>
           ) : null}
         </section>
@@ -194,7 +201,81 @@ export default function ForgePage() {
             live these read straight from the chain.
           </p>
         </section>
+
+        {/* Claim */}
+        <section className="glass p-5 sm:p-6">
+          <div className="flex items-center gap-2.5">
+            <Icon name="coin" className="h-4 w-4 text-gold" />
+            <h2 className="font-display text-base font-semibold text-bone">
+              Claim yield
+            </h2>
+            <span className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
+              Harvest
+            </span>
+          </div>
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
+                Claimable
+              </p>
+              <p className="gold-text font-display tnum mt-1 text-2xl font-semibold">
+                --
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={stoking}
+              onClick={() => setShowWiring(true)}
+              className="btn-glass shrink-0 px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Claim
+            </button>
+          </div>
+          <p className="mt-3 text-xs text-bone-faint">
+            Yield accrues from protocol fees as your oath holds. The claimable
+            figure reads straight from the contract once staking is live; we
+            will never show a number the chain has not paid.
+          </p>
+        </section>
       </div>
+
+      {showWiring && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="forge-wiring-title"
+          onClick={() => setShowWiring(false)}
+        >
+          <div
+            className="glass w-full max-w-sm p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5">
+              <Icon name="flame" className="h-5 w-5 text-ember" />
+              <h3
+                id="forge-wiring-title"
+                className="font-display text-lg font-semibold text-bone"
+              >
+                Almost at the anvil
+              </h3>
+            </div>
+            <p className="mt-3 text-sm text-bone-mut">
+              The staking flag is lit, but the on-chain contract wiring is the
+              final step still being forged. No transaction will be signed and
+              no coin will move until the anvil is truly hot. Your oath is
+              recorded here the moment it can be honoured.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowWiring(false)}
+              className="btn-gold mt-5 w-full px-5 py-2.5 text-sm font-semibold"
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
