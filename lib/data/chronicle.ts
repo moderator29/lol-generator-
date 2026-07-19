@@ -51,8 +51,8 @@ export const chronicle: ChronicleSection[] = [
     title: "The Games",
     plain: "Claim the Throne and The War, the realm's two great contests.",
     body: [
-      "Claim the Throne is the individual ladder. Over each Season, the citizens with the sharpest Calls and the strongest presence climb toward a single crown. One ruler sits the throne per Season, their name written into the realm's history, until the next contest begins and the crown is up for grabs again.",
-      "The War is the House game. All six Houses compete across the Season, and every member's contribution counts toward their banner. Small consistent efforts matter as much as heroic ones, which means even a brand-new citizen can tip the scales for their House.",
+      "Claim the Throne is the House rivalry that runs the Season. You swear to a House and earn Glory through purely social play: daily quests, duels of wit voted by the crowd, streaks, courts hosted and newcomers welcomed. Every member's Glory feeds their banner, and when the Season closes, the top House claims the Throne, the bragging rights, and the Season's reward vault.",
+      "The War: Battle for the Realm is the flagship game. Collect champions across the rarities, arm them from the legendary arsenal, raise their mastery, and lead them into real-time battle on the realm's battlefields. Victories, kills and unbroken streaks earn Glory that flows back into your House's Season.",
       "Both games are contests of skill, wit, and participation. There is no buy-in, no wagering, and nothing at stake but glory and standing. You play by showing up and being good, and the scoreboard does the rest.",
     ],
   },
@@ -83,8 +83,8 @@ export const chronicle: ChronicleSection[] = [
     plain: "The roadmap: Mint, Forge, Prophecies, the full Raven, and the Long Night.",
     body: [
       "Ravenspire is a realm under construction, and we would rather show you the map than pretend the castle is finished. What exists today is the foundation: the Ravenry, the Houses, Renown, Crests, and the first Games.",
-      "The chapters ahead, in rough order: the Mint, where the Season's rewards take their final on-chain form. The Forge, where creators shape new things for the realm. Prophecies, a deeper form of Calls with longer horizons and grander stakes of reputation. The full Raven, the realm's complete messenger, carrying everything the Ravenry was always meant to carry.",
-      "And at the end of the map, the Long Night, the realm's great endgame event, of which we will say little for now except that every House will be needed.",
+      "The Forge already stands at the gates: the realm's staking hall, where oaths sworn in $RAVEN earn real yield from protocol fees, never emissions. Its fires light fully when staking goes live on-chain.",
+      "The chapters ahead: the Mint, trading across chains shielded from MEV and gasless. Prophecies, on-chain prediction markets where you call the market and win the realm. The Raven, Unbound, the full autonomous agent that trades, watches and hunts alpha at your word. And the Long Night, the co-op survival event where the realm holds the Wall together when markets crash.",
       "Roadmaps are intentions, not oaths. Order may shift, chapters may change shape, and we will say so plainly when they do. What will not change is the constitution of the realm: fun first, standing earned, keys yours, always.",
     ],
   },
