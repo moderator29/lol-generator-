@@ -63,7 +63,7 @@ export async function fetchProfile(handle: string): Promise<PublicProfile | null
   const { data } = await db
     .from("profiles")
     .select(
-      "id, handle, display_name, avatar_url, banner_url, bio, house_slug, tier, renown, points, glory, x_handle, is_agent, created_at"
+      "id, handle, display_name, avatar_url, banner_url, bio, links, house_slug, tier, renown, points, glory, x_handle, is_agent, created_at"
     )
     .ilike("handle", handle)
     .maybeSingle();

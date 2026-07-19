@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { EditProfile } from "@/components/social/edit-profile";
 import { ProfileView } from "@/components/social/profile-view";
 import { fetchProfile } from "@/lib/social/queries";
 import type { PublicProfile } from "@/lib/social/types";
@@ -14,6 +15,8 @@ export default function KeepPage() {
   const [state, setState] = useState<"loading" | "anon" | "onboard" | "ok">(
     "loading"
   );
+  const [editOpen, setEditOpen] = useState(false);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
     if (!ready) return;
@@ -40,7 +43,7 @@ export default function KeepPage() {
         setState("ok");
       }
     })();
-  }, [ready, authenticated]);
+  }, [ready, authenticated, refresh]);
 
   if (state === "loading")
     return <div className="mx-auto max-w-2xl p-6"><div className="glass h-48 animate-pulse" /></div>;
@@ -78,7 +81,13 @@ export default function KeepPage() {
   return (
     <div>
       {profile && <ProfileView profile={profile} own />}
-      <div className="mx-auto max-w-2xl px-4 pb-8">
+      <div className="mx-auto flex max-w-2xl flex-wrap gap-2 px-4 pb-8">
+        <button
+          onClick={() => setEditOpen(true)}
+          className="btn-glass px-4 py-2 text-xs text-bone-mut"
+        >
+          Edit Profile
+        </button>
         <button
           onClick={signOut}
           className="btn-glass px-4 py-2 text-xs text-bone-faint"
@@ -86,6 +95,14 @@ export default function KeepPage() {
           Leave the realm (sign out)
         </button>
       </div>
+      <EditProfile
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onSaved={() => {
+          setEditOpen(false);
+          setRefresh((n) => n + 1);
+        }}
+      />
     </div>
   );
 }

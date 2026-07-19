@@ -1,4 +1,5 @@
 import { Feed } from "@/components/social/feed";
+import { TourMount } from "@/components/onboarding/tour-mount";
 
 export default function HomePage() {
   return (
@@ -9,6 +10,7 @@ export default function HomePage() {
       <p className="mb-4 text-xs uppercase tracking-[0.26em] text-bone-faint">
         Feed · home
       </p>
+      <TourMount />
       <Feed />
     </div>
   );

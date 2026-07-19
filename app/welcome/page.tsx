@@ -55,7 +55,7 @@ export default function WelcomePage() {
       setStep(0);
       return;
     }
-    router.replace("/home");
+    router.replace("/home?welcome=1");
   };
 
   return (

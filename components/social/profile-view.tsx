@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { PostCard } from "@/components/social/post-card";
 import { Avatar } from "@/components/social/avatar";
 import { CrestRoundel, findCrest } from "@/components/brand/crests";
@@ -26,7 +27,7 @@ export function ProfileView({
   const [posts, setPosts] = useState<Post[]>([]);
   const [crestSlugs, setCrestSlugs] = useState<string[]>([]);
   const [counts, setCounts] = useState({ followers: 0, following: 0 });
-  const [tab, setTab] = useState<"posts" | "calls">("posts");
+  const [tab, setTab] = useState<"posts" | "calls" | "media">("posts");
   const [following, setFollowing] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
 
@@ -62,6 +63,11 @@ export function ProfileView({
   const callPosts = posts.filter((p) => p.kind === "call");
   const callsWon = callPosts.filter((p) => p.call?.verdict === "hit").length;
   const shown = tab === "calls" ? callPosts : posts;
+  const mediaTiles = posts.flatMap((p) =>
+    (p.media ?? [])
+      .filter((m) => m.type === "image" && m.url)
+      .map((m, i) => ({ postId: p.id, url: m.url, key: `${p.id}-${i}` }))
+  );
 
   const toggleFollow = async () => {
     if (!authenticated) {
@@ -150,6 +156,26 @@ export function ProfileView({
           </p>
         )}
 
+        {profile.links && profile.links.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {profile.links
+              .filter((l) => l.url?.startsWith("https://"))
+              .slice(0, 3)
+              .map((l) => (
+                <a
+                  key={l.url}
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="glass-sm flex max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-xs text-bone-mut hover:text-bone"
+                >
+                  <Icon name="compass" className="h-3 w-3 shrink-0 text-gold" />
+                  <span className="truncate">{l.label || l.url}</span>
+                </a>
+              ))}
+          </div>
+        )}
+
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-bone-faint">
           {house && (
             <span className="flex items-center gap-1.5">
@@ -193,7 +219,7 @@ export function ProfileView({
       </div>
 
       <div className="mt-5 flex gap-1.5">
-        {(["posts", "calls"] as const).map((t) => (
+        {(["posts", "calls", "media"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -201,24 +227,50 @@ export function ProfileView({
               tab === t ? "btn-gold" : "btn-glass text-bone-mut"
             }`}
           >
-            {t === "posts" ? "Ravens" : "Calls"}
+            {t === "posts" ? "Ravens" : t === "calls" ? "Calls" : "Media"}
           </button>
         ))}
       </div>
 
-      <div className="mt-3 flex flex-col gap-3">
-        {shown.length === 0 ? (
-          <div className="glass p-8 text-center text-sm text-bone-mut">
-            {tab === "calls"
-              ? "No Calls sealed yet."
-              : own
-                ? "Your Keep awaits its first raven."
-                : "No ravens from this Keep yet."}
+      {tab === "media" ? (
+        mediaTiles.length === 0 ? (
+          <div className="glass mt-3 p-8 text-center text-sm text-bone-mut">
+            No images from this Keep yet.
           </div>
         ) : (
-          shown.map((p) => <PostCard key={p.id} post={p} />)
-        )}
-      </div>
+          <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+            {mediaTiles.map((m) => (
+              <Link
+                key={m.key}
+                href={`/post/${m.postId}`}
+                className="glass-sm block aspect-square overflow-hidden"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={m.url}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                />
+              </Link>
+            ))}
+          </div>
+        )
+      ) : (
+        <div className="mt-3 flex flex-col gap-3">
+          {shown.length === 0 ? (
+            <div className="glass p-8 text-center text-sm text-bone-mut">
+              {tab === "calls"
+                ? "No Calls sealed yet."
+                : own
+                  ? "Your Keep awaits its first raven."
+                  : "No ravens from this Keep yet."}
+            </div>
+          ) : (
+            shown.map((p) => <PostCard key={p.id} post={p} />)
+          )}
+        </div>
+      )}
     </div>
   );
 }
