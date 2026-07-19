@@ -37,36 +37,23 @@ export async function award(
     ref: opts.ref ?? null,
   });
 
-  const { data: prof } = await db
-    .from("profiles")
-    .select("points, glory, renown, house_slug")
-    .eq("id", profileId)
-    .single();
-  if (!prof) return;
+  /* Atomic increment via RPC: profiles totals and tier update as a single
+     statement, so concurrent awards can no longer lose increments the way the
+     old select then update did. The function returns the profile's house_slug
+     so House Glory can be bumped atomically in a second, equally safe call.
+     tierFor stays exported for callers that need the tier ladder in TS; the
+     RPC mirrors its thresholds server side. */
+  const { data: houseSlug } = await db.rpc("increment_profile_totals", {
+    p_profile_id: profileId,
+    p_points: points,
+    p_glory: glory,
+  });
 
-  const renown = prof.renown + points + glory;
-  await db
-    .from("profiles")
-    .update({
-      points: prof.points + points,
-      glory: prof.glory + glory,
-      renown,
-      tier: tierFor(renown).slug,
-    })
-    .eq("id", profileId);
-
-  if (glory > 0 && prof.house_slug) {
-    const { data: house } = await db
-      .from("houses")
-      .select("glory")
-      .eq("slug", prof.house_slug)
-      .single();
-    if (house) {
-      await db
-        .from("houses")
-        .update({ glory: house.glory + glory })
-        .eq("slug", prof.house_slug);
-    }
+  if (glory > 0 && houseSlug) {
+    await db.rpc("increment_house_glory", {
+      p_slug: houseSlug as string,
+      p_glory: glory,
+    });
   }
 
   await checkAndGrantCrests(db, profileId);
