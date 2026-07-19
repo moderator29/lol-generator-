@@ -19,7 +19,7 @@ export async function askRaven(
       model: "claude-sonnet-5",
       max_tokens: 600,
       system: context
-        ? `${RAVEN_SYSTEM_PROMPT}\n\nLIVE DATA CONTEXT (real, verified, use it):\n${context}`
+        ? `${RAVEN_SYSTEM_PROMPT}\n\n## Live realm context (real, verified, safe to state)\nThe lines below were fetched from live sources moments ago. Cite these figures freely and name them only once. Do NOT invent any number that is absent here.\n\n${context}`
         : RAVEN_SYSTEM_PROMPT,
       messages,
     });
