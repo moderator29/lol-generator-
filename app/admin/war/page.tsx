@@ -193,10 +193,10 @@ export default function AdminWarPage() {
                           {nameFor(b.champion_slug)}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-bone-mut">
-                          {b.battlefield ?? "—"}
+                          {b.battlefield ?? "-"}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 capitalize text-bone-mut">
-                          {b.result ?? "—"}
+                          {b.result ?? "-"}
                         </td>
                         <td className="tnum whitespace-nowrap px-4 py-3 text-bone-mut">
                           {b.kills}

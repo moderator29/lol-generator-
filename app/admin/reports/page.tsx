@@ -25,7 +25,7 @@ type Filter = (typeof FILTERS)[number];
 function personName(
   p: { handle: string | null; display_name: string | null } | null
 ): string {
-  if (!p) return "—";
+  if (!p) return "-";
   return p.display_name?.trim() || (p.handle ? `@${p.handle}` : "Anonymous");
 }
 
@@ -189,7 +189,7 @@ export default function AdminReportsPage() {
                       {personName(r.resolver)}
                     </td>
                     <td className="max-w-[12rem] px-4 py-3 text-xs text-bone-faint">
-                      {r.resolution_note || "—"}
+                      {r.resolution_note || "-"}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       {r.status !== "open" && (

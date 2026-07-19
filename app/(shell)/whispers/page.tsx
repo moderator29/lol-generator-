@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { realmFetch } from "@/lib/auth/api";
@@ -27,8 +27,11 @@ interface Convo {
 interface Message {
   id: string;
   sender_id: string;
-  body: string;
+  body: string | null;
+  image_url: string | null;
   created_at: string;
+  /* Local-only: an optimistic message not yet confirmed by the server. */
+  pending?: boolean;
 }
 
 interface ProfileHit {
@@ -45,8 +48,13 @@ function avatarLetter(c: Convo): string {
   return convoName(c).slice(0, 1).toUpperCase();
 }
 
+function byTime(a: Message, b: Message): number {
+  return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
+}
+
 export default function WhispersPage() {
   const { ready, authenticated } = useRealmAuth();
+  const supabase = useMemo(() => createClient(), []);
 
   const [convos, setConvos] = useState<Convo[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -54,6 +62,13 @@ export default function WhispersPage() {
   const [msgs, setMsgs] = useState<Message[] | null>(null);
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendErr, setSendErr] = useState<string | null>(null);
+
+  /* Image staged in the composer, uploaded and ready to send. */
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [composeOpen, setComposeOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -63,11 +78,37 @@ export default function WhispersPage() {
   const [composeErr, setComposeErr] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const activeIdRef = useRef<string | null>(null);
+  activeIdRef.current = activeId;
 
   const loadConvos = useCallback(async () => {
-    const res = await realmFetch<{ conversations: Convo[] }>("/api/whispers");
-    if (res.ok && res.data) setConvos(res.data.conversations);
-    else setConvos((prev) => prev ?? []);
+    const res = await realmFetch<{ me: string; conversations: Convo[] }>(
+      "/api/whispers"
+    );
+    if (res.ok && res.data) {
+      if (res.data.me) setMeId(res.data.me);
+      setConvos(res.data.conversations);
+    } else setConvos((prev) => prev ?? []);
+  }, []);
+
+  /* Merge a message in, deduping by id and clearing the optimistic twin so a
+     confirmed send and its realtime echo never double up. */
+  const mergeMessage = useCallback((incoming: Message, mine: boolean) => {
+    setMsgs((prev) => {
+      const list = prev ?? [];
+      if (list.some((m) => m.id === incoming.id)) return list;
+      const pruned = mine
+        ? list.filter(
+            (m) =>
+              !(
+                m.pending &&
+                (m.body ?? "") === (incoming.body ?? "") &&
+                (m.image_url ?? "") === (incoming.image_url ?? "")
+              )
+          )
+        : list;
+      return [...pruned, incoming].sort(byTime);
+    });
   }, []);
 
   const loadMessages = useCallback(async (conversation: string) => {
@@ -76,11 +117,14 @@ export default function WhispersPage() {
     );
     if (res.ok && res.data) {
       setMeId(res.data.me);
-      setMsgs(
-        [...res.data.messages].sort((a, b) =>
-          a.created_at < b.created_at ? -1 : 1
-        )
-      );
+      setMsgs((prev) => {
+        /* Preserve any still-unconfirmed optimistic messages on refresh. */
+        const pending = (prev ?? []).filter((m) => m.pending);
+        const server = res.data!.messages;
+        const serverIds = new Set(server.map((m) => m.id));
+        const keep = pending.filter((m) => !serverIds.has(m.id));
+        return [...server, ...keep].sort(byTime);
+      });
     }
   }, []);
 
@@ -89,14 +133,52 @@ export default function WhispersPage() {
     if (ready && authenticated) void loadConvos();
   }, [ready, authenticated, loadConvos]);
 
-  /* Poll the open thread every 8s */
+  /* Personal realtime channel: reorder the corridor and refresh unread the
+     instant any of my conversations receives a whisper. */
+  useEffect(() => {
+    if (!meId) return;
+    const channel = supabase
+      .channel(`whispers:user:${meId}`)
+      .on("broadcast", { event: "bump" }, () => {
+        void loadConvos();
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [supabase, meId, loadConvos]);
+
+  /* Thread realtime channel: append incoming whispers live. Keyed on the
+     secret conversation id, so only the two participants ever hold the topic. */
   useEffect(() => {
     if (!activeId) return;
-    const t = setInterval(() => {
-      void loadMessages(activeId);
-    }, 8000);
+    const channel = supabase
+      .channel(`whispers:conv:${activeId}`)
+      .on("broadcast", { event: "message" }, (payload) => {
+        const m = (payload.payload as { message?: Message } | undefined)
+          ?.message;
+        if (!m || activeIdRef.current !== activeId) return;
+        mergeMessage(m, m.sender_id === meId);
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [supabase, activeId, meId, mergeMessage]);
+
+  /* Gentle poll as a fallback so delivery is guaranteed even if a broadcast
+     is missed (open thread, and the corridor for unread counts). */
+  useEffect(() => {
+    if (!activeId) return;
+    const t = setInterval(() => void loadMessages(activeId), 12000);
     return () => clearInterval(t);
   }, [activeId, loadMessages]);
+
+  useEffect(() => {
+    if (!ready || !authenticated) return;
+    const t = setInterval(() => void loadConvos(), 25000);
+    return () => clearInterval(t);
+  }, [ready, authenticated, loadConvos]);
 
   /* Keep the thread pinned to the latest message */
   useEffect(() => {
@@ -114,8 +196,7 @@ export default function WhispersPage() {
     }
     setSearching(true);
     const timer = setTimeout(() => {
-      const db = createClient();
-      void db
+      void supabase
         .from("profiles")
         .select("id, handle, display_name")
         .ilike("handle", `%${q}%`)
@@ -128,11 +209,14 @@ export default function WhispersPage() {
         });
     }, 250);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [supabase, query]);
 
   function openThread(id: string) {
     setActiveId(id);
     setMsgs(null);
+    setBody("");
+    setPendingImage(null);
+    setSendErr(null);
     setConvos((prev) =>
       prev ? prev.map((c) => (c.id === id ? { ...c, unread: 0 } : c)) : prev
     );
@@ -143,21 +227,69 @@ export default function WhispersPage() {
     setActiveId(null);
     setMsgs(null);
     setBody("");
+    setPendingImage(null);
+    setSendErr(null);
+  }
+
+  async function pickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setSendErr(null);
+    setUploading(true);
+    const form = new FormData();
+    form.append("file", file);
+    const res = await realmFetch<{ url?: string; error?: string }>(
+      "/api/upload",
+      { method: "POST", body: form }
+    );
+    if (res.ok && res.data?.url) setPendingImage(res.data.url);
+    else setSendErr(res.data?.error ?? "That image could not be sent.");
+    setUploading(false);
   }
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const text = body.trim();
-    if (!text || !activeId || sending) return;
+    const image = pendingImage;
+    if ((!text && !image) || !activeId || sending || uploading) return;
     setSending(true);
-    const res = await realmFetch<{ ok: true }>("/api/whispers/messages", {
-      method: "POST",
-      json: { conversation: activeId, body: text },
-    });
-    if (res.ok) {
-      setBody("");
-      await loadMessages(activeId);
+    setSendErr(null);
+
+    const optimistic: Message = {
+      id: `temp-${crypto.randomUUID()}`,
+      sender_id: meId ?? "",
+      body: text || null,
+      image_url: image,
+      created_at: new Date().toISOString(),
+      pending: true,
+    };
+    mergeMessage(optimistic, true);
+    setBody("");
+    setPendingImage(null);
+
+    const res = await realmFetch<{ ok: true; message: Message }>(
+      "/api/whispers/messages",
+      {
+        method: "POST",
+        json: {
+          conversation: activeId,
+          body: text || undefined,
+          imageUrl: image || undefined,
+        },
+      }
+    );
+    if (res.ok && res.data?.message) {
+      mergeMessage(res.data.message, true);
       void loadConvos();
+    } else {
+      /* Roll the optimistic message back and restore the draft. */
+      setMsgs((prev) =>
+        prev ? prev.filter((m) => m.id !== optimistic.id) : prev
+      );
+      if (text) setBody(text);
+      if (image) setPendingImage(image);
+      setSendErr("The whisper was lost. Try again.");
     }
     setSending(false);
   }
@@ -183,6 +315,7 @@ export default function WhispersPage() {
   }
 
   const active = convos?.find((c) => c.id === activeId) ?? null;
+  const canSend = (body.trim().length > 0 || Boolean(pendingImage)) && !uploading;
 
   return (
     <div className="mx-auto w-full max-w-5xl px-3 py-4 sm:px-4 sm:py-6">
@@ -418,21 +551,45 @@ export default function WhispersPage() {
                               mine
                                 ? "self-end items-end"
                                 : "self-start items-start"
-                            }`}
+                            } ${m.pending ? "opacity-70" : ""}`}
                           >
                             <div
                               className={`${
                                 mine
                                   ? "glass glass-warm rounded-br-sm"
                                   : "glass glass-sm rounded-bl-sm"
-                              } rounded-2xl px-3.5 py-2`}
+                              } overflow-hidden rounded-2xl ${
+                                m.image_url && !m.body
+                                  ? "p-1"
+                                  : "px-3.5 py-2"
+                              }`}
                             >
-                              <p className="whitespace-pre-wrap break-words text-sm text-bone">
-                                {m.body}
-                              </p>
+                              {m.image_url && (
+                                <button
+                                  type="button"
+                                  onClick={() => setLightbox(m.image_url)}
+                                  className={`group block overflow-hidden rounded-xl border border-steel-line/60 ${
+                                    m.body ? "mb-2" : ""
+                                  }`}
+                                  aria-label="Open image full size"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={m.image_url}
+                                    alt="Whispered image"
+                                    loading="lazy"
+                                    className="max-h-64 w-full max-w-[16rem] object-cover transition duration-200 group-hover:brightness-110"
+                                  />
+                                </button>
+                              )}
+                              {m.body && (
+                                <p className="whitespace-pre-wrap break-words text-sm text-bone">
+                                  {m.body}
+                                </p>
+                              )}
                             </div>
                             <span className="tnum mt-0.5 px-1 text-[10px] text-bone-faint">
-                              {timeAgo(m.created_at)}
+                              {m.pending ? "Sending" : timeAgo(m.created_at)}
                             </span>
                           </div>
                         );
@@ -441,10 +598,60 @@ export default function WhispersPage() {
                   )}
                 </div>
 
+                {sendErr && (
+                  <p className="border-t border-steel-line px-3 pt-2 text-xs text-ember">
+                    {sendErr}
+                  </p>
+                )}
+
+                {pendingImage && (
+                  <div className="flex items-center gap-3 border-t border-steel-line px-3 pt-2.5">
+                    <span className="relative inline-block">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={pendingImage}
+                        alt="Attachment preview"
+                        className="h-16 w-16 rounded-lg border border-steel-line object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPendingImage(null)}
+                        aria-label="Remove image"
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-steel-line bg-panel text-bone-mut"
+                      >
+                        <Icon name="plus" className="h-3 w-3 rotate-45" />
+                      </button>
+                    </span>
+                    <span className="text-xs text-bone-faint">
+                      Ready to send
+                    </span>
+                  </div>
+                )}
+
                 <form
                   onSubmit={(e) => void send(e)}
                   className="flex items-center gap-2 border-t border-steel-line px-3 py-2.5"
                 >
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => void pickImage(e)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading || Boolean(pendingImage)}
+                    aria-label="Attach image"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-steel-line bg-panel text-bone-mut transition hover:text-gold disabled:opacity-50"
+                  >
+                    {uploading ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-steel-line border-t-gold" />
+                    ) : (
+                      <Icon name="image" className="h-4 w-4" />
+                    )}
+                  </button>
                   <input
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
@@ -453,7 +660,7 @@ export default function WhispersPage() {
                   />
                   <button
                     type="submit"
-                    disabled={sending || body.trim().length === 0}
+                    disabled={sending || !canSend}
                     aria-label="Send whisper"
                     className="btn-gold flex h-10 w-10 shrink-0 items-center justify-center disabled:opacity-50"
                   >
@@ -473,6 +680,32 @@ export default function WhispersPage() {
             )}
           </div>
         </>
+      )}
+
+      {/* Full-size image */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={() => setLightbox(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            aria-label="Close image"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-steel-line bg-panel text-bone-mut"
+          >
+            <Icon name="plus" className="h-5 w-5 rotate-45" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt="Whispered image"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[88vh] max-w-full rounded-2xl border border-steel-line object-contain shadow-2xl"
+          />
+        </div>
       )}
     </div>
   );

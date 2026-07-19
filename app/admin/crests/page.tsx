@@ -177,7 +177,7 @@ export default function AdminCrestsPage() {
               <p className="mt-3 text-xs text-bone-mut">{c.earn}</p>
               <div className="mt-3 flex items-baseline gap-2 border-t border-steel-line pt-3">
                 <span className="tnum font-display text-lg font-semibold text-gold">
-                  {status === "loading" ? "—" : earned}
+                  {status === "loading" ? "-" : earned}
                 </span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-bone-faint">
                   {earned === 1 ? "citizen earned" : "citizens earned"}

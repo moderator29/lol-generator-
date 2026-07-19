@@ -177,7 +177,7 @@ export default function AdminSettingsPage() {
                       {a.action.replace(/_/g, " ")}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-bone-faint">
-                      {a.target_type ?? "—"}
+                      {a.target_type ?? "-"}
                     </td>
                     <td className="tnum whitespace-nowrap px-4 py-3 text-xs text-bone-faint">
                       {timeAgo(a.created_at)}

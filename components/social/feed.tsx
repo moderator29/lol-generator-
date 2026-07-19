@@ -132,7 +132,7 @@ export function Feed() {
 
   return (
     <div className="flex flex-col gap-3">
-      <Composer onPosted={() => void load()} />
+      <Composer onPosted={onPosted} />
 
       <div className="relative">
         <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pr-10">
