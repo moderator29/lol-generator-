@@ -293,7 +293,61 @@ export function Composer({ onPosted }: { onPosted?: (post?: Post) => void }) {
               <Icon name="target" className="h-4 w-4" />
               Make a Call
             </button>
-            <span className="ml-auto text-[11px] text-bone-faint">
+            <div className="relative ml-auto">
+              <button
+                onClick={() => setAudienceOpen((v) => !v)}
+                aria-label="Choose who can see this raven"
+                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition ${
+                  audienceOpen || visibility !== "public"
+                    ? "bg-gold/15 text-gold"
+                    : "text-bone-faint hover:bg-panel hover:text-bone-mut"
+                }`}
+              >
+                <Icon
+                  name={
+                    AUDIENCES.find((a) => a.value === visibility)?.icon ?? "eye"
+                  }
+                  className="h-4 w-4"
+                />
+                <span className="hidden sm:inline">
+                  {AUDIENCES.find((a) => a.value === visibility)?.label}
+                </span>
+              </button>
+              {audienceOpen && (
+                <>
+                  <button
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={() => setAudienceOpen(false)}
+                    className="fixed inset-0 z-20 cursor-default"
+                  />
+                  <div className="glass glass-sm absolute right-0 top-9 z-30 w-52 p-1">
+                    <p className="px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-bone-faint">
+                      Who can see this
+                    </p>
+                    {AUDIENCES.map((a) => (
+                      <button
+                        key={a.value}
+                        onClick={() => {
+                          setVisibility(a.value);
+                          setAudienceOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition hover:bg-panel ${
+                          visibility === a.value ? "text-gold" : "text-bone-mut"
+                        }`}
+                      >
+                        <Icon name={a.icon} className="h-3.5 w-3.5 shrink-0" />
+                        {a.label}
+                        {visibility === a.value && (
+                          <span className="ml-auto text-gold">·</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <span className="text-[11px] text-bone-faint">
               {body.length > 0 && `${body.length}/1000`}
             </span>
             <button
