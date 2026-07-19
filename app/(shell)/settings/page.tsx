@@ -6,6 +6,7 @@ import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { realmFetch } from "@/lib/auth/api";
 import { Icon } from "@/components/ui/icon";
 import { ReferralPanel } from "@/components/referral/referral-panel";
+import { WalletSection } from "@/components/wallet/wallet-section";
 
 interface MeProfile {
   id: string;
@@ -145,7 +146,7 @@ function Card({
 }
 
 export default function SettingsPage() {
-  const { ready, enabled, authenticated, displayName, address, signOut, signInX, signInEmail } =
+  const { ready, enabled, authenticated, displayName, signOut, signInX, signInEmail } =
     useRealmAuth();
   const [profile, setProfile] = useState<MeProfile | null>(null);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
@@ -273,23 +274,30 @@ export default function SettingsPage() {
               </Row>
             </Card>
 
-            {/* Wallets */}
-            <Card icon="wallet" title="Wallets" plain="Keys and coin">
-              <Row title="Bound address">
-                <span className="tnum max-w-[55%] truncate font-mono text-xs text-bone-mut sm:text-sm">
-                  {authenticated && address ? address : "--"}
+            {/* Wallet: receive, holdings, send, and backup, all non-custodial */}
+            <div className="flex items-center justify-between gap-3 px-1 pt-1">
+              <div className="flex items-center gap-2.5">
+                <Icon name="wallet" className="h-4 w-4 text-gold" />
+                <h2 className="font-display text-base font-semibold text-bone">
+                  Wallet
+                </h2>
+                <span className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
+                  Keys and coin
                 </span>
-              </Row>
-              <Row title="The Vault" desc="Receive, export, and manage">
-                <Link href="/vault" className="btn-glass px-4 py-1.5 text-sm">
-                  Open the Vault
-                </Link>
-              </Row>
-              <p className="mt-3 text-xs text-bone-faint">
-                Key export happens in the Vault, entirely on your device. Your
-                phrase is never sent to our servers.
-              </p>
-            </Card>
+              </div>
+              <Link
+                href="/wallet"
+                className="text-xs text-gold underline underline-offset-2"
+              >
+                Full view
+              </Link>
+            </div>
+            <WalletSection />
+            <p className="px-1 text-xs text-bone-faint">
+              Your wallet is non-custodial. Ravenspire never holds your keys and
+              cannot move your funds; every transfer and key export happens on
+              your device, and only you can authorize it.
+            </p>
 
             {/* Privacy */}
             <Card icon="eye" title="Privacy" plain="What others see">
