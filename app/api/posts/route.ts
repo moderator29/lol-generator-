@@ -27,6 +27,17 @@ export async function POST(req: Request) {
     return json({ error: "An empty raven carries no word" }, 400);
   if (text.length > 1000) return json({ error: "Too long" }, 400);
 
+  /* Media must live in our own storage; no hotlinked strangers. */
+  const storagePrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/`;
+  const media = (body.media ?? [])
+    .slice(0, 4)
+    .filter(
+      (m) =>
+        typeof m?.url === "string" &&
+        m.url.startsWith(storagePrefix) &&
+        (m.type === "image" || m.type === "video")
+    );
+
   const cashtags = [...text.matchAll(/\$([a-zA-Z]{2,12})\b/g)].map((m) =>
     m[1].toUpperCase()
   );
@@ -71,7 +82,7 @@ export async function POST(req: Request) {
       author_id: profile.id,
       kind,
       body: text,
-      media: body.media?.slice(0, 4) ?? [],
+      media,
       cashtags,
       call,
       poll,

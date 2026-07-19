@@ -1,30 +1,91 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { useCallback, useEffect, useState } from "react";
+import { useRealmAuth } from "@/lib/auth/use-realm-auth";
+import { realmFetch } from "@/lib/auth/api";
 import { Icon } from "@/components/ui/icon";
 
-type FlagRow = Record<string, unknown> | null;
+type Host = {
+  handle: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+} | null;
+
+type Court = {
+  id: string;
+  host_id: string;
+  title: string | null;
+  status: "live" | "scheduled";
+  started_at: string | null;
+  host: Host;
+  participants: number;
+  participant_ids: string[];
+};
 
 export default function RookeryPage() {
-  const [live, setLive] = useState<boolean | null>(null);
+  const { ready, authenticated } = useRealmAuth();
+  const [me, setMe] = useState<string | null>(null);
+  const [courts, setCourts] = useState<Court[] | null>(null);
+  const [title, setTitle] = useState("");
+  const [opening, setOpening] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/rooms");
+      const data = (await res.json()) as { rooms?: Court[] } | null;
+      setCourts(Array.isArray(data?.rooms) ? data.rooms : []);
+    } catch {
+      setCourts((prev) => prev ?? []);
+    }
+  }, []);
 
   useEffect(() => {
-    const db = createClient();
-    void db
-      .from("feature_flags")
-      .select("*")
-      .eq("key", "rookery_live")
-      .maybeSingle()
-      .then(({ data }) => {
-        const row = data as FlagRow;
-        const on =
-          !!row &&
-          (row.enabled === true || row.value === true || row.value === "true");
-        setLive(on);
-      });
-  }, []);
+    void load();
+    const timer = setInterval(() => void load(), 12000);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  useEffect(() => {
+    if (!ready || !authenticated) {
+      setMe(null);
+      return;
+    }
+    void realmFetch<{ profile?: { id: string } }>("/api/me", {
+      method: "POST",
+    }).then(({ data }) => {
+      if (data?.profile?.id) setMe(data.profile.id);
+    });
+  }, [ready, authenticated]);
+
+  async function openCourt() {
+    const t = title.trim();
+    if (!t || opening) return;
+    setOpening(true);
+    setError(null);
+    const { ok, data } = await realmFetch<{ error?: string }>("/api/rooms", {
+      method: "POST",
+      json: { action: "open", title: t },
+    });
+    if (ok) setTitle("");
+    else setError(data?.error ?? "The court could not be raised. Try again.");
+    await load();
+    setOpening(false);
+  }
+
+  async function act(action: "close" | "join" | "leave", roomId: string) {
+    if (busy) return;
+    setBusy(roomId);
+    setError(null);
+    const { ok, data } = await realmFetch<{ error?: string }>("/api/rooms", {
+      method: "POST",
+      json: { action, room_id: roomId },
+    });
+    if (!ok) setError(data?.error ?? "The act failed. Try again.");
+    await load();
+    setBusy(null);
+  }
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
@@ -35,55 +96,137 @@ export default function RookeryPage() {
         Live
       </p>
 
-      {live === null ? (
-        <div className="glass mt-5 h-64 animate-pulse" />
-      ) : live ? (
-        <div className="glass mt-5 p-8 text-center">
-          <Icon name="signal" className="mx-auto h-8 w-8 text-gold" />
-          <p className="mt-3 font-display text-lg font-semibold text-bone">
-            No courts in session
+      {ready && authenticated && (
+        <div className="glass mt-5 p-4">
+          <p className="font-display text-sm font-semibold text-bone">
+            Open a court
           </p>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-bone-mut">
-            The hall stands ready and the benches are empty. When a court
-            convenes, it will appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="glass relative mt-5 overflow-hidden p-8 sm:p-12">
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-40"
-            style={{
-              background:
-                "radial-gradient(60% 100% at 50% 0%, rgba(200,162,76,0.14), transparent)",
-            }}
-          />
-          <div className="relative flex flex-col items-center text-center">
-            <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-steel-line bg-panel">
-              <Icon name="signal" className="h-8 w-8 text-gold" />
-            </span>
-            <h2 className="gold-text font-display mt-5 text-2xl font-semibold sm:text-3xl">
-              The court is being raised
-            </h2>
-            <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
-              Live audio rooms
-            </p>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-bone-mut">
-              Courts are the realm&apos;s live chambers. A host takes the dais,
-              speakers join by voice, and anyone in the hall may raise a hand to
-              be heard. Debates, war councils, victory feasts: when a court is
-              in session, the whole realm listens.
-            </p>
-            <p className="mt-3 max-w-md text-sm text-bone-faint">
-              The masons are still at work on this hall. There is nothing to
-              join yet, and we will not pretend otherwise.
-            </p>
-            <Link href="/ravens" className="btn-glass mt-6 px-5 py-2.5 text-sm">
-              <Icon name="bell" className="h-4 w-4" />
-              Get notified
-            </Link>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void openCourt();
+              }}
+              maxLength={80}
+              placeholder="Name the matter before the court"
+              className="w-full rounded-lg border border-steel-line bg-panel px-3 py-2.5 text-sm text-bone placeholder:text-bone-faint focus:outline-none"
+            />
+            <button
+              onClick={() => void openCourt()}
+              disabled={opening || !title.trim()}
+              className="btn-gold shrink-0 px-4 py-2.5 text-sm disabled:opacity-50"
+            >
+              <Icon name="signal" className="h-4 w-4" />
+              {opening ? "Raising..." : "Open a court"}
+            </button>
           </div>
         </div>
       )}
+
+      {error && (
+        <div className="glass glass-sm mt-3 border-ember/40 p-3 text-sm text-ember">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-5 flex flex-col gap-2">
+        {courts === null ? (
+          [0, 1, 2].map((i) => (
+            <div key={i} className="glass h-24 animate-pulse" />
+          ))
+        ) : courts.length === 0 ? (
+          <div className="glass p-8 text-center">
+            <Icon name="signal" className="mx-auto h-8 w-8 text-gold" />
+            <p className="mt-3 font-display text-lg font-semibold text-bone">
+              No courts in session
+            </p>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-bone-mut">
+              The hall stands ready and the benches are empty. Open a court and
+              the realm will see your banner raised here.
+            </p>
+          </div>
+        ) : (
+          courts.map((c) => {
+            const isHost = me !== null && c.host_id === me;
+            const isMember = me !== null && c.participant_ids.includes(me);
+            const hostName =
+              c.host?.display_name ?? c.host?.handle ?? "Unknown herald";
+            return (
+              <div key={c.id} className="glass glass-hover p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    {c.status === "live" ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-ember/40 bg-ember/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ember">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ember" />
+                        Live
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full border border-steel-line bg-panel px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-bone-mut">
+                        Scheduled
+                      </span>
+                    )}
+                    <p className="mt-2 truncate font-display text-base font-semibold text-bone">
+                      {c.title ?? "An unnamed court"}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-steel-line bg-panel font-display text-xs text-gold">
+                        {hostName.slice(0, 1).toUpperCase()}
+                      </span>
+                      <p className="truncate text-xs text-bone-mut">
+                        Held by{" "}
+                        <span className="text-bone">{hostName}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <p className="text-xs text-bone-faint">
+                      <span className="tnum text-bone">{c.participants}</span>{" "}
+                      {c.participants === 1 ? "listener" : "listeners"}
+                    </p>
+                    {ready && authenticated && me && (
+                      isHost ? (
+                        <button
+                          onClick={() => void act("close", c.id)}
+                          disabled={busy === c.id}
+                          className="btn-glass px-3 py-1.5 text-xs disabled:opacity-50"
+                        >
+                          End court
+                        </button>
+                      ) : isMember ? (
+                        <button
+                          onClick={() => void act("leave", c.id)}
+                          disabled={busy === c.id}
+                          className="btn-glass px-3 py-1.5 text-xs disabled:opacity-50"
+                        >
+                          Leave
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => void act("join", c.id)}
+                          disabled={busy === c.id}
+                          className="btn-gold px-3 py-1.5 text-xs disabled:opacity-50"
+                        >
+                          Join
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="glass glass-sm mt-5 flex items-start gap-3 p-4">
+        <Icon name="orb" className="mt-0.5 h-4 w-4 shrink-0 text-bone-faint" />
+        <p className="text-xs leading-relaxed text-bone-mut">
+          Voices carry when the court&apos;s speaking stones (the live audio
+          provider) are set in place. Until then, courts gather and the realm
+          sees who holds them.
+        </p>
+      </div>
     </div>
   );
 }
