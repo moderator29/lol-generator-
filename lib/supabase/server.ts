@@ -18,7 +18,10 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Called from a Server Component; middleware refreshes sessions.
+            /* Called from a Server Component, where cookies are read-only.
+               Safe to ignore: auth is carried by the Privy bearer token on
+               API routes (see lib/auth/server.ts), not by Supabase cookies,
+               so there is no session to refresh here. */
           }
         },
       },
