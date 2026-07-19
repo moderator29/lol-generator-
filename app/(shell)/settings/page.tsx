@@ -7,6 +7,8 @@ import { realmFetch } from "@/lib/auth/api";
 import { Icon } from "@/components/ui/icon";
 import { ReferralPanel } from "@/components/referral/referral-panel";
 import { WalletSection } from "@/components/wallet/wallet-section";
+import { AccountSecurity } from "@/components/settings/account-security";
+import { Card, Row, Toggle, SectionHeader } from "@/components/settings/ui";
 
 interface MeProfile {
   id: string;
@@ -19,33 +21,48 @@ interface MeProfile {
 interface Prefs {
   publicPositions: boolean;
   pnlVisible: boolean;
+  discoverable: boolean;
   notifyMentions: boolean;
   notifyReplies: boolean;
   notifyDuels: boolean;
   notifyHouse: boolean;
+  notifyAnnouncements: boolean;
+  voiceReplies: boolean;
+  autoplayAudio: boolean;
+  soundEffects: boolean;
 }
 
 const DEFAULT_PREFS: Prefs = {
   publicPositions: false,
   pnlVisible: false,
+  discoverable: true,
   notifyMentions: true,
   notifyReplies: true,
   notifyDuels: true,
   notifyHouse: true,
+  notifyAnnouncements: true,
+  voiceReplies: false,
+  autoplayAudio: false,
+  soundEffects: true,
 };
 
 /* Which settings bucket each toggle lives in, and its key inside that bucket.
    Buckets map to the profiles.settings jsonb the /api/settings route merges. */
 const PREF_MAP: Record<
   keyof Prefs,
-  { bucket: "privacy" | "notifications"; key: string }
+  { bucket: "privacy" | "notifications" | "voice"; key: string }
 > = {
   publicPositions: { bucket: "privacy", key: "publicPositions" },
   pnlVisible: { bucket: "privacy", key: "pnlVisible" },
+  discoverable: { bucket: "privacy", key: "discoverable" },
   notifyMentions: { bucket: "notifications", key: "mentions" },
   notifyReplies: { bucket: "notifications", key: "replies" },
   notifyDuels: { bucket: "notifications", key: "duels" },
   notifyHouse: { bucket: "notifications", key: "house" },
+  notifyAnnouncements: { bucket: "notifications", key: "announcements" },
+  voiceReplies: { bucket: "voice", key: "replies" },
+  autoplayAudio: { bucket: "voice", key: "autoplay" },
+  soundEffects: { bucket: "voice", key: "sound" },
 };
 
 type Bucket = Record<string, unknown>;
@@ -53,6 +70,7 @@ interface RealmSettings {
   privacy?: Bucket;
   notifications?: Bucket;
   appearance?: Bucket;
+  voice?: Bucket;
 }
 
 function prefsFromSettings(settings: RealmSettings | null): Prefs {
@@ -66,91 +84,22 @@ function prefsFromSettings(settings: RealmSettings | null): Prefs {
   return next;
 }
 
-function Toggle({
-  on,
-  onChange,
-  disabled,
-  label,
-}: {
-  on: boolean;
-  onChange: (next: boolean) => void;
-  disabled?: boolean;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!on)}
-      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed ${
-        on ? "border-gold bg-gold/25" : "border-steel-line bg-panel"
-      }`}
-    >
-      <span
-        className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full transition-all ${
-          on ? "left-6 bg-gold-bright" : "left-1 bg-bone-faint"
-        }`}
-      />
-    </button>
-  );
-}
-
-function Row({
-  title,
-  desc,
-  children,
-}: {
-  title: string;
-  desc?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-t border-steel-line py-3 first:border-t-0 first:pt-0 last:pb-0">
-      <div className="min-w-0">
-        <p className="text-sm text-bone">{title}</p>
-        {desc ? <p className="mt-0.5 text-xs text-bone-faint">{desc}</p> : null}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function Card({
-  icon,
-  title,
-  plain,
-  children,
-}: {
-  icon: string;
-  title: string;
-  plain: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="glass p-5 sm:p-6">
-      <div className="flex items-center gap-2.5">
-        <Icon name={icon} className="h-4 w-4 text-gold" />
-        <h2 className="font-display text-base font-semibold text-bone">
-          {title}
-        </h2>
-        <span className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
-          {plain}
-        </span>
-      </div>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
-
 export default function SettingsPage() {
-  const { ready, enabled, authenticated, displayName, signOut, signInX, signInEmail } =
-    useRealmAuth();
+  const {
+    ready,
+    enabled,
+    authenticated,
+    displayName,
+    signOut,
+    signInX,
+    signInEmail,
+  } = useRealmAuth();
   const [profile, setProfile] = useState<MeProfile | null>(null);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "error">(
+    "idle"
+  );
 
   useEffect(() => {
     if (!ready || !authenticated) return;
@@ -172,11 +121,21 @@ export default function SettingsPage() {
   }, [ready, authenticated]);
 
   const setPref = (field: keyof Prefs) => (next: boolean) => {
-    setPrefs((prev) => ({ ...prev, [field]: next }));
+    const prev = prefs[field];
+    setPrefs((p) => ({ ...p, [field]: next }));
     const { bucket, key } = PREF_MAP[field];
+    setSaveState("saving");
     void realmFetch("/api/settings", {
       method: "POST",
       json: { [bucket]: { [key]: next } },
+    }).then((res) => {
+      if (res.ok) {
+        setSaveState("idle");
+      } else {
+        /* Roll back the optimistic toggle so the UI never lies about state. */
+        setPrefs((p) => ({ ...p, [field]: prev }));
+        setSaveState("error");
+      }
     });
   };
 
@@ -185,10 +144,25 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
-      <h1 className="font-display text-xl font-semibold text-bone">Settings</h1>
-      <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
-        Your keep, your rules
-      </p>
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <h1 className="font-display text-xl font-semibold text-bone">
+            Settings
+          </h1>
+          <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
+            Your keep, your rules
+          </p>
+        </div>
+        {saveState !== "idle" && !locked ? (
+          <span
+            className={`text-[11px] uppercase tracking-[0.2em] ${
+              saveState === "error" ? "text-ember" : "text-bone-faint"
+            }`}
+          >
+            {saveState === "error" ? "Save failed" : "Saving..."}
+          </span>
+        ) : null}
+      </div>
 
       {!ready ? (
         <div className="glass mt-5 h-40 animate-pulse" />
@@ -238,7 +212,9 @@ export default function SettingsPage() {
             }
             aria-disabled={locked || undefined}
           >
-            {/* Account */}
+            {/* ------------------------------------------------ Account */}
+            <SectionHeader title="Account" hint="Who you are here" />
+
             <Card icon="user" title="Account" plain="Identity">
               <Row
                 title="Display name"
@@ -274,17 +250,23 @@ export default function SettingsPage() {
               </Row>
             </Card>
 
-            {/* Wallet: receive, holdings, send, and backup, all non-custodial */}
-            <div className="flex items-center justify-between gap-3 px-1 pt-1">
-              <div className="flex items-center gap-2.5">
-                <Icon name="wallet" className="h-4 w-4 text-gold" />
-                <h2 className="font-display text-base font-semibold text-bone">
-                  Wallet
-                </h2>
-                <span className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
-                  Keys and coin
-                </span>
-              </div>
+            {/* Account security: recovery password, MFA, linked login methods.
+                Privy-powered, so it only mounts when the Gatehouse is enabled. */}
+            {enabled ? (
+              <AccountSecurity />
+            ) : (
+              <Card icon="shield" title="Account & Security" plain="Resting">
+                <p className="text-sm text-bone-mut">
+                  The Gatehouse is not mounted in this environment, so recovery
+                  passwords, two-factor enrollment, and linking or unlinking
+                  login methods are resting. They return once sign-in is live.
+                </p>
+              </Card>
+            )}
+
+            {/* ------------------------------------------------- Wallet */}
+            <SectionHeader title="Wallet" hint="Keys and coin" />
+            <div className="flex items-center justify-end px-1">
               <Link
                 href="/wallet"
                 className="text-xs text-gold underline underline-offset-2"
@@ -298,6 +280,12 @@ export default function SettingsPage() {
               cannot move your funds; every transfer and key export happens on
               your device, and only you can authorize it.
             </p>
+
+            {/* -------------------------------------------- Preferences */}
+            <SectionHeader
+              title="Preferences"
+              hint="Saved to the Archives, on every device"
+            />
 
             {/* Privacy */}
             <Card icon="eye" title="Privacy" plain="What others see">
@@ -320,14 +308,25 @@ export default function SettingsPage() {
                   label="PnL visibility"
                 />
               </Row>
-              <p className="mt-3 text-xs text-bone-faint">
-                Saved to the Archives against your name, so these follow you to
-                every device you sign in from.
-              </p>
+              <Row
+                title="Discoverable"
+                desc="Appear in search and on leaderboards"
+              >
+                <Toggle
+                  on={prefs.discoverable}
+                  onChange={setPref("discoverable")}
+                  disabled={toggleDisabled}
+                  label="Discoverable"
+                />
+              </Row>
             </Card>
 
             {/* Notifications */}
-            <Card icon="bell" title="Notifications" plain="Ravens at your window">
+            <Card
+              icon="bell"
+              title="Notifications"
+              plain="Ravens at your window"
+            >
               <Row title="Mentions" desc="When someone names you">
                 <Toggle
                   on={prefs.notifyMentions}
@@ -360,9 +359,45 @@ export default function SettingsPage() {
                   label="House notifications"
                 />
               </Row>
-              <p className="mt-3 text-xs text-bone-faint">
-                Saved to the Archives, so your choices travel with you.
-              </p>
+              <Row title="Announcements" desc="Realm-wide news and updates">
+                <Toggle
+                  on={prefs.notifyAnnouncements}
+                  onChange={setPref("notifyAnnouncements")}
+                  disabled={toggleDisabled}
+                  label="Announcement notifications"
+                />
+              </Row>
+            </Card>
+
+            {/* Voice & Audio */}
+            <Card icon="signal" title="Voice & Audio" plain="Sound of the realm">
+              <Row
+                title="Voice replies"
+                desc="Read new ravens aloud when they arrive"
+              >
+                <Toggle
+                  on={prefs.voiceReplies}
+                  onChange={setPref("voiceReplies")}
+                  disabled={toggleDisabled}
+                  label="Voice replies"
+                />
+              </Row>
+              <Row title="Autoplay audio" desc="Play voice clips automatically">
+                <Toggle
+                  on={prefs.autoplayAudio}
+                  onChange={setPref("autoplayAudio")}
+                  disabled={toggleDisabled}
+                  label="Autoplay audio"
+                />
+              </Row>
+              <Row title="Sound effects" desc="Chimes for duels and verdicts">
+                <Toggle
+                  on={prefs.soundEffects}
+                  onChange={setPref("soundEffects")}
+                  disabled={toggleDisabled}
+                  label="Sound effects"
+                />
+              </Row>
             </Card>
 
             {/* Appearance */}
@@ -382,8 +417,9 @@ export default function SettingsPage() {
               </Row>
             </Card>
 
-            {/* Referral */}
-            <Card icon="banner" title="Referral" plain="Raise your banner">
+            {/* ----------------------------------------------- Referral */}
+            <SectionHeader title="Referral" hint="Raise your banner" />
+            <Card icon="banner" title="Referral" plain="Bring your bannermen">
               <ReferralPanel enabled={authenticated} />
             </Card>
           </div>

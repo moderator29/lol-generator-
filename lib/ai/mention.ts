@@ -36,7 +36,7 @@ export async function maybeRavenReply(
   const matchedHouses = detectHouses(text);
   if (matchedHouses.length) contexts.push(describeHousesForRaven(matchedHouses));
 
-  const reply = await askRaven(
+  const result = await askRaven(
     [
       {
         role: "user",
@@ -45,7 +45,8 @@ export async function maybeRavenReply(
     ],
     contexts.length ? contexts.join("\n") : undefined
   );
-  if (!reply) return;
+  if (!result) return;
+  const reply = result.text;
 
   await db.from("comments").insert({
     post_id: postId,

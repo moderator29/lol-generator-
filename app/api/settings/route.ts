@@ -7,7 +7,12 @@ interface SettingsBody {
   privacy?: SettingsBucket;
   notifications?: SettingsBucket;
   appearance?: SettingsBucket;
+  voice?: SettingsBucket;
 }
+
+/* The settings buckets we accept and deep-merge into profiles.settings. Adding
+   a bucket here is all it takes for a new group of preferences to persist. */
+const BUCKETS = ["privacy", "notifications", "appearance", "voice"] as const;
 
 const isBucket = (v: unknown): v is SettingsBucket =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -49,7 +54,7 @@ export async function POST(req: Request) {
   const existing = isBucket(current?.settings) ? current.settings : {};
   const merged: SettingsBucket = { ...existing };
 
-  for (const key of ["privacy", "notifications", "appearance"] as const) {
+  for (const key of BUCKETS) {
     const incoming = body[key];
     if (isBucket(incoming)) {
       const prev = isBucket(merged[key]) ? (merged[key] as SettingsBucket) : {};

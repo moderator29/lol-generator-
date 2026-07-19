@@ -145,7 +145,13 @@ export async function POST(req: Request) {
 
   const body = (await req.json().catch(() => null)) as {
     messages?: { role: "user" | "assistant"; content: string }[];
+    voice?: string;
+    browse?: boolean;
+    length?: string;
   } | null;
+  const voice = typeof body?.voice === "string" ? body.voice : undefined;
+  const browse = body?.browse === true;
+  const length = typeof body?.length === "string" ? body.length : undefined;
   const messages = (body?.messages ?? [])
     .filter(
       (m) =>
@@ -189,11 +195,12 @@ export async function POST(req: Request) {
   const pulse = computeRealmPulse(cards);
   if (pulse) contexts.push(describeRealmPulseForRaven(pulse));
 
-  const reply = await askRaven(
+  const result = await askRaven(
     messages,
-    contexts.length ? contexts.join("\n") : undefined
+    contexts.length ? contexts.join("\n") : undefined,
+    { voice, browse, length }
   );
-  if (!reply)
+  if (!result)
     return json({ error: "The Raven is preoccupied. Try again shortly." }, 502);
 
   const suggestions = suggestFollowUps({
@@ -203,5 +210,14 @@ export async function POST(req: Request) {
     hadData: cards.length > 0,
   });
 
-  return json({ reply, cards, walletCard, pulse, suggestions });
+  return json({
+    reply: result.text,
+    cards,
+    walletCard,
+    pulse,
+    suggestions,
+    browsed: result.browsed,
+    browseRequested: result.browseRequested,
+    sources: result.sources,
+  });
 }

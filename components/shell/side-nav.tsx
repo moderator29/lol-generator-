@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
 import { RavenMark } from "@/components/brand/raven-mark";
 import { socialNav, toolsNav, accountNav, comingSoonNav } from "@/lib/nav";
 import type { NavItem } from "@/lib/nav";
+import { realmFetch } from "@/lib/auth/api";
+import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 
 function NavGroup({
   label,
@@ -49,6 +52,24 @@ function NavGroup({
 
 export function SideNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { ready, authenticated } = useRealmAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!ready || !authenticated) {
+      setIsAdmin(false);
+      return;
+    }
+    let cancelled = false;
+    void realmFetch<{ profile?: { is_admin?: boolean } }>("/api/me", {
+      method: "POST",
+    }).then((res) => {
+      if (!cancelled) setIsAdmin(Boolean(res.data?.profile?.is_admin));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, authenticated]);
 
   return (
     <nav
@@ -94,6 +115,23 @@ export function SideNav({ onNavigate }: { onNavigate?: () => void }) {
       <NavGroup label="Social & Game" items={socialNav} pathname={pathname} />
       <NavGroup label="Tools" items={toolsNav} pathname={pathname} />
       <NavGroup label="Account" items={accountNav} pathname={pathname} />
+
+      {isAdmin && (
+        <Link
+          href="/admin"
+          className={`group mt-2 flex items-center gap-3 rounded-xl px-2.5 py-[7px] text-sm transition ${
+            pathname.startsWith("/admin")
+              ? "bg-panel text-gold-bright shadow-[inset_0_1px_0_rgba(240,214,140,0.08)]"
+              : "text-bone-mut hover:bg-panel/60 hover:text-bone"
+          }`}
+        >
+          <Icon name="shield" className="h-[17px] w-[17px] shrink-0" />
+          <span className="truncate font-medium">The Small Council</span>
+          <span className="ml-auto shrink-0 rounded-full border border-gold/25 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-gold/70">
+            Admin
+          </span>
+        </Link>
+      )}
 
       <p className="mt-4 mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-bone-faint">
         The Chapters ahead
