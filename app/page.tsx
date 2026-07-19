@@ -10,9 +10,12 @@ export default function Home() {
       <p className="mt-6 max-w-md text-base text-bone-muted sm:text-lg">
         See every chain. Fear no rug. Rule your realm.
       </p>
-      <div className="hairline mt-10 rounded-full bg-panel px-5 py-2 text-sm text-bone-muted">
-        Foundation phase in progress
-      </div>
+      <a
+        href="/home"
+        className="mt-10 rounded-lg bg-gold px-6 py-2.5 text-sm font-semibold text-obsidian transition hover:bg-gold-deep"
+      >
+        Enter the realm
+      </a>
     </main>
   );
 }
