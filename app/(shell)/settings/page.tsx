@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { realmFetch } from "@/lib/auth/api";
 import { Icon } from "@/components/ui/icon";
+import { ReferralPanel } from "@/components/referral/referral-panel";
 
 interface MeProfile {
   id: string;
@@ -375,14 +376,7 @@ export default function SettingsPage() {
 
             {/* Referral */}
             <Card icon="banner" title="Referral" plain="Raise your banner">
-              <Row
-                title="Your banner link"
-                desc="Invite wanderers and share the spoils"
-              >
-                <Link href="/banners" className="btn-glass px-4 py-1.5 text-sm">
-                  Open Banners
-                </Link>
-              </Row>
+              <ReferralPanel enabled={authenticated} />
             </Card>
           </div>
         </div>
