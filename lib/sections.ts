@@ -9,40 +9,54 @@ type SectionMeta = {
 export const sectionMeta: Record<string, SectionMeta> = {
   home: {
     themed: "The Ravenry",
-    plain: "Home",
+    plain: "Feed",
     icon: "home",
     description:
-      "The feed of the realm. Posts, Calls with verified verdicts, live price cards and word from every House.",
-    emptyNote: "The ravens carry no word yet. The feed opens with the social layer.",
+      "The feed of the realm. Ravens, Calls with verified verdicts, banter between Houses and word from every corner.",
+    emptyNote: "The ravens carry no word yet. Send the first raven.",
   },
   explore: {
-    themed: "Explore",
-    plain: "Discover",
+    themed: "The Crossroads",
+    plain: "Explore",
     icon: "compass",
     description:
-      "Find creators, Houses, tokens and rising Calls across the realm.",
+      "Where every road meets. Find creators, Houses, tokens, live courts and rising Calls.",
   },
   rookery: {
     themed: "The Rookery",
     plain: "Live",
     icon: "signal",
     description:
-      "Live rooms hosted by creators. Listen, raise your hand, join the conversation.",
-    emptyNote: "No rooms are live. The Rookery opens its doors soon.",
+      "Live courts hosted by creators. Listen, raise your hand, join the conversation.",
+    emptyNote: "No courts are in session. The Rookery opens its doors soon.",
   },
-  messages: {
-    themed: "Messages",
-    plain: "DMs & Chats",
+  whispers: {
+    themed: "Whispers",
+    plain: "Messages",
     icon: "mail",
-    description: "Direct messages, group chats and House halls.",
-    emptyNote: "No conversations yet.",
+    description: "Direct whispers, group halls and House chats.",
+    emptyNote: "No whispers yet. Start one from any Keep.",
+  },
+  ravens: {
+    themed: "Ravens",
+    plain: "Notifications",
+    icon: "bell",
+    description: "Every raven sent your way: replies, follows, verdicts, duels and House news.",
+    emptyNote: "No ravens have arrived for you yet.",
+  },
+  keep: {
+    themed: "My Keep",
+    plain: "Profile",
+    icon: "user",
+    description: "Your seat in the realm. Your ravens, Calls, crests and Renown.",
+    emptyNote: "Sign in to raise your Keep.",
   },
   ledger: {
     themed: "The Ledger",
     plain: "Portfolio",
     icon: "book",
     description:
-      "Your command center. Net worth, PnL, cost basis and positions across Ethereum and beyond, from real on-chain data only.",
+      "Your command center. Net worth, PnL, cost basis and positions from real on-chain data only.",
     emptyNote: "Connect a wallet to open your Ledger.",
   },
   watch: {
@@ -55,47 +69,54 @@ export const sectionMeta: Record<string, SectionMeta> = {
   },
   scrying: {
     themed: "The Scrying Glass",
-    plain: "Smart Money",
+    plain: "Smart money",
     icon: "eye",
     description:
-      "See what the powerful see. Track top wallets and funds, their flows and their positions in real time.",
+      "See what the powerful see. Track great wallets and funds, their flows and their positions.",
   },
   raven: {
     themed: "The Raven",
-    plain: "AI Companion",
+    plain: "Ask anything",
     icon: "raven",
     description:
-      "Ask about any wallet, token or position in plain language. The Raven answers from real data, explains, and warns.",
+      "Witty, regal, all-seeing. Ask about anything in the realm or any token or wallet, over real data only.",
     emptyNote: "The Raven awakens with your sign-in.",
   },
   houses: {
     themed: "Houses",
-    plain: "Guilds",
+    plain: "Communities",
     icon: "banner",
     description:
-      "Band together. Found a House, raise its banner, and compete for territories in Throne Wars.",
-    emptyNote: "No Houses stand yet. The first banners rise at launch.",
+      "Band together. Swear your sword, raise a banner, and carry your House through the Season.",
+    emptyNote: "The first banners rise at launch.",
   },
-  wars: {
-    themed: "Throne Wars",
-    plain: "Season 1",
+  throne: {
+    themed: "Claim the Throne",
+    plain: "The Season game",
+    icon: "crown",
+    description:
+      "Houses battle for the Throne through quests, duels of wit and Glory. Rivalry and banter are the engine.",
+    emptyNote: "Season I begins when the realm opens.",
+  },
+  war: {
+    themed: "The War",
+    plain: "Battle for the Realm",
     icon: "swords",
     description:
-      "Houses battle for control of real market sectors through verified performance. Daily quests, weekly battles, a seasonal War for the Throne.",
-    emptyNote: "Season 1 begins when the realm opens.",
+      "The flagship. Collect champions, forge your arsenal and lead your House into real-time battle.",
   },
-  standing: {
-    themed: "Badges & Standing",
+  renown: {
+    themed: "Crests & Renown",
     plain: "Reputation",
     icon: "medal",
     description:
-      "Reputation here is earned, never bought. Verified Calls, contribution and safety actions raise your Standing from Smallfolk toward King.",
+      "Reputation here is earned, never bought. Rise from Smallfolk toward King or Queen and collect the crests to prove it.",
   },
   bookmarks: {
     themed: "Bookmarks",
     plain: "Saved",
     icon: "bookmark",
-    description: "Posts and Calls you have saved for later.",
+    description: "Ravens and Calls you have saved for later.",
     emptyNote: "Nothing saved yet.",
   },
   banners: {
@@ -103,7 +124,7 @@ export const sectionMeta: Record<string, SectionMeta> = {
     plain: "Refer & Earn",
     icon: "flag",
     description:
-      "Call your banners. Invite others to the realm and earn as they become active, with rewards that resist sybils by design.",
+      "Call your banners. Invite others to the realm and earn as they become active.",
   },
   chronicle: {
     themed: "The Chronicle",
@@ -112,13 +133,21 @@ export const sectionMeta: Record<string, SectionMeta> = {
     description:
       "The written record of Ravenspire. What it is, how it works, and how the realm is governed.",
   },
-  wallet: {
-    themed: "Wallet",
-    plain: "Assets & Keys",
+  vault: {
+    themed: "The Vault",
+    plain: "Wallet",
     icon: "wallet",
     description:
-      "Your non-custodial wallets. We never hold your keys or your funds; every action is signed by you.",
-    emptyNote: "Sign in to create or connect a wallet.",
+      "Your non-custodial vault. Your keys stay yours, exportable any time. We never hold funds.",
+    emptyNote: "Sign in to open your Vault.",
+  },
+  forge: {
+    themed: "The Forge",
+    plain: "Staking",
+    icon: "flame",
+    description:
+      "Swear an oath. Stake $RAVEN and earn real yield from protocol fees, never emissions.",
+    emptyNote: "The Forge lights when staking goes live on-chain.",
   },
   settings: {
     themed: "Settings",

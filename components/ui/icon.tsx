@@ -121,6 +121,53 @@ const paths: Record<string, React.ReactNode> = {
       <path d="M8 11V8a4 4 0 0 1 8 0v3" />
     </>
   ),
+  crown: (
+    <>
+      <path d="M4 17l-1-9 5 4 4-7 4 7 5-4-1 9H4z" />
+      <path d="M4 20h16" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M16 16l5 5" />
+    </>
+  ),
+  xlogo: <path d="M4 4l7.2 9.3L4.6 20h2.4l5.3-5.4L16.8 20H20l-7.5-9.7L18.9 4h-2.4l-4.8 5L7.2 4H4z" />,
+  send: <path d="M21 3L10 14M21 3l-7 18-3-8-8-3 18-7z" />,
+  arrow: <path d="M5 12h14m-6-6l6 6-6 6" />,
+  dots: (
+    <>
+      <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    </>
+  ),
+  heart: <path d="M12 20s-7-4.5-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.5-9 9-9 9z" />,
+  reply: <path d="M9 17l-5-5 5-5m-5 5h9a6 6 0 0 1 6 6v2" />,
+  repost: <path d="M4 9l3-3m0 0l3 3M7 6v9a3 3 0 0 0 3 3h2m8-3l-3 3m0 0l-3-3m3 3V9a3 3 0 0 0-3-3h-2" />,
+  share: <path d="M12 3v12m0-12L8 7m4-4l4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />,
+  image: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="M4 18l5-5 3 3 4-4 4 4" />
+    </>
+  ),
+  poll: <path d="M5 20V10m7 10V4m7 16v-7" />,
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="12" cy="12" r="0.8" fill="currentColor" stroke="none" />
+    </>
+  ),
 };
 
 export function Icon({ name, className = "h-5 w-5" }: IconProps) {

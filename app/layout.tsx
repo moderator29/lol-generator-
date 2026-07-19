@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cinzel, Inter } from "next/font/google";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const cinzel = Cinzel({
@@ -29,7 +30,9 @@ export default function RootLayout({
       lang="en"
       className={`${cinzel.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
