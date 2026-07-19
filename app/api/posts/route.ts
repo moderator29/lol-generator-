@@ -99,6 +99,43 @@ export async function POST(req: Request) {
     ref: post.id,
   });
 
+  /* Raise Your Banners: a referral activates on real activity, the
+     referred member's third raven, not on signup. Sybil-resistant. */
+  const { count: postCount } = await db
+    .from("posts")
+    .select("id", { count: "exact", head: true })
+    .eq("author_id", profile.id)
+    .eq("deleted", false);
+  if (postCount === 3) {
+    const { data: ref } = await db
+      .from("referrals")
+      .select("referrer_id, activated")
+      .eq("profile_id", profile.id)
+      .maybeSingle();
+    if (ref && !ref.activated) {
+      await db
+        .from("referrals")
+        .update({ activated: true })
+        .eq("profile_id", profile.id);
+      await award(db, ref.referrer_id, {
+        points: 60,
+        glory: 30,
+        reason: "banner_raised",
+        ref: profile.id,
+      });
+      await award(db, profile.id, {
+        points: 20,
+        reason: "banner_answered",
+      });
+      await db.from("notifications").insert({
+        profile_id: ref.referrer_id,
+        kind: "banner_raised",
+        actor_id: profile.id,
+        body: "A banner you raised now flies in the realm. The reward is yours.",
+      });
+    }
+  }
+
   after(async () => {
     await maybeRavenReply(db, post.id, text, profile.handle);
   });
