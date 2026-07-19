@@ -1,3 +1,4 @@
 # Ravenspire
 
-Production builds from this branch. See README.md for the full overview.
+Production builds from main. See README.md for the full overview.
+Reconnect trigger.
