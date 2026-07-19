@@ -51,3 +51,5 @@ npm run dev
 Brand v3 "Obsidian & Gold, cinematic metal": deep obsidian surfaces, forged
 gold gradients, ember firelight, bone text, steel hairlines, glass containers.
 No green, no emoji chrome, no flat gold. Tokens live in `app/globals.css`.
+
+<!-- deploy: ravenspire on Next.js, build from latest main -->
