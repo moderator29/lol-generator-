@@ -10,6 +10,59 @@ import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { timeAgo, TIER_NAMES, type Post } from "@/lib/social/types";
 
+function PollBlock({ post }: { post: Post }) {
+  const { authenticated } = useRealmAuth();
+  const [options, setOptions] = useState(post.poll?.options ?? []);
+  const [voted, setVoted] = useState(false);
+  const total = options.reduce((s, o) => s + o.votes, 0);
+
+  const vote = async (i: number) => {
+    if (!authenticated) {
+      window.location.href = "/signin";
+      return;
+    }
+    if (voted) return;
+    setVoted(true);
+    const res = await realmFetch<{ options?: { text: string; votes: number }[] }>(
+      "/api/polls",
+      { method: "POST", json: { post_id: post.id, option: i } }
+    );
+    if (res.data?.options) setOptions(res.data.options);
+  };
+
+  if (!options.length) return null;
+  return (
+    <div className="mt-2 flex flex-col gap-1.5">
+      {options.map((o, i) => {
+        const pct = total > 0 ? Math.round((o.votes / total) * 100) : 0;
+        return (
+          <button
+            key={i}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void vote(i);
+            }}
+            className="hairline relative overflow-hidden rounded-xl bg-void px-3 py-2 text-left text-xs text-bone-mut transition hover:border-gold/40"
+          >
+            <span
+              className="absolute inset-y-0 left-0 bg-gold/12"
+              style={{ width: `${pct}%` }}
+            />
+            <span className="relative flex justify-between gap-2">
+              <span className="truncate">{o.text}</span>
+              {total > 0 && <span className="tnum shrink-0 text-bone-faint">{pct}%</span>}
+            </span>
+          </button>
+        );
+      })}
+      <p className="tnum px-1 text-[10px] text-bone-faint">
+        {total} {total === 1 ? "voice" : "voices"}
+      </p>
+    </div>
+  );
+}
+
 function ActionButton({
   icon,
   count,
@@ -166,6 +219,40 @@ export function PostCard({ post }: { post: Post }) {
               </span>
             </div>
           )}
+
+          {post.media.length > 0 && (
+            <div
+              className={`mt-2 grid gap-1.5 overflow-hidden rounded-2xl ${
+                post.media.length === 1 ? "grid-cols-1" : "grid-cols-2"
+              }`}
+            >
+              {post.media.slice(0, 4).map((m, i) =>
+                m.type === "video" ? (
+                  <video
+                    key={i}
+                    src={m.url}
+                    controls
+                    playsInline
+                    muted
+                    className="max-h-96 w-full rounded-xl border border-steel-line object-cover"
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={i}
+                    src={m.url}
+                    alt=""
+                    loading="lazy"
+                    className={`w-full rounded-xl border border-steel-line object-cover ${
+                      post.media.length === 1 ? "max-h-96" : "aspect-square"
+                    }`}
+                  />
+                )
+              )}
+            </div>
+          )}
+
+          {post.poll && <PollBlock post={post} />}
 
           {firstTag && !post.call && <PriceCard symbol={firstTag} />}
 

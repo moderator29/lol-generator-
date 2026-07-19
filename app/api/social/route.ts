@@ -41,17 +41,27 @@ export async function POST(req: Request) {
             .update({ like_count: row.like_count + 1 })
             .eq("id", subject_id);
           if (row.author_id !== profile.id) {
-            await db.from("notifications").insert({
-              profile_id: row.author_id,
-              kind: "like",
-              actor_id: profile.id,
-              subject_id,
-            });
-            await award(db, row.author_id, {
-              points: 1,
-              reason: "raven_liked",
-              ref: subject_id,
-            });
+            /* First like from this member only: no unlike-relike minting. */
+            const { data: prior } = await db
+              .from("points_ledger")
+              .select("id")
+              .eq("profile_id", row.author_id)
+              .eq("reason", `liked_by_${profile.id}`)
+              .eq("ref", subject_id)
+              .maybeSingle();
+            if (!prior) {
+              await db.from("notifications").insert({
+                profile_id: row.author_id,
+                kind: "like",
+                actor_id: profile.id,
+                subject_id,
+              });
+              await award(db, row.author_id, {
+                points: 1,
+                reason: `liked_by_${profile.id}`,
+                ref: subject_id,
+              });
+            }
           }
         }
       }

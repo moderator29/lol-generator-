@@ -9,20 +9,32 @@ const WINDOW_MS: Record<string, number> = {
   "30d": 30 * 24 * 3600 * 1000,
 };
 
-/* Settles matured Calls against the live market. Runs on a schedule
-   (vercel.json cron) and is safe to call any time: only matured, still
-   open Calls are touched, and verdicts come from real prices only. */
-export async function GET() {
+/* Settles matured Calls against the live market on a schedule. Guarded by
+   the cron secret so no one can time their own settlement. Verdicts come
+   from real prices only. */
+export async function GET(req: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (secret) {
+    const auth = req.headers.get("authorization");
+    if (auth !== `Bearer ${secret}`) return json({ error: "forbidden" }, 403);
+  } else if (process.env.NODE_ENV === "production") {
+    return json({ error: "cron secret not configured" }, 503);
+  }
+
   const db = adminClient();
   if (!db) return json({ error: "unavailable" }, 503);
 
+  /* Only OPEN calls old enough to possibly be matured enter the window. */
+  const oldestMaturity = new Date(Date.now() - WINDOW_MS["24h"]).toISOString();
   const { data: posts } = await db
     .from("posts")
     .select("id, author_id, call, created_at")
     .eq("kind", "call")
     .eq("deleted", false)
+    .filter("call->>verdict", "eq", "open")
+    .lt("created_at", oldestMaturity)
     .order("created_at", { ascending: true })
-    .limit(200);
+    .limit(100);
 
   let settled = 0;
   for (const post of posts ?? []) {

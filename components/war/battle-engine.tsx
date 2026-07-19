@@ -54,13 +54,26 @@ const W = 900;
 const H = 560;
 const BATTLE_SECONDS = 150;
 
+/* Each battlefield fights differently: light, weather, and the enemy line. */
+const FIELD_MODS: Record<
+  string,
+  { foes: number; allies: number; tint: string; tintAlpha: number }
+> = {
+  "river-crossing": { foes: 26, allies: 22, tint: "#07070A", tintAlpha: 0.35 },
+  "castle-siege": { foes: 30, allies: 22, tint: "#1B1E26", tintAlpha: 0.45 },
+  "snow-valley": { foes: 24, allies: 20, tint: "#B9C2CE", tintAlpha: 0.14 },
+  "dark-fortress": { foes: 32, allies: 20, tint: "#000000", tintAlpha: 0.5 },
+};
+
 export function BattleEngine({
   champion,
   mastery = 0,
+  field = "river-crossing",
   onEnd,
 }: {
   champion: Champion;
   mastery?: number;
+  field?: string;
   onEnd: (o: BattleOutcome) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -150,8 +163,9 @@ export function BattleEngine({
         });
       }
     };
-    spawn(0, 22);
-    spawn(1, 26);
+    const mods = FIELD_MODS[field] ?? FIELD_MODS["river-crossing"];
+    spawn(0, mods.allies);
+    spawn(1, mods.foes);
 
     const floats: FloatText[] = [];
     const embers: { x: number; y: number; vx: number; vy: number; age: number }[] = [];
@@ -363,8 +377,8 @@ export function BattleEngine({
         hudTick = 0;
         setHud({
           hp: Math.max(0, player.hp / pStats.maxHp),
-          allies: alliesAlive.length / 22,
-          foes: foesAlive.length / 26,
+          allies: alliesAlive.length / mods.allies,
+          foes: foesAlive.length / mods.foes,
           time: Math.max(0, timeLeft),
           glory: Math.round(player.glory),
           mult: 1 + Math.min(2.2, player.streak * 0.2),
@@ -387,8 +401,10 @@ export function BattleEngine({
         ctx.fillStyle = "#0C0C11";
         ctx.fillRect(0, 0, W, H);
       }
-      ctx.fillStyle = "rgba(7,7,10,0.35)";
+      ctx.globalAlpha = mods.tintAlpha;
+      ctx.fillStyle = mods.tint;
       ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
 
       /* units */
       for (const u of units) {
@@ -505,7 +521,7 @@ export function BattleEngine({
       canvas.removeEventListener("pointermove", pMove);
       window.removeEventListener("pointerup", pUp);
     };
-  }, [champion, mastery]);
+  }, [champion, mastery, field]);
 
   const mmss = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(
@@ -636,7 +652,7 @@ export function BattleEngine({
       {overlay === "intro" && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-obsidian/80 p-6 text-center backdrop-blur-sm">
           <p className="text-xs uppercase tracking-[0.3em] text-bone-faint">
-            River Crossing
+            {field.split("-").join(" ")}
           </p>
           <h2 className="gold-text mt-2 font-display text-3xl font-semibold">
             {champion.name}

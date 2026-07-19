@@ -15,6 +15,8 @@ const HOUSES = new Set([
 export async function POST(req: Request) {
   const profile = await requireProfile(req);
   if (!profile) return json({ error: "unauthenticated" }, 401);
+  if (profile.onboarded)
+    return json({ error: "The Maester has already welcomed you." }, 409);
   const db = adminClient();
   if (!db) return json({ error: "unavailable" }, 503);
 
