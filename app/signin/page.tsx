@@ -1,30 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { RavenMark } from "@/components/brand/raven-mark";
 import { Icon } from "@/components/ui/icon";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
-import { realmFetch } from "@/lib/auth/api";
 
 export default function SignInPage() {
-  const router = useRouter();
+  /* Routing into the realm after sign-in is handled globally by the
+     PostAuthGate, so it works no matter where the login completes. */
   const { ready, enabled, authenticated, signInX, signInEmail, connectWallet } =
     useRealmAuth();
-
-  /* Once through the gate, go where you belong: the Maester if the oath
-     is unsworn, the Ravenry otherwise. */
-  useEffect(() => {
-    if (!ready || !authenticated) return;
-    void realmFetch<{ profile?: { onboarded?: boolean } }>("/api/me", {
-      method: "POST",
-    }).then((res) => {
-      if (res.data?.profile?.onboarded) router.replace("/home");
-      else router.replace("/welcome");
-    });
-  }, [ready, authenticated, router]);
 
   return (
     <main className="realm-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6">

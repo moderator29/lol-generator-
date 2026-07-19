@@ -8,6 +8,7 @@ import {
   stubAuth,
   type RealmAuth,
 } from "@/lib/auth/realm-auth-context";
+import { PostAuthGate } from "@/components/auth/post-auth-gate";
 
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
@@ -36,6 +37,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
 
   return (
     <RealmAuthContext.Provider value={value}>
+      <PostAuthGate />
       {children}
     </RealmAuthContext.Provider>
   );
