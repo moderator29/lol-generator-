@@ -1,4 +1,4 @@
 # Ravenspire
 
-Production builds from main. See README.md for the full overview.
-Fresh project deploy trigger.
+Production builds from main. The full realm: social, games, tools, admin.
+Clean deploy trigger.
