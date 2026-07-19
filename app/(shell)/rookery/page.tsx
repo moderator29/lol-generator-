@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { realmFetch } from "@/lib/auth/api";
+import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/icon";
 
 type Host = {
@@ -11,6 +13,13 @@ type Host = {
   avatar_url: string | null;
 } | null;
 
+type House = {
+  slug: string;
+  name: string;
+  sigil: string | null;
+  color: string | null;
+};
+
 type Court = {
   id: string;
   host_id: string;
@@ -18,17 +27,86 @@ type Court = {
   status: "live" | "scheduled";
   started_at: string | null;
   host: Host;
+  house: House | null;
   participants: number;
   participant_ids: string[];
 };
 
+function CourtCard({ c }: { c: Court }) {
+  const hostName = c.host?.display_name ?? c.host?.handle ?? "Unknown herald";
+  return (
+    <Link
+      href={`/rookery/${c.id}`}
+      className="glass glass-hover group block p-4"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          {c.status === "live" ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-ember/40 bg-ember/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ember">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ember" />
+              Live
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-full border border-gold/40 bg-gold/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
+              Upcoming
+            </span>
+          )}
+          <p className="mt-2 truncate font-display text-base font-semibold text-bone">
+            {c.title ?? "An unnamed court"}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <span className="flex items-center gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-steel-line bg-panel font-display text-xs text-gold">
+                {c.host?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={c.host.avatar_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  hostName.slice(0, 1).toUpperCase()
+                )}
+              </span>
+              <span className="truncate text-xs text-bone-mut">
+                Held by <span className="text-bone">{hostName}</span>
+              </span>
+            </span>
+            {c.house && (
+              <span className="inline-flex items-center gap-1.5 text-xs text-bone-mut">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: c.house.color ?? "#C8A24C" }}
+                />
+                {c.house.name}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <p className="text-xs text-bone-faint">
+            <span className="tnum text-bone">{c.participants}</span>{" "}
+            {c.participants === 1 ? "soul" : "souls"}
+          </p>
+          <span className="btn-glass inline-flex items-center gap-1.5 px-3 py-1.5 text-xs transition group-hover:text-gold">
+            Enter
+            <Icon name="arrow" className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function RookeryPage() {
   const { ready, authenticated } = useRealmAuth();
-  const [me, setMe] = useState<string | null>(null);
+  const supabase = useMemo(() => createClient(), []);
+
   const [courts, setCourts] = useState<Court[] | null>(null);
+  const [houses, setHouses] = useState<House[]>([]);
   const [title, setTitle] = useState("");
-  const [opening, setOpening] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [houseSlug, setHouseSlug] = useState<string | null>(null);
+  const [opening, setOpening] = useState<null | "open" | "schedule">(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -48,77 +126,124 @@ export default function RookeryPage() {
   }, [load]);
 
   useEffect(() => {
-    if (!ready || !authenticated) {
-      setMe(null);
-      return;
-    }
-    void realmFetch<{ profile?: { id: string } }>("/api/me", {
-      method: "POST",
-    }).then(({ data }) => {
-      if (data?.profile?.id) setMe(data.profile.id);
-    });
-  }, [ready, authenticated]);
+    void supabase
+      .from("houses")
+      .select("slug, name, sigil, color")
+      .order("name")
+      .then(({ data }) => setHouses((data as House[]) ?? []));
+  }, [supabase]);
 
-  async function openCourt() {
+  async function open(action: "open" | "schedule") {
     const t = title.trim();
     if (!t || opening) return;
-    setOpening(true);
+    setOpening(action);
     setError(null);
-    const { ok, data } = await realmFetch<{ error?: string }>("/api/rooms", {
-      method: "POST",
-      json: { action: "open", title: t },
-    });
-    if (ok) setTitle("");
-    else setError(data?.error ?? "The court could not be raised. Try again.");
+    const { ok, data } = await realmFetch<{ id?: string; error?: string }>(
+      "/api/rooms",
+      {
+        method: "POST",
+        json: { action, title: t, house_slug: houseSlug },
+      }
+    );
+    if (ok) {
+      setTitle("");
+      setHouseSlug(null);
+      if (action === "open" && data?.id) {
+        window.location.href = `/rookery/${data.id}`;
+        return;
+      }
+    } else {
+      setError(data?.error ?? "The court could not be raised. Try again.");
+    }
     await load();
-    setOpening(false);
+    setOpening(null);
   }
 
-  async function act(action: "close" | "join" | "leave", roomId: string) {
-    if (busy) return;
-    setBusy(roomId);
-    setError(null);
-    const { ok, data } = await realmFetch<{ error?: string }>("/api/rooms", {
-      method: "POST",
-      json: { action, room_id: roomId },
-    });
-    if (!ok) setError(data?.error ?? "The act failed. Try again.");
-    await load();
-    setBusy(null);
-  }
+  const live = (courts ?? []).filter((c) => c.status === "live");
+  const upcoming = (courts ?? []).filter((c) => c.status === "scheduled");
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
-      <h1 className="font-display text-xl font-semibold text-bone">
-        The Rookery
-      </h1>
-      <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
-        Live
-      </p>
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-steel-line bg-panel">
+          <Icon name="signal" className="h-5 w-5 text-gold" />
+        </span>
+        <div>
+          <h1 className="font-display text-xl font-semibold text-bone">
+            The Rookery
+          </h1>
+          <p className="text-xs uppercase tracking-[0.26em] text-bone-faint">
+            Live courts
+          </p>
+        </div>
+      </div>
 
       {ready && authenticated && (
-        <div className="glass mt-5 p-4">
+        <div className="glass gold-metal mt-5 p-4">
           <p className="font-display text-sm font-semibold text-bone">
-            Open a court
+            Hold a court
           </p>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void openCourt();
-              }}
-              maxLength={80}
-              placeholder="Name the matter before the court"
-              className="w-full rounded-lg border border-steel-line bg-panel px-3 py-2.5 text-sm text-bone placeholder:text-bone-faint focus:outline-none"
-            />
+          <p className="mt-0.5 text-xs text-bone-mut">
+            Name the matter, raise your banner, and gather the realm.
+          </p>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void open("open");
+            }}
+            maxLength={80}
+            placeholder="Name the matter before the court"
+            className="mt-3 w-full rounded-lg border border-steel-line bg-panel px-3 py-2.5 text-sm text-bone placeholder:text-bone-faint focus:outline-none"
+          />
+
+          {houses.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-bone-faint">
+                Fly a banner (optional)
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {houses.map((h) => {
+                  const on = houseSlug === h.slug;
+                  return (
+                    <button
+                      key={h.slug}
+                      type="button"
+                      onClick={() => setHouseSlug(on ? null : h.slug)}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition ${
+                        on
+                          ? "border-gold/50 bg-gold/10 text-bone"
+                          : "border-steel-line bg-panel text-bone-mut hover:text-bone"
+                      }`}
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: h.color ?? "#C8A24C" }}
+                      />
+                      {h.name.replace(/^House\s+/i, "")}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <button
-              onClick={() => void openCourt()}
-              disabled={opening || !title.trim()}
-              className="btn-gold shrink-0 px-4 py-2.5 text-sm disabled:opacity-50"
+              onClick={() => void open("open")}
+              disabled={opening !== null || !title.trim()}
+              className="btn-gold flex-1 px-4 py-2.5 text-sm disabled:opacity-50"
             >
               <Icon name="signal" className="h-4 w-4" />
-              {opening ? "Raising..." : "Open a court"}
+              {opening === "open" ? "Raising..." : "Open now"}
+            </button>
+            <button
+              onClick={() => void open("schedule")}
+              disabled={opening !== null || !title.trim()}
+              className="btn-glass flex-1 px-4 py-2.5 text-sm disabled:opacity-50"
+            >
+              <Icon name="scroll" className="h-4 w-4" />
+              {opening === "schedule" ? "Announcing..." : "Announce upcoming"}
             </button>
           </div>
         </div>
@@ -130,101 +255,56 @@ export default function RookeryPage() {
         </div>
       )}
 
-      <div className="mt-5 flex flex-col gap-2">
-        {courts === null ? (
-          [0, 1, 2].map((i) => (
-            <div key={i} className="glass h-24 animate-pulse" />
-          ))
-        ) : courts.length === 0 ? (
-          <div className="glass p-8 text-center">
-            <Icon name="signal" className="mx-auto h-8 w-8 text-gold" />
-            <p className="mt-3 font-display text-lg font-semibold text-bone">
-              No courts in session
-            </p>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-bone-mut">
-              The hall stands ready and the benches are empty. Open a court and
-              the realm will see your banner raised here.
-            </p>
-          </div>
-        ) : (
-          courts.map((c) => {
-            const isHost = me !== null && c.host_id === me;
-            const isMember = me !== null && c.participant_ids.includes(me);
-            const hostName =
-              c.host?.display_name ?? c.host?.handle ?? "Unknown herald";
-            return (
-              <div key={c.id} className="glass glass-hover p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    {c.status === "live" ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-ember/40 bg-ember/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ember">
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ember" />
-                        Live
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full border border-steel-line bg-panel px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-bone-mut">
-                        Scheduled
-                      </span>
-                    )}
-                    <p className="mt-2 truncate font-display text-base font-semibold text-bone">
-                      {c.title ?? "An unnamed court"}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-steel-line bg-panel font-display text-xs text-gold">
-                        {hostName.slice(0, 1).toUpperCase()}
-                      </span>
-                      <p className="truncate text-xs text-bone-mut">
-                        Held by{" "}
-                        <span className="text-bone">{hostName}</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-2">
-                    <p className="text-xs text-bone-faint">
-                      <span className="tnum text-bone">{c.participants}</span>{" "}
-                      {c.participants === 1 ? "listener" : "listeners"}
-                    </p>
-                    {ready && authenticated && me && (
-                      isHost ? (
-                        <button
-                          onClick={() => void act("close", c.id)}
-                          disabled={busy === c.id}
-                          className="btn-glass px-3 py-1.5 text-xs disabled:opacity-50"
-                        >
-                          End court
-                        </button>
-                      ) : isMember ? (
-                        <button
-                          onClick={() => void act("leave", c.id)}
-                          disabled={busy === c.id}
-                          className="btn-glass px-3 py-1.5 text-xs disabled:opacity-50"
-                        >
-                          Leave
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => void act("join", c.id)}
-                          disabled={busy === c.id}
-                          className="btn-gold px-3 py-1.5 text-xs disabled:opacity-50"
-                        >
-                          Join
-                        </button>
-                      )
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
+      {/* Live */}
+      <div className="mt-6">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ember" />
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-bone-mut">
+            In session
+          </h2>
+        </div>
+        <div className="mt-3 flex flex-col gap-2">
+          {courts === null ? (
+            [0, 1].map((i) => (
+              <div key={i} className="glass h-24 animate-pulse" />
+            ))
+          ) : live.length === 0 ? (
+            <div className="glass p-8 text-center">
+              <Icon name="signal" className="mx-auto h-8 w-8 text-gold" />
+              <p className="mt-3 font-display text-lg font-semibold text-bone">
+                No courts in session
+              </p>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-bone-mut">
+                The hall stands ready and the benches are empty. Open a court and
+                the realm will see your banner raised here.
+              </p>
+            </div>
+          ) : (
+            live.map((c) => <CourtCard key={c.id} c={c} />)
+          )}
+        </div>
       </div>
 
-      <div className="glass glass-sm mt-5 flex items-start gap-3 p-4">
+      {/* Upcoming */}
+      {upcoming.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-bone-mut">
+            Announced
+          </h2>
+          <div className="mt-3 flex flex-col gap-2">
+            {upcoming.map((c) => (
+              <CourtCard key={c.id} c={c} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="glass glass-sm mt-6 flex items-start gap-3 p-4">
         <Icon name="orb" className="mt-0.5 h-4 w-4 shrink-0 text-bone-faint" />
         <p className="text-xs leading-relaxed text-bone-mut">
-          Voices carry when the court&apos;s speaking stones (the live audio
-          provider) are set in place. Until then, courts gather and the realm
-          sees who holds them.
+          A court gathers the realm in real time: a living roster, reactions, and
+          an open floor. Live voice arrives when the court&apos;s speaking stones
+          (the audio provider) are set in place.
         </p>
       </div>
     </div>

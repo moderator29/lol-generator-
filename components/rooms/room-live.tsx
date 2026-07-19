@@ -156,7 +156,11 @@ export function RoomLive({ roomId }: { roomId: string }) {
   }, [loadRoom]);
 
   useEffect(() => {
-    if (ready && authenticated) void loadMessages();
+    if (!ready) return;
+    if (authenticated) void loadMessages();
+    /* Guests can watch the room but the chronicle read requires a citizen; show
+       an empty floor rather than a perpetual skeleton. */
+    else setMsgs((prev) => prev ?? []);
   }, [ready, authenticated, loadMessages]);
 
   /* One realtime channel per court carries chat, reactions, and roster
