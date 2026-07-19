@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import { WatchBadge } from "@/components/tools/watch-badge";
 
 interface TrendingToken {
+  symbol: string;
   name: string;
+  priceUsd: number | null;
+  change24h: number | null;
+  volume24h: number | null;
+  liquidityUsd: number;
   chain: string;
+  watchChain: string | null;
   address: string;
   url: string;
 }
@@ -46,8 +53,16 @@ function formatUsd(value: number): string {
   return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
+function formatPrice(n: number | null): string {
+  if (n === null || !Number.isFinite(n)) return "?";
+  if (n >= 1) return `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  if (n >= 0.01) return `$${n.toFixed(4)}`;
+  return `$${n.toPrecision(2)}`;
+}
+
 export default function ScryingPage() {
   const [trending, setTrending] = useState<TrendingToken[] | null>(null);
+  const [trendingError, setTrendingError] = useState(false);
   const [wallets, setWallets] = useState<SmartWalletView[] | null>(null);
   const [walletsConfigured, setWalletsConfigured] = useState(true);
   const [follows, setFollows] = useState<Record<string, boolean>>({});
@@ -61,17 +76,33 @@ export default function ScryingPage() {
     }
   }, []);
 
+  const loadTrending = useCallback(async () => {
+    setTrending(null);
+    setTrendingError(false);
+    try {
+      const res = await fetch("/api/scrying");
+      const body = (await res.json()) as {
+        trending?: TrendingToken[];
+        error?: string;
+      };
+      if (body.error) {
+        setTrendingError(true);
+        setTrending([]);
+      } else {
+        setTrending(body.trending ?? []);
+      }
+    } catch {
+      setTrendingError(true);
+      setTrending([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTrending();
+  }, [loadTrending]);
+
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch("/api/scrying");
-        const body = (await res.json()) as { trending?: TrendingToken[] };
-        if (!cancelled) setTrending(body.trending ?? []);
-      } catch {
-        if (!cancelled) setTrending([]);
-      }
-    })();
     void (async () => {
       try {
         const res = await fetch("/api/scrying?wallets=1");
@@ -114,47 +145,87 @@ export default function ScryingPage() {
         Market watch
       </p>
       <p className="mt-3 text-sm text-bone-mut">
-        What the realm is watching now, from live markets.
+        Pairs drawing real trading interest across the chains, ranked by the
+        markets, not by who paid for a boost.
       </p>
 
       <div className="mt-5 flex flex-col gap-2">
         {trending === null ? (
           [0, 1, 2, 3].map((i) => (
-            <div key={i} className="glass glass-sm h-14 animate-pulse" />
+            <div key={i} className="glass glass-sm h-16 animate-pulse" />
           ))
+        ) : trendingError ? (
+          <div className="glass p-8 text-center text-sm text-bone-mut">
+            The glass clouded over and no trends could be read.
+            <button
+              type="button"
+              onClick={() => void loadTrending()}
+              className="mt-3 block w-full text-gold underline"
+            >
+              Look again
+            </button>
+          </div>
         ) : trending.length === 0 ? (
           <div className="glass p-8 text-center text-sm text-bone-mut">
-            The glass is dark for the moment. No trends could be read from the
-            markets. Return soon.
+            The glass is still for the moment. No pairs are trending across the
+            realm right now.
           </div>
         ) : (
-          trending.map((t, i) => (
-            <div
-              key={`${t.address}-${i}`}
-              className="glass glass-sm flex items-center gap-3 px-3.5 py-3"
-            >
-              <span className="tnum w-6 shrink-0 text-center text-sm text-bone-faint">
-                {i + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-bone">{t.name}</p>
+          trending.map((t, i) => {
+            const up = (t.change24h ?? 0) >= 0;
+            return (
+              <div
+                key={`${t.address}-${i}`}
+                className="glass glass-sm flex items-center gap-3 px-3.5 py-3"
+              >
+                <span className="tnum w-5 shrink-0 text-center text-sm text-bone-faint">
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-sm font-semibold text-bone">
+                      {t.symbol}
+                    </p>
+                    {t.watchChain && (
+                      <WatchBadge address={t.address} chain={t.watchChain} />
+                    )}
+                  </div>
+                  <p className="truncate text-[11px] text-bone-faint">
+                    {t.chain}
+                    {t.volume24h !== null && (
+                      <span className="ml-1.5 tnum">
+                        Vol {formatUsd(t.volume24h)}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="tnum text-sm text-bone">
+                    {formatPrice(t.priceUsd)}
+                  </p>
+                  {t.change24h !== null && (
+                    <p
+                      className={`tnum text-[11px] font-medium ${up ? "text-gold-bright" : "text-ember-deep"}`}
+                    >
+                      {up ? "+" : ""}
+                      {t.change24h.toFixed(1)}%
+                    </p>
+                  )}
+                </div>
+                {t.url && (
+                  <a
+                    href={t.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open ${t.symbol} chart`}
+                    className="shrink-0 text-bone-faint transition-colors hover:text-gold"
+                  >
+                    <Icon name="arrow" className="h-4 w-4" />
+                  </a>
+                )}
               </div>
-              <span className="glass-sm shrink-0 rounded-full px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-bone-mut">
-                {t.chain}
-              </span>
-              {t.url && (
-                <a
-                  href={t.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Open ${t.name} on DexScreener`}
-                  className="shrink-0 text-bone-faint transition-colors hover:text-gold"
-                >
-                  <Icon name="arrow" className="h-4 w-4" />
-                </a>
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

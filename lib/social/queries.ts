@@ -5,11 +5,66 @@ import type { Post, Comment, PublicProfile } from "@/lib/social/types";
 
 const AUTHOR_SELECT =
   "author:profiles!posts_author_id_fkey (handle, display_name, avatar_url, house_slug, tier, is_agent)";
-const POST_SELECT = `id, author_id, kind, body, media, cashtags, call, poll, house_slug, like_count, reply_count, repost_count, view_count, created_at, ${AUTHOR_SELECT}`;
+const POST_SELECT = `id, author_id, kind, body, media, cashtags, call, poll, house_slug, visibility, mentions, like_count, reply_count, repost_count, view_count, created_at, ${AUTHOR_SELECT}`;
 /* Same shape plus `deleted`, so re-ravens of removed posts can be dropped. */
-const REPOST_POST_SELECT = `id, author_id, kind, body, media, cashtags, call, poll, house_slug, like_count, reply_count, repost_count, view_count, created_at, deleted, ${AUTHOR_SELECT}`;
+const REPOST_POST_SELECT = `id, author_id, kind, body, media, cashtags, call, poll, house_slug, visibility, mentions, like_count, reply_count, repost_count, view_count, created_at, deleted, ${AUTHOR_SELECT}`;
 
 export type FeedTab = "foryou" | "following" | "houses" | "signal" | "latest";
+
+/* The reader, as far as audience gating is concerned. Undefined/empty fields
+   mean a logged-out visitor, who may only ever see public ravens. */
+export interface FeedViewer {
+  viewerId?: string | null;
+  viewerHandle?: string | null;
+  houseSlug?: string | null;
+  followingIds?: string[];
+}
+
+/* Audience fields ride alongside a Post but are not part of its public type. */
+type Gated = { author_id: string; house_slug: string | null } & {
+  visibility?: string | null;
+  mentions?: string[] | null;
+};
+
+/* Whether this reader is allowed to see a raven of the given visibility.
+   Public reaches everyone; the author always sees their own; the rest reach
+   only the eligible circle. This mirrors the SQL `.or` filter below and also
+   guards paths (re-ravens) the SQL filter cannot reach. */
+function canView(p: Gated, v: FeedViewer): boolean {
+  const vis = p.visibility ?? "public";
+  if (vis === "public") return true;
+  if (v.viewerId && p.author_id === v.viewerId) return true;
+  switch (vis) {
+    case "followers":
+      return Boolean(v.followingIds?.includes(p.author_id));
+    case "house":
+      return Boolean(v.houseSlug && p.house_slug === v.houseSlug);
+    case "mentions":
+      return Boolean(
+        v.viewerHandle && p.mentions?.includes(v.viewerHandle.toLowerCase())
+      );
+    default:
+      return false;
+  }
+}
+
+/* PostgREST `.or` clause that lets the database drop ravens this reader may
+   not see, keeping restricted posts off the wire. Public is always allowed. */
+function visibilityOrClause(v: FeedViewer): string {
+  const parts = ["visibility.eq.public"];
+  if (v.viewerId) parts.push(`author_id.eq.${v.viewerId}`);
+  if (v.followingIds?.length)
+    parts.push(
+      `and(visibility.eq.followers,author_id.in.(${v.followingIds.join(",")}))`
+    );
+  if (v.houseSlug)
+    parts.push(`and(visibility.eq.house,house_slug.eq.${v.houseSlug})`);
+  if (v.viewerHandle)
+    parts.push(
+      `and(visibility.eq.mentions,mentions.cs.{${v.viewerHandle.toLowerCase()}})`
+    );
+  return parts.join(",");
+}
 
 /* Tabs where a re-raven earns distribution alongside original posts. */
 const REPOST_TABS: FeedTab[] = ["foryou", "latest", "following"];
@@ -23,12 +78,22 @@ export async function fetchFeed(opts: {
   before?: string;
   followingIds?: string[];
   houseSlug?: string | null;
+  viewerId?: string | null;
+  viewerHandle?: string | null;
 }): Promise<Post[]> {
   const db = createClient();
+  const viewer: FeedViewer = {
+    viewerId: opts.viewerId ?? null,
+    viewerHandle: opts.viewerHandle ?? null,
+    houseSlug: opts.houseSlug ?? null,
+    followingIds: opts.followingIds ?? [],
+  };
   let q = db
     .from("posts")
     .select(POST_SELECT)
     .eq("deleted", false)
+    /* Only ravens whose audience includes this reader. */
+    .or(visibilityOrClause(viewer))
     .order("created_at", { ascending: false })
     .limit(30);
   if (opts.before) q = q.lt("created_at", opts.before);
@@ -40,10 +105,12 @@ export async function fetchFeed(opts: {
     q = q.in("author_id", opts.followingIds);
   }
   const { data } = await q;
-  const posts: Post[] = ((data ?? []) as unknown as Post[]).map((p) => ({
-    ...p,
-    effectiveTime: p.created_at,
-  }));
+  const posts: Post[] = ((data ?? []) as unknown as (Post & Gated)[])
+    .filter((p) => canView(p, viewer))
+    .map((p) => ({
+      ...p,
+      effectiveTime: p.created_at,
+    }));
 
   if (!REPOST_TABS.includes(opts.tab)) return posts;
 
@@ -51,6 +118,7 @@ export async function fetchFeed(opts: {
     tab: opts.tab,
     before: opts.before,
     followingIds: opts.followingIds,
+    viewer,
   });
   /* Merge and order by feed time so re-ravens surface at their re-raven
      moment; cap to a single page's worth. */
@@ -65,6 +133,7 @@ export async function fetchReposts(opts: {
   tab?: FeedTab;
   before?: string;
   followingIds?: string[];
+  viewer?: FeedViewer;
 }): Promise<Post[]> {
   const db = createClient();
   let q = db
@@ -88,10 +157,14 @@ export async function fetchReposts(opts: {
     post: (Post & { deleted?: boolean }) | null;
   };
 
+  const viewer = opts.viewer ?? {};
   return ((data ?? []) as unknown as RepostRow[])
     .filter((r): r is RepostRow & { post: Post & { deleted?: boolean } } =>
       Boolean(r.post) && !r.post!.deleted
     )
+    /* A re-raven cannot widen a raven's audience: the original post's
+       visibility still governs who may see it. */
+    .filter((r) => canView(r.post as unknown as Gated, viewer))
     .map((r) => {
       const { deleted: _deleted, ...post } = r.post;
       return {

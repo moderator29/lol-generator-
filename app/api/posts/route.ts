@@ -19,6 +19,7 @@ export async function POST(req: Request) {
     media?: { url: string; type: string }[];
     poll?: { options: string[] };
     call?: { token: string; stance: "up" | "down"; timeframe: string };
+    visibility?: string;
   } | null;
   if (!body) return json({ error: "bad request" }, 400);
 
@@ -26,6 +27,25 @@ export async function POST(req: Request) {
   if (!text && !body.media?.length)
     return json({ error: "An empty raven carries no word" }, 400);
   if (text.length > 1000) return json({ error: "Too long" }, 400);
+
+  /* Who may see this raven. Unknown values fall back to public so an older
+     client that omits the field keeps its existing all-realm reach. */
+  const VISIBILITIES = ["public", "followers", "house", "mentions"] as const;
+  const visibility = (VISIBILITIES as readonly string[]).includes(
+    body.visibility ?? ""
+  )
+    ? (body.visibility as string)
+    : "public";
+
+  /* Handles named in the raven, lowercased and de-duped. Stored so a
+     mentions-only raven can be shown to exactly the members it names. */
+  const mentions = [
+    ...new Set(
+      [...text.matchAll(/@([a-z0-9_]{2,20})\b/gi)].map((m) =>
+        m[1].toLowerCase()
+      )
+    ),
+  ];
 
   /* Media must live in our own storage; no hotlinked strangers. */
   const storagePrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/`;
@@ -86,9 +106,13 @@ export async function POST(req: Request) {
       cashtags,
       call,
       poll,
+      visibility,
+      mentions,
       house_slug: profile.house_slug,
     })
-    .select("id")
+    .select(
+      "id, author_id, kind, body, media, cashtags, call, poll, house_slug, visibility, mentions, like_count, reply_count, repost_count, view_count, created_at, author:profiles!posts_author_id_fkey (handle, display_name, avatar_url, house_slug, tier, is_agent)"
+    )
     .single();
   if (error || !post) return json({ error: "Could not send the raven" }, 500);
 
@@ -140,5 +164,5 @@ export async function POST(req: Request) {
     await maybeRavenReply(db, post.id, text, profile.handle);
   });
 
-  return json({ ok: true, id: post.id });
+  return json({ ok: true, id: post.id, post });
 }

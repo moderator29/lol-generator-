@@ -1,16 +1,99 @@
 import { json } from "@/lib/auth/server";
 import { SMART_WALLETS, walletSnapshot } from "@/lib/data/smartmoney";
 
-interface Boost {
-  tokenAddress?: string;
-  chainId?: string;
-  url?: string;
-  description?: string;
+/* Organic market intelligence. GeckoTerminal trending pools rank by real
+   trading interest (volume / attention), not paid promotion, so we never
+   relabel promoter-funded boosts as "what the realm is watching". Keyless. */
+const GECKO_NETWORKS: Record<
+  string,
+  { label: string; watch: string | null }
+> = {
+  eth: { label: "Ethereum", watch: "1" },
+  base: { label: "Base", watch: "8453" },
+  arbitrum: { label: "Arbitrum", watch: "42161" },
+  optimism: { label: "Optimism", watch: "10" },
+  bsc: { label: "BNB Chain", watch: "56" },
+  polygon_pos: { label: "Polygon", watch: null },
+  solana: { label: "Solana", watch: null },
+  avax: { label: "Avalanche", watch: null },
+};
+
+interface GeckoPool {
+  id?: string;
+  attributes?: {
+    name?: string;
+    base_token_price_usd?: string | null;
+    reserve_in_usd?: string | null;
+    volume_usd?: { h24?: string | null };
+    price_change_percentage?: { h24?: string | null };
+  };
+  relationships?: {
+    base_token?: { data?: { id?: string } };
+  };
 }
 
-function shortAddress(addr: string): string {
-  if (addr.length <= 12) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+interface GeckoIncluded {
+  id?: string;
+  type?: string;
+  attributes?: { symbol?: string; name?: string; address?: string };
+}
+
+async function readTrending() {
+  try {
+    const res = await fetch(
+      "https://api.geckoterminal.com/api/v2/networks/trending_pools?include=base_token&page=1",
+      {
+        headers: { accept: "application/json" },
+        next: { revalidate: 120 },
+      }
+    );
+    if (!res.ok) return { trending: [], error: "unreachable" as const };
+
+    const body = (await res.json()) as {
+      data?: GeckoPool[];
+      included?: GeckoIncluded[];
+    };
+    const tokens = new Map<string, GeckoIncluded>();
+    for (const inc of body.included ?? []) {
+      if (inc.type === "token" && inc.id) tokens.set(inc.id, inc);
+    }
+
+    const trending = (body.data ?? [])
+      .map((pool) => {
+        const a = pool.attributes ?? {};
+        const baseId = pool.relationships?.base_token?.data?.id ?? "";
+        const base = tokens.get(baseId);
+        const networkId = baseId.split("_")[0] ?? "";
+        const net = GECKO_NETWORKS[networkId];
+        const address = base?.attributes?.address ?? "";
+        const liquidity = Number(a.reserve_in_usd ?? 0);
+        return {
+          symbol: base?.attributes?.symbol?.toUpperCase() ?? "?",
+          name: a.name ?? base?.attributes?.name ?? "Unknown pair",
+          priceUsd: a.base_token_price_usd
+            ? Number(a.base_token_price_usd)
+            : null,
+          change24h: a.price_change_percentage?.h24
+            ? Number(a.price_change_percentage.h24)
+            : null,
+          volume24h: a.volume_usd?.h24 ? Number(a.volume_usd.h24) : null,
+          liquidityUsd: liquidity,
+          chain: net?.label ?? networkId,
+          watchChain: net?.watch ?? null,
+          address,
+          url: address
+            ? `https://www.geckoterminal.com/${networkId}/pools/${pool.id?.split("_").slice(1).join("_") ?? ""}`
+            : "",
+        };
+      })
+      // Safety floor: skip vanishingly thin pools that skew to scam launches.
+      .filter((t) => t.address && t.liquidityUsd >= 20_000)
+      .slice(0, 12);
+
+    return { trending };
+  } catch {
+    return { trending: [], error: "unreachable" as const };
+  }
 }
 
 async function readWallets() {
@@ -45,34 +128,5 @@ export async function GET(req: Request) {
     }
   }
 
-  try {
-    const [boostsRes] = await Promise.all([
-      fetch("https://api.dexscreener.com/token-boosts/top/v1", {
-        next: { revalidate: 120 },
-      }),
-      fetch("https://api.dexscreener.com/latest/dex/search?q=ETH", {
-        next: { revalidate: 120 },
-      }).catch(() => null),
-    ]);
-    if (!boostsRes.ok) return json({ trending: [] });
-
-    const boosts = (await boostsRes.json()) as Boost[];
-    const trending = (Array.isArray(boosts) ? boosts : [])
-      .slice(0, 12)
-      .map((b) => {
-        const addr = b.tokenAddress ?? "";
-        const desc = (b.description ?? "").trim();
-        return {
-          name: desc ? desc.slice(0, 60) : shortAddress(addr),
-          chain: b.chainId ?? "unknown",
-          address: addr,
-          url: b.url ?? (addr ? `https://dexscreener.com/search?q=${addr}` : ""),
-        };
-      })
-      .filter((t) => t.address);
-
-    return json({ trending });
-  } catch {
-    return json({ trending: [] });
-  }
+  return json(await readTrending());
 }

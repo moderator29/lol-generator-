@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     .select("conversation_id, last_read_at")
     .eq("profile_id", profile.id);
   const ids = (memberships ?? []).map((m) => m.conversation_id);
-  if (!ids.length) return json({ conversations: [] });
+  if (!ids.length) return json({ me: profile.id, conversations: [] });
   const lastRead = new Map(
     (memberships ?? []).map((m) => [m.conversation_id, m.last_read_at])
   );
@@ -50,7 +50,7 @@ export async function GET(req: Request) {
       unread: count ?? 0,
     });
   }
-  return json({ conversations });
+  return json({ me: profile.id, conversations });
 }
 
 export async function POST(req: Request) {
