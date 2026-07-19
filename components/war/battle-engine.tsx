@@ -75,7 +75,9 @@ export function BattleEngine({
   const [overlay, setOverlay] = useState<"intro" | "none">("intro");
   const endedRef = useRef(false);
   const onEndRef = useRef(onEnd);
-  onEndRef.current = onEnd;
+  useEffect(() => {
+    onEndRef.current = onEnd;
+  }, [onEnd]);
 
   const keys = useRef<Record<string, boolean>>({});
   const pointer = useRef<{ x: number; y: number; active: boolean }>({
