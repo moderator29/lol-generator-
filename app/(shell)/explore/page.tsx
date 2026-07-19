@@ -4,12 +4,23 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { houses } from "@/lib/data/houses";
+import { Avatar } from "@/components/social/avatar";
 import { Icon } from "@/components/ui/icon";
 import { TIER_NAMES, timeAgo } from "@/lib/social/types";
+import {
+  fetchHouseStats,
+  fetchTopPeople,
+  fetchTrendingCashtags,
+  type Cashtag,
+  type HouseStat,
+  type PersonHit,
+} from "@/lib/social/explore-queries";
 
 interface ProfileHit {
   handle: string | null;
   display_name: string | null;
+  avatar_url: string | null;
+  house_slug: string | null;
   tier: string;
 }
 
@@ -34,6 +45,9 @@ export default function ExplorePage() {
   const [hits, setHits] = useState<ProfileHit[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [calls, setCalls] = useState<CallRow[] | null>(null);
+  const [cashtags, setCashtags] = useState<Cashtag[] | null>(null);
+  const [people, setPeople] = useState<PersonHit[] | null>(null);
+  const [houseStats, setHouseStats] = useState<Record<string, HouseStat>>({});
 
   useEffect(() => {
     const db = createClient();
@@ -47,6 +61,10 @@ export default function ExplorePage() {
       .order("created_at", { ascending: false })
       .limit(5)
       .then(({ data }) => setCalls((data as unknown as CallRow[]) ?? []));
+
+    void fetchTrendingCashtags().then(setCashtags);
+    void fetchTopPeople().then(setPeople);
+    void fetchHouseStats().then(setHouseStats);
   }, []);
 
   useEffect(() => {
@@ -62,7 +80,7 @@ export default function ExplorePage() {
       const like = `%${q.replace(/[%_]/g, "")}%`;
       void db
         .from("profiles")
-        .select("handle, display_name, tier")
+        .select("handle, display_name, avatar_url, house_slug, tier")
         .or(`handle.ilike.${like},display_name.ilike.${like}`)
         .not("handle", "is", null)
         .limit(12)
@@ -111,11 +129,7 @@ export default function ExplorePage() {
                 href={`/u/${p.handle}`}
                 className="glass glass-sm glass-hover flex items-center gap-3 p-3"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-steel-line bg-panel font-display text-sm text-gold">
-                  {(p.display_name ?? p.handle ?? "?")
-                    .slice(0, 1)
-                    .toUpperCase()}
-                </span>
+                <Avatar author={p} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-bone">
                     {p.display_name ?? p.handle}
@@ -133,38 +147,136 @@ export default function ExplorePage() {
         </div>
       )}
 
+      {/* Only surface discovery sections when not actively searching. */}
+      {query.trim().length < 2 && (
+        <>
+          {/* Trending cashtags */}
+          <h2 className="mt-8 font-display text-base font-semibold text-bone">
+            What the Realm Whispers
+          </h2>
+          <p className="text-xs text-bone-faint">
+            Cashtags carried by the most ravens this week
+          </p>
+          <div className="mt-3">
+            {cashtags === null ? (
+              <div className="flex flex-wrap gap-2">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="glass glass-sm h-9 w-24 animate-pulse rounded-full"
+                  />
+                ))}
+              </div>
+            ) : cashtags.length === 0 ? (
+              <div className="glass glass-sm p-6 text-center text-sm text-bone-mut">
+                No cashtags have taken flight yet. Seal a Call and start the
+                talk.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {cashtags.map((c) => (
+                  <span
+                    key={c.tag}
+                    className="glass glass-sm flex items-center gap-2 rounded-full px-3.5 py-1.5"
+                  >
+                    <Icon name="coin" className="h-3.5 w-3.5 text-gold" />
+                    <span className="text-sm font-semibold text-gold-bright">
+                      ${c.tag}
+                    </span>
+                    <span className="tnum text-[11px] text-bone-faint">
+                      {c.count}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* People to follow */}
+          <h2 className="mt-8 font-display text-base font-semibold text-bone">
+            Lords and Ladies of Note
+          </h2>
+          <p className="text-xs text-bone-faint">
+            The realm&apos;s most renowned, worth a follow
+          </p>
+          <div className="mt-3 flex flex-col gap-2">
+            {people === null ? (
+              [0, 1, 2].map((i) => (
+                <div key={i} className="glass glass-sm h-14 animate-pulse" />
+              ))
+            ) : people.length === 0 ? (
+              <div className="glass glass-sm p-6 text-center text-sm text-bone-mut">
+                The realm is yet young. Its first names have not risen.
+              </div>
+            ) : (
+              people.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/u/${p.handle}`}
+                  className="glass glass-sm glass-hover flex items-center gap-3 p-3"
+                >
+                  <Avatar author={p} size={40} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-bone">
+                      {p.display_name ?? p.handle}
+                    </p>
+                    <p className="truncate text-xs text-bone-faint">
+                      @{p.handle}
+                    </p>
+                  </div>
+                  <span className="tnum shrink-0 text-right text-[11px] text-bone-faint">
+                    <span className="block font-semibold text-bone-mut">
+                      {p.renown.toLocaleString()}
+                    </span>
+                    Renown
+                  </span>
+                </Link>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
       {/* Houses */}
       <h2 className="mt-8 font-display text-base font-semibold text-bone">
         The Six Houses
       </h2>
       <p className="text-xs text-bone-faint">Communities, pick your banner</p>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {houses.map((h) => (
-          <Link
-            key={h.slug}
-            href={`/houses/${h.slug}`}
-            className="glass glass-sm glass-hover flex items-center gap-3 p-3"
-          >
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-              style={{
-                background: `linear-gradient(160deg, ${h.color}22, #101017)`,
-                border: `1px solid ${h.color}44`,
-                color: h.color,
-              }}
+        {houses.map((h) => {
+          const stat = houseStats[h.slug];
+          return (
+            <Link
+              key={h.slug}
+              href={`/houses/${h.slug}`}
+              className="glass glass-sm glass-hover flex items-center gap-3 p-3"
             >
-              <Icon name={sigilIcon[h.sigil] ?? "banner"} className="h-4 w-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate font-display text-sm font-semibold text-bone">
-                {h.name.replace("House ", "")}
-              </p>
-              <p className="truncate text-[11px] italic text-bone-faint">
-                {h.motto}
-              </p>
-            </div>
-          </Link>
-        ))}
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                style={{
+                  background: `linear-gradient(160deg, ${h.color}22, #101017)`,
+                  border: `1px solid ${h.color}44`,
+                  color: h.color,
+                }}
+              >
+                <Icon
+                  name={sigilIcon[h.sigil] ?? "banner"}
+                  className="h-4 w-4"
+                />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-display text-sm font-semibold text-bone">
+                  {h.name.replace("House ", "")}
+                </p>
+                <p className="truncate text-[11px] text-bone-faint">
+                  {stat
+                    ? `${stat.member_count.toLocaleString()} sworn`
+                    : h.motto}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
       </div>
 
       {/* Latest Calls */}

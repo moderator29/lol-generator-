@@ -13,6 +13,7 @@ import { TheGames } from "@/components/landing/the-games";
 import { MeetRaven } from "@/components/landing/meet-raven";
 import { TheTools } from "@/components/landing/the-tools";
 import { SiteFooter } from "@/components/landing/site-footer";
+import { RefCapture } from "@/components/referral/ref-capture";
 
 const chips = [
   { label: "The Ravenry", href: "/home" },
@@ -135,6 +136,8 @@ export default function Landing() {
   const ctaLabel = authenticated ? "Enter the Ravenry" : "Enter the Realm";
   return (
     <main className="realm-bg relative min-h-screen overflow-hidden">
+      {/* Persist ?ref=CODE share links for onboarding credit. Renders nothing. */}
+      <RefCapture />
       {/* Aurora crest field */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         {floatSpots.map((s, i) => (
@@ -441,6 +444,38 @@ export default function Landing() {
           >
             Enter the Realm
           </Link>
+        </motion.section>
+
+        {/* Risk and legal disclaimer band */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6 }}
+          className="glass-sm rounded-2xl border border-steel-line bg-panel/60 p-5 sm:p-6"
+        >
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-bone-faint">
+            <Icon name="shield" className="h-4 w-4 text-gold" />
+            A word before you ride
+          </div>
+          <p className="mt-3 text-[12px] leading-relaxed text-bone-faint">
+            Ravenspire is a fun-first social platform. $RAVEN is a utility and
+            social token that powers the realm, not an investment. Nothing here
+            is financial advice, and no one at Ravenspire will ever tell you to
+            buy, sell, or hold. There is no presale, anywhere, at any time.
+            Crypto carries real risk, including the loss of everything you put
+            in, so bring only what you can afford to lose. The realm is
+            non-custodial by design: you hold your own keys, they are always
+            exportable, and we never take custody of your funds. Read the{" "}
+            <Link href="/legal/terms" className="text-bone-mut underline decoration-gold/40 underline-offset-2 transition hover:text-bone">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/legal/privacy" className="text-bone-mut underline decoration-gold/40 underline-offset-2 transition hover:text-bone">
+              Privacy Policy
+            </Link>{" "}
+            before you enter.
+          </p>
         </motion.section>
 
         <SiteFooter />
