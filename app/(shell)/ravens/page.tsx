@@ -25,6 +25,7 @@ const kindIcon: Record<string, string> = {
   raven_reply: "raven",
   duel_answered: "swords",
   duel_won: "crown",
+  call_verdict: "target",
 };
 
 const kindText: Record<string, string> = {
@@ -35,6 +36,7 @@ const kindText: Record<string, string> = {
   raven_reply: "the Herald has answered",
   duel_answered: "answered your duel",
   duel_won: "victory in the duel",
+  call_verdict: "your Call has been judged",
 };
 
 export default function RavensPage() {
