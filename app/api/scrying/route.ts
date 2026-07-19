@@ -1,4 +1,5 @@
 import { json } from "@/lib/auth/server";
+import { SMART_WALLETS, walletSnapshot } from "@/lib/data/smartmoney";
 
 interface Boost {
   tokenAddress?: string;
@@ -12,7 +13,38 @@ function shortAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
-export async function GET() {
+async function readWallets() {
+  const configured = Boolean(process.env.GOLDRUSH_API_KEY);
+  const wallets = await Promise.all(
+    SMART_WALLETS.map(async (w) => {
+      const snap = configured ? await walletSnapshot(w.address) : null;
+      return {
+        name: w.name,
+        house: w.house,
+        address: w.address,
+        note: w.note ?? null,
+        totalUsd: snap?.totalUsd ?? null,
+        top: snap?.top ?? [],
+      };
+    })
+  );
+  return { configured, wallets };
+}
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+
+  if (url.searchParams.get("wallets") === "1") {
+    try {
+      return json(await readWallets());
+    } catch {
+      return json({
+        configured: Boolean(process.env.GOLDRUSH_API_KEY),
+        wallets: [],
+      });
+    }
+  }
+
   try {
     const [boostsRes] = await Promise.all([
       fetch("https://api.dexscreener.com/token-boosts/top/v1", {

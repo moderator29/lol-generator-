@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { checkAndGrantCrests } from "@/lib/crests";
 
 export const TIERS: { slug: string; name: string; min: number }[] = [
   { slug: "smallfolk", name: "Smallfolk", min: 0 },
@@ -67,6 +68,8 @@ export async function award(
         .eq("slug", prof.house_slug);
     }
   }
+
+  await checkAndGrantCrests(db, profileId);
 }
 
 export async function grantCrest(

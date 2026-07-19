@@ -31,6 +31,13 @@ export interface Post {
   view_count: number;
   created_at: string;
   author: Author;
+  /* Set when this feed item reached the reader as a re-raven. */
+  repostedBy?: { handle: string | null; display_name: string | null };
+  /* Optional commentary a member attached to their re-raven. */
+  quote?: string | null;
+  /* The time this item takes its feed position from: the post's own
+     creation time, or the re-raven time when repostedBy is set. */
+  effectiveTime?: string;
 }
 
 export interface Comment {

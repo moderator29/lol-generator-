@@ -14,9 +14,7 @@ interface MeProfile {
   tier: string | null;
 }
 
-const STORE_KEY = "ravenspire.settings.v1";
-
-interface LocalPrefs {
+interface Prefs {
   publicPositions: boolean;
   pnlVisible: boolean;
   notifyMentions: boolean;
@@ -25,7 +23,7 @@ interface LocalPrefs {
   notifyHouse: boolean;
 }
 
-const DEFAULT_PREFS: LocalPrefs = {
+const DEFAULT_PREFS: Prefs = {
   publicPositions: false,
   pnlVisible: false,
   notifyMentions: true,
@@ -34,14 +32,36 @@ const DEFAULT_PREFS: LocalPrefs = {
   notifyHouse: true,
 };
 
-function loadPrefs(): LocalPrefs {
-  try {
-    const raw = window.localStorage.getItem(STORE_KEY);
-    if (!raw) return DEFAULT_PREFS;
-    return { ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<LocalPrefs>) };
-  } catch {
-    return DEFAULT_PREFS;
+/* Which settings bucket each toggle lives in, and its key inside that bucket.
+   Buckets map to the profiles.settings jsonb the /api/settings route merges. */
+const PREF_MAP: Record<
+  keyof Prefs,
+  { bucket: "privacy" | "notifications"; key: string }
+> = {
+  publicPositions: { bucket: "privacy", key: "publicPositions" },
+  pnlVisible: { bucket: "privacy", key: "pnlVisible" },
+  notifyMentions: { bucket: "notifications", key: "mentions" },
+  notifyReplies: { bucket: "notifications", key: "replies" },
+  notifyDuels: { bucket: "notifications", key: "duels" },
+  notifyHouse: { bucket: "notifications", key: "house" },
+};
+
+type Bucket = Record<string, unknown>;
+interface RealmSettings {
+  privacy?: Bucket;
+  notifications?: Bucket;
+  appearance?: Bucket;
+}
+
+function prefsFromSettings(settings: RealmSettings | null): Prefs {
+  const next = { ...DEFAULT_PREFS };
+  if (!settings) return next;
+  for (const field of Object.keys(PREF_MAP) as (keyof Prefs)[]) {
+    const { bucket, key } = PREF_MAP[field];
+    const val = settings[bucket]?.[key];
+    if (typeof val === "boolean") next[field] = val;
   }
+  return next;
 }
 
 function Toggle({
@@ -127,37 +147,34 @@ export default function SettingsPage() {
   const { ready, enabled, authenticated, displayName, address, signOut, signInX, signInEmail } =
     useRealmAuth();
   const [profile, setProfile] = useState<MeProfile | null>(null);
-  const [prefs, setPrefs] = useState<LocalPrefs>(DEFAULT_PREFS);
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
-
-  useEffect(() => {
-    setPrefs(loadPrefs());
-    setPrefsLoaded(true);
-  }, []);
 
   useEffect(() => {
     if (!ready || !authenticated) return;
     let cancelled = false;
     void (async () => {
-      const res = await realmFetch<{ profile: MeProfile }>("/api/me", {
-        method: "POST",
-      });
-      if (!cancelled && res.ok && res.data) setProfile(res.data.profile);
+      const [me, settings] = await Promise.all([
+        realmFetch<{ profile: MeProfile }>("/api/me", { method: "POST" }),
+        realmFetch<{ settings: RealmSettings }>("/api/settings"),
+      ]);
+      if (cancelled) return;
+      if (me.ok && me.data) setProfile(me.data.profile);
+      if (settings.ok && settings.data)
+        setPrefs(prefsFromSettings(settings.data.settings));
+      setPrefsLoaded(true);
     })();
     return () => {
       cancelled = true;
     };
   }, [ready, authenticated]);
 
-  const setPref = (key: keyof LocalPrefs) => (next: boolean) => {
-    setPrefs((prev) => {
-      const merged = { ...prev, [key]: next };
-      try {
-        window.localStorage.setItem(STORE_KEY, JSON.stringify(merged));
-      } catch {
-        /* storage unavailable; the toggle still works for this visit */
-      }
-      return merged;
+  const setPref = (field: keyof Prefs) => (next: boolean) => {
+    setPrefs((prev) => ({ ...prev, [field]: next }));
+    const { bucket, key } = PREF_MAP[field];
+    void realmFetch("/api/settings", {
+      method: "POST",
+      json: { [bucket]: { [key]: next } },
     });
   };
 
@@ -295,9 +312,8 @@ export default function SettingsPage() {
                 />
               </Row>
               <p className="mt-3 text-xs text-bone-faint">
-                Stored on this device for now; these bind to the Archives
-                shortly, so honest truth: they do not follow you between
-                devices yet.
+                Saved to the Archives against your name, so these follow you to
+                every device you sign in from.
               </p>
             </Card>
 
@@ -336,8 +352,7 @@ export default function SettingsPage() {
                 />
               </Row>
               <p className="mt-3 text-xs text-bone-faint">
-                Same honest note: stored on this device for now, bound to the
-                Archives shortly.
+                Saved to the Archives, so your choices travel with you.
               </p>
             </Card>
 

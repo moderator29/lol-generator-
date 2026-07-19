@@ -59,6 +59,56 @@ const tools = [
   { icon: "flame", name: "The Forge", plain: "Staking", desc: "Swear an oath, earn real yield from protocol fees, never emissions." },
 ];
 
+const faqs = [
+  {
+    q: "What is Ravenspire?",
+    a: "A social realm first, a crypto tool second. You post, banter, duel with wit, swear to a House and play The War. The chains and charts serve the story, never the other way round.",
+  },
+  {
+    q: "Is it non-custodial?",
+    a: "Yes. A wallet is created for you the moment you sign up and it is truly yours. Export your keys any time and take them anywhere. We never hold your funds, and every action is signed by you.",
+  },
+  {
+    q: "How do I earn?",
+    a: "Real actions earn points: ravens that move the realm, verified Calls, courts you host, newcomers you welcome. At Season's end, points convert to $RAVEN you claim straight to your own wallet. Earned, never bought.",
+  },
+  {
+    q: "What is a Call?",
+    a: "A Call is a public, timestamped market read you put your name to. It is scored against real on-chain data over time, so a good record is proof of skill, not noise.",
+  },
+  {
+    q: "Do I need crypto to play?",
+    a: "No. You can sign in, post, banter, join a House and play The War without ever touching a token. The wallet waits quietly until you choose to use it.",
+  },
+  {
+    q: "What are Houses?",
+    a: "Houses are the teams of the realm. Swear to one, earn Glory through quests, duels and streaks, and each Season the leading House claims the Throne. Your standing lifts the whole House.",
+  },
+];
+
+const trustPoints = [
+  {
+    icon: "shield",
+    title: "Non-custodial by design",
+    body: "Your keys, your vault, always exportable. We never hold funds and cannot move them.",
+  },
+  {
+    icon: "medal",
+    title: "Reputation earned, never bought",
+    body: "No pay to win, no bought crests. Standing comes from showing up and being good.",
+  },
+  {
+    icon: "eye",
+    title: "Real data only",
+    body: "Every number you see is read from the chain or the markets. We never invent figures.",
+  },
+  {
+    icon: "heart",
+    title: "Fun first",
+    body: "A realm you will want to live in. The serious tools sit quietly under the play.",
+  },
+];
+
 const sections = [
   {
     kicker: "A realm, not a terminal",
@@ -441,6 +491,81 @@ export default function Landing() {
             Three live at launch, seven on the roadmap. No collectibles, no
             purchase, no shortcut. You earn them by showing up and being good.
           </p>
+        </motion.section>
+
+        {/* Why the realm - trust row */}
+        <motion.section
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6 }}
+          className="glass p-7 sm:p-9"
+        >
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold">
+            <Icon name="shield" className="h-4 w-4" />
+            Why the realm
+          </div>
+          <h2 className="mt-3 font-display text-2xl font-semibold text-bone sm:text-3xl">
+            Four vows we build on
+          </h2>
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {trustPoints.map((t) => (
+              <div
+                key={t.title}
+                className="glass-sm flex items-start gap-3 rounded-2xl border border-steel-line bg-panel p-4"
+              >
+                <div className="glass-sm flex h-10 w-10 shrink-0 items-center justify-center text-gold">
+                  <Icon name={t.icon} className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-display text-sm font-semibold text-bone">
+                    {t.title}
+                  </p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-bone-mut">
+                    {t.body}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* The realm answers - FAQ */}
+        <motion.section
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6 }}
+          className="glass p-7 sm:p-9"
+        >
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold">
+            <Icon name="scroll" className="h-4 w-4" />
+            The realm answers
+          </div>
+          <h2 className="mt-3 font-display text-2xl font-semibold text-bone sm:text-3xl">
+            Questions before you enter
+          </h2>
+          <div className="mt-6 flex flex-col gap-3">
+            {faqs.map((f) => (
+              <details
+                key={f.q}
+                className="group glass-sm rounded-2xl border border-steel-line bg-panel px-4 py-3.5 [&_summary]:list-none"
+              >
+                <summary className="flex cursor-pointer items-center justify-between gap-3">
+                  <span className="font-display text-sm font-semibold text-bone">
+                    {f.q}
+                  </span>
+                  <Icon
+                    name="plus"
+                    className="h-4 w-4 shrink-0 text-gold transition-transform duration-200 group-open:rotate-45"
+                  />
+                </summary>
+                <p className="mt-3 text-[13px] leading-relaxed text-bone-mut">
+                  {f.a}
+                </p>
+              </details>
+            ))}
+          </div>
         </motion.section>
 
         {/* Final CTA */}

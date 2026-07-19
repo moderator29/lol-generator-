@@ -6,8 +6,17 @@ import type { Post, Comment, PublicProfile } from "@/lib/social/types";
 const AUTHOR_SELECT =
   "author:profiles!posts_author_id_fkey (handle, display_name, avatar_url, house_slug, tier, is_agent)";
 const POST_SELECT = `id, author_id, kind, body, media, cashtags, call, poll, house_slug, like_count, reply_count, repost_count, view_count, created_at, ${AUTHOR_SELECT}`;
+/* Same shape plus `deleted`, so re-ravens of removed posts can be dropped. */
+const REPOST_POST_SELECT = `id, author_id, kind, body, media, cashtags, call, poll, house_slug, like_count, reply_count, repost_count, view_count, created_at, deleted, ${AUTHOR_SELECT}`;
 
 export type FeedTab = "foryou" | "following" | "houses" | "signal" | "latest";
+
+/* Tabs where a re-raven earns distribution alongside original posts. */
+const REPOST_TABS: FeedTab[] = ["foryou", "latest", "following"];
+
+function feedTime(p: Post): number {
+  return Date.parse(p.effectiveTime ?? p.created_at);
+}
 
 export async function fetchFeed(opts: {
   tab: FeedTab;
@@ -31,7 +40,72 @@ export async function fetchFeed(opts: {
     q = q.in("author_id", opts.followingIds);
   }
   const { data } = await q;
-  return (data ?? []) as unknown as Post[];
+  const posts: Post[] = ((data ?? []) as unknown as Post[]).map((p) => ({
+    ...p,
+    effectiveTime: p.created_at,
+  }));
+
+  if (!REPOST_TABS.includes(opts.tab)) return posts;
+
+  const reposts = await fetchReposts({
+    tab: opts.tab,
+    before: opts.before,
+    followingIds: opts.followingIds,
+  });
+  /* Merge and order by feed time so re-ravens surface at their re-raven
+     moment; cap to a single page's worth. */
+  return [...posts, ...reposts]
+    .sort((a, b) => feedTime(b) - feedTime(a))
+    .slice(0, 30);
+}
+
+/* Re-ravens as feed items: the original post and author, tagged with who
+   re-ravened it and when. Ordered newest re-raven first. */
+export async function fetchReposts(opts: {
+  tab?: FeedTab;
+  before?: string;
+  followingIds?: string[];
+}): Promise<Post[]> {
+  const db = createClient();
+  let q = db
+    .from("reposts")
+    .select(
+      `created_at, quote, reposter:profiles!reposts_profile_id_fkey (handle, display_name), post:posts!reposts_post_id_fkey (${REPOST_POST_SELECT})`
+    )
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (opts.before) q = q.lt("created_at", opts.before);
+  if (opts.tab === "following") {
+    if (!opts.followingIds?.length) return [];
+    q = q.in("profile_id", opts.followingIds);
+  }
+  const { data } = await q;
+
+  type RepostRow = {
+    created_at: string;
+    quote: string | null;
+    reposter: { handle: string | null; display_name: string | null } | null;
+    post: (Post & { deleted?: boolean }) | null;
+  };
+
+  return ((data ?? []) as unknown as RepostRow[])
+    .filter((r): r is RepostRow & { post: Post & { deleted?: boolean } } =>
+      Boolean(r.post) && !r.post!.deleted
+    )
+    .map((r) => {
+      const { deleted: _deleted, ...post } = r.post;
+      return {
+        ...(post as Post),
+        repostedBy: r.reposter
+          ? {
+              handle: r.reposter.handle,
+              display_name: r.reposter.display_name,
+            }
+          : undefined,
+        quote: r.quote,
+        effectiveTime: r.created_at,
+      };
+    });
 }
 
 export async function fetchPost(id: string): Promise<Post | null> {

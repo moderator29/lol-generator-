@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
+import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 
 interface Check {
   label: string;
@@ -13,6 +15,18 @@ interface WatchResult {
   score?: number;
   checks?: Check[];
   raw?: { buyTax: number; sellTax: number };
+  error?: string;
+}
+
+interface Approval {
+  token: string;
+  spender: string;
+  allowance: string;
+}
+
+interface ApprovalsResult {
+  configured: boolean;
+  approvals: Approval[];
   error?: string;
 }
 
@@ -28,12 +42,33 @@ const statusIcon: Record<Check["status"], string> = {
   risk: "flame",
 };
 
+const MAX_UINT =
+  "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+
+function shortHex(value: string) {
+  if (!/^0x[a-fA-F0-9]{40}$/.test(value)) return value;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
+function allowanceLabel(allowance: string) {
+  if (!allowance) return "Unknown allowance";
+  if (allowance === MAX_UINT || allowance.toLowerCase() === "unlimited") {
+    return "Unlimited";
+  }
+  return `Capped: ${allowance}`;
+}
+
 export default function WatchPage() {
-  const [address, setAddress] = useState("");
+  const { authenticated, address } = useRealmAuth();
+
+  const [contract, setContract] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<WatchResult | null>(null);
 
-  const valid = /^0x[a-fA-F0-9]{40}$/.test(address.trim());
+  const [approvalsLoading, setApprovalsLoading] = useState(false);
+  const [approvals, setApprovals] = useState<ApprovalsResult | null>(null);
+
+  const valid = /^0x[a-fA-F0-9]{40}$/.test(contract.trim());
 
   const scan = async () => {
     if (!valid || loading) return;
@@ -41,7 +76,7 @@ export default function WatchPage() {
     setResult(null);
     try {
       const res = await fetch(
-        `/api/watch?address=${encodeURIComponent(address.trim())}&chain=1`
+        `/api/watch?address=${encodeURIComponent(contract.trim())}&chain=1`
       );
       setResult((await res.json()) as WatchResult);
     } catch {
@@ -51,15 +86,37 @@ export default function WatchPage() {
     }
   };
 
+  const loadApprovals = useCallback(async () => {
+    if (!authenticated || !address) return;
+    setApprovalsLoading(true);
+    try {
+      const res = await fetch(
+        `/api/approvals?address=${encodeURIComponent(address)}`
+      );
+      setApprovals((await res.json()) as ApprovalsResult);
+    } catch {
+      setApprovals({
+        configured: true,
+        approvals: [],
+        error: "The Watch could not reach the ledger",
+      });
+    } finally {
+      setApprovalsLoading(false);
+    }
+  }, [authenticated, address]);
+
+  useEffect(() => {
+    if (authenticated && address) void loadApprovals();
+    else setApprovals(null);
+  }, [authenticated, address, loadApprovals]);
+
   const score = result?.score ?? 0;
   const scoreColor =
     score >= 70 ? "text-gold" : score >= 40 ? "text-ember" : "text-ember-deep";
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
-      <h1 className="font-display text-xl font-semibold text-bone">
-        The Watch
-      </h1>
+      <h1 className="font-display text-xl font-semibold text-bone">The Watch</h1>
       <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
         Token security scanner
       </p>
@@ -74,8 +131,8 @@ export default function WatchPage() {
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <input
             id="watch-address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            value={contract}
+            onChange={(e) => setContract(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") void scan();
             }}
@@ -92,7 +149,7 @@ export default function WatchPage() {
             {loading ? "Scanning" : "Scan"}
           </button>
         </div>
-        {address.trim() !== "" && !valid && (
+        {contract.trim() !== "" && !valid && (
           <p className="mt-2 text-xs text-bone-faint">
             The Watch reads Ethereum contract addresses: 0x followed by 40 hex
             characters.
@@ -129,9 +186,7 @@ export default function WatchPage() {
                   className={`mt-0.5 h-4.5 w-4.5 shrink-0 ${statusColor[c.status]}`}
                 />
                 <div className="min-w-0 flex-1">
-                  <p className={`text-sm ${statusColor[c.status]}`}>
-                    {c.label}
-                  </p>
+                  <p className={`text-sm ${statusColor[c.status]}`}>{c.label}</p>
                   {c.detail && (
                     <p className="mt-0.5 text-xs text-bone-faint">{c.detail}</p>
                   )}
@@ -152,12 +207,109 @@ export default function WatchPage() {
         </>
       )}
 
+      <section className="mt-8">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="font-display text-lg font-semibold text-bone">
+              Your open approvals
+            </h2>
+            <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
+              Spenders you have granted
+            </p>
+          </div>
+          {authenticated && address && (
+            <button
+              type="button"
+              className="btn-glass shrink-0"
+              disabled={approvalsLoading}
+              onClick={() => void loadApprovals()}
+            >
+              {approvalsLoading ? "Reading" : "Refresh"}
+            </button>
+          )}
+        </div>
+
+        {!authenticated || !address ? (
+          <div className="glass mt-3 p-6 text-center text-sm text-bone-mut">
+            <Icon name="lock" className="mx-auto mb-3 h-6 w-6 text-bone-faint" />
+            Enter the realm with a connected wallet to audit the approvals you
+            have signed.
+          </div>
+        ) : approvalsLoading && !approvals ? (
+          <div className="glass mt-3 h-32 animate-pulse" />
+        ) : approvals && approvals.configured === false ? (
+          <div className="glass mt-3 p-6 text-center text-sm text-bone-mut">
+            The approvals ledger is not yet wired. Live approval reads arrive as
+            the Watch deepens.
+          </div>
+        ) : approvals && approvals.error ? (
+          <div className="glass mt-3 p-6 text-center text-sm text-bone-mut">
+            {approvals.error}
+          </div>
+        ) : approvals && approvals.approvals.length === 0 ? (
+          <div className="glass mt-3 p-6 text-center text-sm text-bone-mut">
+            <Icon name="shield" className="mx-auto mb-3 h-6 w-6 text-gold" />
+            No open approvals found for this address. Nothing to revoke.
+          </div>
+        ) : approvals ? (
+          <>
+            <div className="glass mt-3 flex flex-col divide-y divide-steel-line p-2">
+              {approvals.approvals.map((a, i) => (
+                <div
+                  key={`${a.token}-${a.spender}-${i}`}
+                  className="flex items-center gap-3 px-3 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="tnum text-sm text-bone">
+                      Token {shortHex(a.token)}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-bone-faint">
+                      Spender {shortHex(a.spender)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-ember">
+                      {allowanceLabel(a.allowance)}
+                    </p>
+                  </div>
+                  <Link
+                    href="/soon/mint"
+                    className="btn-glass shrink-0"
+                    aria-label="Revoke this approval"
+                  >
+                    Revoke
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            <div className="glass mt-3 p-4 text-sm text-bone-mut">
+              <div className="flex items-start gap-3">
+                <Icon
+                  name="shield"
+                  className="mt-0.5 h-4.5 w-4.5 shrink-0 text-gold"
+                />
+                <p>
+                  Revoking is non-custodial: it never moves your keys. Each
+                  revoke is a wallet signature that sets the spender allowance to
+                  zero. One-tap signed revokes arrive with{" "}
+                  <Link href="/soon/mint" className="gold-text underline">
+                    The Mint
+                  </Link>
+                  .
+                </p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="glass mt-3 h-32 animate-pulse" />
+        )}
+      </section>
+
       <div className="glass mt-5 p-4 text-sm text-bone-mut">
         <div className="flex items-start gap-3">
           <Icon name="wall" className="mt-0.5 h-4.5 w-4.5 shrink-0 text-gold" />
           <p>
-            The Watch reads public defenses from live chain data. Approvals
-            audit and one-tap revoke arrive as the Watch deepens.
+            The Watch reads public defenses and approvals from live chain data.
+            It never holds your keys or moves your assets.
           </p>
         </div>
       </div>
