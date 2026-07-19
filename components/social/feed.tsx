@@ -68,7 +68,10 @@ export function Feed() {
       if (tab === "following" && me.current && followingIds.current === null) {
         followingIds.current = await fetchFollowingIds(me.current.id);
       }
-      const before = append ? posts[posts.length - 1]?.created_at : undefined;
+      const last = posts[posts.length - 1];
+      const before = append
+        ? (last?.effectiveTime ?? last?.created_at)
+        : undefined;
       const batch = await fetchFeed({
         tab,
         before,
@@ -189,7 +192,10 @@ export function Feed() {
             .filter((p) => !filters.mediaOnly || p.media.length > 0)
             .filter((p) => !filters.callsOnly || p.kind === "call")
             .map((p) => (
-              <PostCard key={p.id} post={p} />
+              <PostCard
+                key={`${p.id}:${p.repostedBy ? p.effectiveTime : "own"}`}
+                post={p}
+              />
             ))}
           {!done && (
             <button

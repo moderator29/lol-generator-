@@ -103,6 +103,13 @@ export function PostCard({ post }: { post: Post }) {
   const [reposted, setReposted] = useState(false);
   const [reposts, setReposts] = useState(post.repost_count);
   const [bookmarked, setBookmarked] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reported, setReported] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [tipOpen, setTipOpen] = useState(false);
+  const [tipBusy, setTipBusy] = useState(false);
+  const [tipped, setTipped] = useState<number | null>(null);
+  const [tipError, setTipError] = useState<string | null>(null);
 
   const requireAuth = () => {
     if (!authenticated) {
@@ -148,12 +155,78 @@ export function PostCard({ post }: { post: Post }) {
       /* no clipboard, no drama */
     }
   };
+  const doReport = async () => {
+    if (!requireAuth()) return;
+    setMenuOpen(false);
+    if (reported) return;
+    setReported(true);
+    await realmFetch("/api/reports", {
+      method: "POST",
+      json: { subject_type: "post", subject_id: post.id, reason: "member_flag" },
+    });
+  };
+  const doBlock = async () => {
+    if (!requireAuth()) return;
+    setMenuOpen(false);
+    setMuted(true);
+    await realmFetch("/api/blocks", {
+      method: "POST",
+      json: { profile_id: post.author_id, on: true },
+    });
+  };
+  const sendTip = async (points: number) => {
+    if (!requireAuth()) return;
+    if (tipBusy || tipped) return;
+    setTipBusy(true);
+    setTipError(null);
+    const res = await realmFetch<{ error?: string }>("/api/tips", {
+      method: "POST",
+      json: {
+        to: post.author_id,
+        subject_type: "post",
+        subject_id: post.id,
+        points,
+      },
+    });
+    setTipBusy(false);
+    if (res.ok) {
+      setTipped(points);
+      setTipOpen(false);
+    } else {
+      setTipError(res.data?.error ?? "The tribute could not be sent");
+    }
+  };
 
   const a = post.author;
   const firstTag = post.cashtags[0];
 
+  if (muted) {
+    return (
+      <article className="glass glass-sm p-4 text-xs text-bone-faint">
+        You have silenced {a.handle ? `@${a.handle}` : "this member"}. Their
+        ravens will not reach you.
+      </article>
+    );
+  }
+
   return (
     <article className="glass glass-sm glass-hover p-4">
+      {post.repostedBy && (
+        <div className="mb-2 flex items-center gap-1.5 pl-1 text-xs text-bone-faint">
+          <Icon name="repost" className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">
+            Re-ravened by{" "}
+            {post.repostedBy.handle
+              ? `@${post.repostedBy.handle}`
+              : (post.repostedBy.display_name ?? "a member")}
+          </span>
+        </div>
+      )}
+      {post.quote && (
+        <p className="mb-2 border-l-2 border-gold/30 pl-2 text-sm text-bone-mut">
+          {post.quote}
+        </p>
+      )}
       <div className="flex gap-3">
         <Link href={a.handle ? `/u/${a.handle}` : "#"}>
           <Avatar author={a} size={40} />
@@ -178,11 +251,63 @@ export function PostCard({ post }: { post: Post }) {
             <span className="text-xs text-bone-faint">
               {timeAgo(post.created_at)}
             </span>
-            {a.tier && !a.is_agent && (
-              <span className="ml-auto hidden text-[10px] uppercase tracking-[0.16em] text-bone-faint sm:inline">
-                {TIER_NAMES[a.tier] ?? a.tier}
-              </span>
-            )}
+            <div className="relative ml-auto flex items-center gap-1.5">
+              {a.tier && !a.is_agent && (
+                <span className="hidden text-[10px] uppercase tracking-[0.16em] text-bone-faint sm:inline">
+                  {TIER_NAMES[a.tier] ?? a.tier}
+                </span>
+              )}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setMenuOpen((v) => !v);
+                }}
+                aria-label="More"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-bone-faint transition hover:bg-panel hover:text-bone-mut"
+              >
+                <Icon name="dots" className="h-4 w-4" />
+              </button>
+              {menuOpen && (
+                <>
+                  <button
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                    }}
+                    className="fixed inset-0 z-20 cursor-default"
+                  />
+                  <div className="glass glass-sm absolute right-0 top-8 z-30 w-40 p-1">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        void doReport();
+                      }}
+                      disabled={reported}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-bone-mut transition hover:bg-panel disabled:opacity-50"
+                    >
+                      <Icon name="flag" className="h-3.5 w-3.5" />
+                      {reported ? "Reported" : "Report"}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        void doBlock();
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-bone-mut transition hover:bg-panel"
+                    >
+                      <Icon name="shield" className="h-3.5 w-3.5" />
+                      Block
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           <Link href={`/post/${post.id}`} className="mt-1 block text-[15px] leading-relaxed text-bone">
@@ -284,8 +409,49 @@ export function PostCard({ post }: { post: Post }) {
               label="Bookmark"
               onClick={toggleBookmark}
             />
+            <ActionButton
+              icon="coin"
+              active={tipped !== null || tipOpen}
+              label="Tip"
+              onClick={() => {
+                if (tipped !== null) return;
+                if (!requireAuth()) return;
+                setTipError(null);
+                setTipOpen((v) => !v);
+              }}
+            />
             <ActionButton icon="share" label="Copy link" onClick={share} />
           </div>
+
+          {tipped !== null && (
+            <p className="mt-1 flex items-center gap-1.5 pl-1 text-xs text-gold">
+              <Icon name="coin" className="h-3.5 w-3.5" />
+              Tribute of {tipped} points sent
+            </p>
+          )}
+
+          {tipOpen && tipped === null && (
+            <div className="glass-sm mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-steel-line bg-void px-3 py-2">
+              <span className="text-xs text-bone-mut">Send tribute</span>
+              {[5, 10, 25].map((n) => (
+                <button
+                  key={n}
+                  disabled={tipBusy}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void sendTip(n);
+                  }}
+                  className="btn-glass tnum rounded-full px-3 py-1 text-xs text-gold transition hover:text-gold-bright disabled:opacity-50"
+                >
+                  {n}
+                </button>
+              ))}
+              {tipError && (
+                <span className="w-full text-[11px] text-ember">{tipError}</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </article>

@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { champions, type Champion } from "@/lib/game/champions";
+import { realmFetch } from "@/lib/auth/api";
 import { Icon } from "@/components/ui/icon";
 
 const rarityOrder: Champion["rarity"][] = [
@@ -19,16 +21,37 @@ export default function AdminWarPage() {
   const unlockedCount = champions.filter((c) => c.unlocked).length;
   const maxCount = Math.max(1, ...counts.map((c) => c.count));
 
+  const [battles, setBattles] = useState<number | null>(null);
+  const [battlesStatus, setBattlesStatus] = useState<
+    "loading" | "ok" | "error"
+  >("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    void realmFetch<{ battles: number }>("/api/admin/war").then((res) => {
+      if (cancelled) return;
+      if (res.ok && typeof res.data?.battles === "number") {
+        setBattles(res.data.battles);
+        setBattlesStatus("ok");
+      } else {
+        setBattlesStatus("error");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div>
       <h1 className="font-display text-xl font-semibold text-bone sm:text-2xl">
         The War
       </h1>
       <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
-        Champion roster, read-only
+        Champion roster and battle ledger
       </p>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-md">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-2xl sm:grid-cols-3">
         <div className="glass glass-sm p-4">
           <Icon name="swords" className="h-4 w-4 text-bone-faint" />
           <p className="tnum font-display mt-2 text-2xl font-semibold text-gold">
@@ -47,6 +70,19 @@ export default function AdminWarPage() {
             Unlocked at the start
           </p>
         </div>
+        <div className="glass glass-sm p-4">
+          <Icon name="scroll" className="h-4 w-4 text-bone-faint" />
+          <p className="tnum font-display mt-2 text-2xl font-semibold text-gold">
+            {battlesStatus === "loading"
+              ? "—"
+              : battlesStatus === "error"
+                ? "—"
+                : (battles ?? 0).toLocaleString()}
+          </p>
+          <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-bone-faint">
+            Battles fought
+          </p>
+        </div>
       </div>
 
       <section className="mt-6">
@@ -57,7 +93,9 @@ export default function AdminWarPage() {
           <div className="flex flex-col gap-3">
             {counts.map((c) => (
               <div key={c.rarity} className="flex items-center gap-3">
-                <span className={`rarity-${c.rarity} rarity-chip w-24 shrink-0 text-center`}>
+                <span
+                  className={`rarity-${c.rarity} rarity-chip w-24 shrink-0 text-center`}
+                >
                   {c.rarity}
                 </span>
                 <div className="bar-track h-1.5 min-w-0 flex-1">
@@ -79,16 +117,33 @@ export default function AdminWarPage() {
 
       <section className="mt-6">
         <h2 className="font-display text-lg font-semibold text-bone">
-          Battles fought
+          Battle ledger
         </h2>
         <div className="glass mt-3 flex items-start gap-3 p-5">
-          <Icon name="scroll" className="mt-0.5 h-5 w-5 shrink-0 text-bone-faint" />
-          <p className="text-sm text-bone-mut">
-            Battle records live in the war ledger, but the council does not yet
-            have a viewing table for them. Detailed liveops, battle logs,
-            balance levers, and roster tuning, arrive with the next wave. We
-            will not show you numbers we have not counted.
-          </p>
+          <Icon
+            name="scroll"
+            className="mt-0.5 h-5 w-5 shrink-0 text-bone-faint"
+          />
+          {battlesStatus === "error" ? (
+            <p className="text-sm text-bone-mut">
+              The war ledger could not be reached. The battle count above will
+              return once it answers.
+            </p>
+          ) : battlesStatus === "ok" && (battles ?? 0) === 0 ? (
+            <p className="text-sm text-bone-mut">
+              No battles have been fought yet. The ledger stands empty until the
+              first champion takes the field.
+            </p>
+          ) : (
+            <p className="text-sm text-bone-mut">
+              The realm has fought{" "}
+              <span className="tnum text-gold">
+                {(battles ?? 0).toLocaleString()}
+              </span>{" "}
+              {battles === 1 ? "battle" : "battles"} so far. Detailed liveops,
+              per-battle logs, and balance levers arrive with the next wave.
+            </p>
+          )}
         </div>
       </section>
     </div>

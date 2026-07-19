@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import {
+  PriceMiniCard,
+  WalletMiniCard,
+  type Holding,
+} from "@/components/raven/cards";
 
 type TokenCard = {
   symbol: string;
@@ -12,10 +17,17 @@ type TokenCard = {
   chain: string | null;
 };
 
+type WalletCard = {
+  address: string;
+  totalUsd: number | null;
+  holdings: Holding[];
+};
+
 type Msg = {
   role: "user" | "assistant" | "error";
   content: string;
   cards?: TokenCard[];
+  walletCard?: WalletCard;
 };
 
 const OPENERS = [
@@ -24,65 +36,6 @@ const OPENERS = [
   "Announce my arrival to the realm",
   "Roast me, but kindly",
 ];
-
-function fmtPrice(n: number | null): string {
-  if (n === null) return "n/a";
-  if (n >= 1)
-    return n.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  return n.toLocaleString("en-US", { maximumSignificantDigits: 4 });
-}
-
-function fmtCompact(n: number | null): string | null {
-  if (n === null) return null;
-  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
-  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
-  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
-  return String(Math.round(n));
-}
-
-function TokenCardView({ card }: { card: TokenCard }) {
-  const up = card.change24h !== null && card.change24h >= 0;
-  const cap = fmtCompact(card.marketCap);
-  return (
-    <div className="glass-sm flex min-w-[200px] flex-col gap-1.5 px-3.5 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-display text-sm font-semibold text-bone">
-            ${card.symbol.toUpperCase()}
-          </p>
-          <p className="truncate text-[11px] text-bone-faint">{card.name}</p>
-        </div>
-        <Icon name="coin" className="h-4 w-4 shrink-0 text-gold" />
-      </div>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="tnum text-sm font-semibold text-bone">
-          {card.priceUsd !== null ? `$${fmtPrice(card.priceUsd)}` : "No price"}
-        </span>
-        {card.change24h !== null && (
-          <span
-            className={`tnum text-xs font-semibold ${
-              up ? "text-gold-bright" : "text-ember-deep"
-            }`}
-          >
-            {up ? "+" : ""}
-            {card.change24h.toFixed(2)}%
-          </span>
-        )}
-      </div>
-      <div className="flex items-center justify-between gap-3 text-[11px] text-bone-mut">
-        <span className="tnum">{cap ? `MC $${cap}` : "MC unknown"}</span>
-        {card.chain && (
-          <span className="uppercase tracking-[0.14em] text-bone-faint">
-            {card.chain}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function RavenAvatar() {
   return (
@@ -132,6 +85,7 @@ export default function RavenPage() {
       const data = (await res.json().catch(() => null)) as {
         reply?: string;
         cards?: TokenCard[];
+        walletCard?: WalletCard | null;
         error?: string;
       } | null;
       if (!res.ok || !data?.reply) {
@@ -153,6 +107,7 @@ export default function RavenPage() {
               Array.isArray(data.cards) && data.cards.length
                 ? data.cards
                 : undefined,
+            walletCard: data.walletCard ?? undefined,
           },
         ]);
       }
@@ -256,11 +211,27 @@ export default function RavenPage() {
                           {m.content}
                         </p>
                       </div>
-                      {m.cards && (
+                      {(m.cards || m.walletCard) && (
                         <div className="mt-2.5 flex flex-wrap gap-2">
-                          {m.cards.map((c, j) => (
-                            <TokenCardView key={`${c.symbol}-${j}`} card={c} />
+                          {m.cards?.map((c, j) => (
+                            <PriceMiniCard
+                              key={`${c.symbol}-${j}`}
+                              symbol={c.symbol}
+                              name={c.name}
+                              priceUsd={c.priceUsd}
+                              change24h={c.change24h}
+                              marketCap={c.marketCap}
+                              chain={c.chain}
+                              swapHref="/soon/mint"
+                            />
                           ))}
+                          {m.walletCard && (
+                            <WalletMiniCard
+                              address={m.walletCard.address}
+                              totalUsd={m.walletCard.totalUsd}
+                              holdings={m.walletCard.holdings}
+                            />
+                          )}
                         </div>
                       )}
                     </div>
