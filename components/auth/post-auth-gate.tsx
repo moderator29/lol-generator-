@@ -6,11 +6,13 @@ import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { realmFetch } from "@/lib/auth/api";
 import { isOnboardedLocal, markOnboardedLocal } from "@/lib/auth/session";
 
-/* When a citizen signs in, carry them into the realm from the entry halls
-   (landing, sign-in). Uses the server's onboarded status when it answers,
-   and falls back to the client's own memory so a missing server key never
-   traps someone on the gate. Never redirects away from the app itself. */
-const ENTRY = new Set(["/", "/signin"]);
+/* After a citizen signs in on the gate, carry them into the realm. Only
+   the sign-in hall triggers this, so the public landing page is never
+   hijacked: a logged-in visitor who opens the website link still sees the
+   landing and chooses when to enter. Uses the server's onboarded status
+   when it answers, and the client's own memory as a fallback so a missing
+   server key never traps anyone on the gate. */
+const ENTRY = new Set(["/signin"]);
 
 export function PostAuthGate() {
   const { ready, authenticated } = useRealmAuth();
