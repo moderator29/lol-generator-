@@ -26,6 +26,9 @@ function AuthBridge({ children }: { children: ReactNode }) {
         user?.twitter?.name ??
         user?.twitter?.username ??
         user?.email?.address?.split("@")[0],
+      avatarUrl: user?.twitter?.profilePictureUrl
+        ? user.twitter.profilePictureUrl.replace("_normal", "_400x400")
+        : undefined,
       xHandle: user?.twitter?.username ?? undefined,
       email: user?.email?.address,
       signInX: () => login({ loginMethods: ["twitter"] }),

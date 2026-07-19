@@ -54,10 +54,12 @@ export async function requireProfile(
     .maybeSingle();
   if (existing) return existing as SessionProfile;
 
-  /* First entrance: create the profile shell, enrich from Privy. */
+  /* First entrance: create the profile shell, enrich from Privy. The X
+     profile photo becomes the citizen's first avatar (editable later). */
   let displayName: string | null = null;
   let xHandle: string | null = null;
   let wallet: string | null = null;
+  let avatar: string | null = null;
   try {
     const user = await privy.getUser(privyId);
     xHandle = user.twitter?.username ?? null;
@@ -67,6 +69,9 @@ export async function requireProfile(
       user.email?.address?.split("@")[0] ??
       null;
     wallet = user.wallet?.address ?? null;
+    const pic = user.twitter?.profilePictureUrl ?? null;
+    /* Twitter serves a tiny "_normal" crop by default; ask for a real size. */
+    avatar = pic ? pic.replace("_normal", "_400x400") : null;
   } catch {
     /* enrichment is best-effort */
   }
@@ -78,6 +83,7 @@ export async function requireProfile(
       display_name: displayName,
       x_handle: xHandle,
       wallet_address: wallet,
+      avatar_url: avatar,
     })
     .select(
       "id, privy_id, handle, display_name, avatar_url, house_slug, x_handle, wallet_address, renown, tier, points, glory, is_admin, onboarded"
