@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { RavenMark } from "@/components/brand/raven-mark";
 import { CrestRoundel, crests } from "@/components/brand/crests";
 import { Icon } from "@/components/ui/icon";
+import { comingSoonNav } from "@/lib/nav";
+import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 
 const chips = [
   { label: "The Ravenry", href: "/home" },
@@ -72,6 +74,9 @@ const sections = [
 ];
 
 export default function Landing() {
+  const { authenticated } = useRealmAuth();
+  const ctaHref = authenticated ? "/home" : "/signin";
+  const ctaLabel = authenticated ? "Enter the Ravenry" : "Enter the Realm";
   return (
     <main className="realm-bg relative min-h-screen overflow-hidden">
       {/* Aurora crest field */}
@@ -134,8 +139,8 @@ export default function Landing() {
           transition={{ duration: 0.7, delay: 0.65 }}
           className="mt-9 flex flex-wrap items-center justify-center gap-4"
         >
-          <Link href="/signin" className="btn-gold px-7 py-3 text-sm">
-            Enter the Realm
+          <Link href={ctaHref} className="btn-gold px-7 py-3 text-sm">
+            {ctaLabel}
           </Link>
           <Link
             href="/chronicle"
@@ -193,6 +198,81 @@ export default function Landing() {
           </motion.section>
         ))}
 
+        {/* The Chapters ahead */}
+        <motion.section
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6 }}
+          className="glass p-7 sm:p-9"
+        >
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold">
+            <Icon name="scroll" className="h-4 w-4" />
+            The Chapters ahead
+          </div>
+          <h2 className="mt-3 font-display text-2xl font-semibold text-bone sm:text-3xl">
+            The map, not a finished castle
+          </h2>
+          <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-bone-mut">
+            The Forge stands at the gates today. These chapters follow, in
+            rough order. Intentions, not oaths, and we will say so plainly when
+            they shift.
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {comingSoonNav.map((c) => (
+              <div
+                key={c.slug}
+                className="glass-sm flex items-start gap-3 rounded-2xl border border-steel-line bg-panel p-4"
+              >
+                <Icon name={c.icon} className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 font-display text-sm font-semibold text-bone">
+                    {c.themed}
+                    <span className="rounded-full border border-gold/25 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gold/70">
+                      Soon
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-bone-mut">
+                    {c.blurb}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* The crests you can earn */}
+        <motion.section
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6 }}
+          className="glass p-7 text-center sm:p-9"
+        >
+          <div className="flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold">
+            <Icon name="medal" className="h-4 w-4" />
+            Earned, never bought
+          </div>
+          <h2 className="mt-3 font-display text-2xl font-semibold text-bone sm:text-3xl">
+            Ten crests to prove your standing
+          </h2>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+            {crests.map((c) => (
+              <span key={c.slug} title={`${c.name}: ${c.plain}`}>
+                <CrestRoundel
+                  icon={c.icon}
+                  dim={c.status === "locked"}
+                  className="h-12 w-12"
+                />
+              </span>
+            ))}
+          </div>
+          <p className="mx-auto mt-5 max-w-md text-sm text-bone-mut">
+            Three live at launch, seven on the roadmap. No collectibles, no
+            purchase, no shortcut. You earn them by showing up and being good.
+          </p>
+        </motion.section>
+
         {/* Final CTA */}
         <motion.section
           initial={{ opacity: 0, y: 28 }}
@@ -217,9 +297,25 @@ export default function Landing() {
           </Link>
         </motion.section>
 
-        <footer className="flex flex-col items-center gap-2 pb-6 pt-8 text-center text-xs text-bone-faint">
-          <p>Ravenspire. The realm remembers.</p>
-          <p>Non-custodial by design. Reputation is earned, never bought.</p>
+        <footer className="flex flex-col items-center gap-3 pb-6 pt-8 text-center text-xs text-bone-faint">
+          <RavenMark className="h-8 w-8 opacity-70" />
+          <p className="text-sm font-medium text-bone-mut">
+            Non-custodial by design. Your keys, your vault, always exportable.
+          </p>
+          <div className="flex items-center gap-4">
+            <Link href="/chronicle" className="transition hover:text-bone">
+              The Chronicle
+            </Link>
+            <Link href="/renown" className="transition hover:text-bone">
+              Crests
+            </Link>
+            <Link href="/throne" className="transition hover:text-bone">
+              The Season
+            </Link>
+          </div>
+          <p className="mt-1">
+            Ravenspire. The realm remembers. Reputation is earned, never bought.
+          </p>
         </footer>
       </div>
     </main>

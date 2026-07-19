@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s · Ravenspire",
   },
   description:
-    "See every chain. Fear no rug. Rule your realm. A fun-first social realm where creators and their Houses post, duel, play and earn.",
+    "A medieval social realm where wit wins glory. Post, duel, swear to a House, play The War, and rule your realm. Fun first, standing earned, keys yours.",
   openGraph: {
     title: "Ravenspire",
     description:
