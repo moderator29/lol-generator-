@@ -42,6 +42,7 @@ export function Feed() {
     callsOnly: false,
   });
   const [blocked, setBlocked] = useState<Set<string>>(new Set());
+  const [muted, setMuted] = useState<Set<string>>(new Set());
   const me = useRef<{ id: string; house_slug: string | null } | null>(null);
   const followingIds = useRef<string[] | null>(null);
 
@@ -49,6 +50,9 @@ export function Feed() {
     if (!authenticated) return;
     void realmFetch<{ blocked?: string[] }>("/api/blocks").then((res) => {
       if (res.data?.blocked) setBlocked(new Set(res.data.blocked));
+    });
+    void realmFetch<{ muted?: string[] }>("/api/mutes").then((res) => {
+      if (res.data?.muted) setMuted(new Set(res.data.muted));
     });
   }, [authenticated]);
 
@@ -188,6 +192,7 @@ export function Feed() {
         <>
           {posts
             .filter((p) => !blocked.has(p.author_id))
+            .filter((p) => !muted.has(p.author_id))
             .filter((p) => !filters.hideHerald || !p.author.is_agent)
             .filter((p) => !filters.mediaOnly || p.media.length > 0)
             .filter((p) => !filters.callsOnly || p.kind === "call")

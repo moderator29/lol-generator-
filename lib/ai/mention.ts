@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askRaven, ravenEnabled } from "@/lib/ai/raven";
 import { lookupToken, describeTokenForRaven } from "@/lib/data/tokens";
+import { detectHouses, describeHousesForRaven } from "@/lib/ai/raven-voice";
 
 /* When a raven or comment tags @raven, the Herald answers inline as its
    own account. Real data context is attached for any $cashtags present. */
@@ -31,6 +32,9 @@ export async function maybeRavenReply(
     if (card) contexts.push(describeTokenForRaven(card));
     else contexts.push(`Token $${tag.toUpperCase()}: no live data found.`);
   }
+
+  const matchedHouses = detectHouses(text);
+  if (matchedHouses.length) contexts.push(describeHousesForRaven(matchedHouses));
 
   const reply = await askRaven(
     [

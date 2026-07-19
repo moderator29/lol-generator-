@@ -7,6 +7,7 @@ import { RichBody } from "@/components/social/rich-body";
 import { PriceCard } from "@/components/social/price-card";
 import { Icon } from "@/components/ui/icon";
 import { realmFetch } from "@/lib/auth/api";
+import { muteMember, unmuteMember } from "@/lib/social/mutes";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { timeAgo, TIER_NAMES, type Post } from "@/lib/social/types";
 
@@ -105,7 +106,9 @@ export function PostCard({ post }: { post: Post }) {
   const [bookmarked, setBookmarked] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reported, setReported] = useState(false);
-  const [muted, setMuted] = useState(false);
+  /* Why this card is hidden, so the placeholder can offer the right undo. */
+  const [hidden, setHidden] = useState<null | "mute" | "block">(null);
+  const [undoBusy, setUndoBusy] = useState(false);
   const [tipOpen, setTipOpen] = useState(false);
   const [tipBusy, setTipBusy] = useState(false);
   const [tipped, setTipped] = useState<number | null>(null);
@@ -165,14 +168,37 @@ export function PostCard({ post }: { post: Post }) {
       json: { subject_type: "post", subject_id: post.id, reason: "member_flag" },
     });
   };
+  const doMute = async () => {
+    if (!requireAuth()) return;
+    setMenuOpen(false);
+    setHidden("mute");
+    const ok = await muteMember(post.author_id);
+    /* Server refused the silence: bring the raven back so nothing is lost. */
+    if (!ok) setHidden(null);
+  };
   const doBlock = async () => {
     if (!requireAuth()) return;
     setMenuOpen(false);
-    setMuted(true);
+    setHidden("block");
     await realmFetch("/api/blocks", {
       method: "POST",
       json: { profile_id: post.author_id, on: true },
     });
+  };
+  const undoHide = async () => {
+    if (undoBusy) return;
+    setUndoBusy(true);
+    const ok =
+      hidden === "block"
+        ? (
+            await realmFetch("/api/blocks", {
+              method: "POST",
+              json: { profile_id: post.author_id, on: false },
+            })
+          ).ok
+        : await unmuteMember(post.author_id);
+    setUndoBusy(false);
+    if (ok) setHidden(null);
   };
   const sendTip = async (points: number) => {
     if (!requireAuth()) return;
@@ -200,11 +226,30 @@ export function PostCard({ post }: { post: Post }) {
   const a = post.author;
   const firstTag = post.cashtags[0];
 
-  if (muted) {
+  if (hidden) {
+    const who = a.handle ? `@${a.handle}` : "this member";
     return (
-      <article className="glass glass-sm p-4 text-xs text-bone-faint">
-        You have silenced {a.handle ? `@${a.handle}` : "this member"}. Their
-        ravens will not reach you.
+      <article className="glass glass-sm flex items-center gap-3 p-4 text-xs text-bone-faint">
+        <Icon
+          name={hidden === "block" ? "shield" : "bell"}
+          className="h-4 w-4 shrink-0"
+        />
+        <span className="min-w-0 flex-1">
+          {hidden === "block"
+            ? `You have banished ${who} from your sight.`
+            : `You have silenced ${who}. Their ravens will not reach you.`}
+        </span>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void undoHide();
+          }}
+          disabled={undoBusy}
+          className="btn-glass shrink-0 rounded-full px-3 py-1 text-xs text-gold transition hover:text-gold-bright disabled:opacity-50"
+        >
+          Undo
+        </button>
       </article>
     );
   }
@@ -292,6 +337,17 @@ export function PostCard({ post }: { post: Post }) {
                     >
                       <Icon name="flag" className="h-3.5 w-3.5" />
                       {reported ? "Reported" : "Report"}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        void doMute();
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-bone-mut transition hover:bg-panel"
+                    >
+                      <Icon name="bell" className="h-3.5 w-3.5" />
+                      Mute
                     </button>
                     <button
                       onClick={(e) => {

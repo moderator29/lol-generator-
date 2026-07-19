@@ -7,6 +7,13 @@ import { CrestRoundel, crests } from "@/components/brand/crests";
 import { Icon } from "@/components/ui/icon";
 import { comingSoonNav } from "@/lib/nav";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
+import { PlatformPreview } from "@/components/landing/platform-preview";
+import { TheChampions } from "@/components/landing/the-champions";
+import { TheGames } from "@/components/landing/the-games";
+import { MeetRaven } from "@/components/landing/meet-raven";
+import { TheTools } from "@/components/landing/the-tools";
+import { SiteFooter } from "@/components/landing/site-footer";
+import { RefCapture } from "@/components/referral/ref-capture";
 
 const chips = [
   { label: "The Ravenry", href: "/home" },
@@ -28,35 +35,6 @@ const floatSpots = [
   { top: "30%", left: "70%", size: 54, delay: 6 },
   { top: "55%", left: "30%", size: 48, delay: 7 },
   { top: "12%", left: "22%", size: 56, delay: 8 },
-];
-
-const showcaseChampions = [
-  { slug: "aeron-the-black", name: "Aeron the Black", weapon: "Longsword", rarity: "legendary" },
-  { slug: "mira-stormborn", name: "Mira Stormborn", weapon: "Twin Blades", rarity: "epic" },
-  { slug: "ser-willas", name: "Ser Willas", weapon: "Warhammer", rarity: "rare" },
-  { slug: "the-faceless", name: "The Faceless", weapon: "Needle", rarity: "mythic" },
-  { slug: "kaelen-dragonborn", name: "Kaelen Dragonborn", weapon: "Dragonspine", rarity: "mythic" },
-  { slug: "isolde-the-pure", name: "Isolde the Pure", weapon: "Dawnbringer", rarity: "legendary" },
-];
-
-const ravenChat = [
-  { from: "user", text: "@raven who's winning the Season?" },
-  {
-    from: "raven",
-    text: "House Corvane leads by 240 Glory, but the ravens are patient birds. A single loud week from Emberfall and the Throne changes hands. Watch the duels.",
-  },
-  { from: "user", text: "@raven is $ETH a good hold right now?" },
-  {
-    from: "raven",
-    text: "Trading at the price on your screen, up on the day. I read markets, I do not promise them. The chain is healthy, the risk is clean. Hold with open eyes, not closed ones.",
-  },
-];
-
-const tools = [
-  { icon: "shield", name: "The Watch", plain: "Safety", desc: "Scans any token for rugs, mints and honeypots before you touch it." },
-  { icon: "book", name: "The Ledger", plain: "Portfolio", desc: "Net worth and PnL across chains, from real on-chain data only." },
-  { icon: "eye", name: "The Scrying Glass", plain: "Smart money", desc: "See what the great wallets are watching, live from the markets." },
-  { icon: "flame", name: "The Forge", plain: "Staking", desc: "Swear an oath, earn real yield from protocol fees, never emissions." },
 ];
 
 const faqs = [
@@ -158,6 +136,8 @@ export default function Landing() {
   const ctaLabel = authenticated ? "Enter the Ravenry" : "Enter the Realm";
   return (
     <main className="realm-bg relative min-h-screen overflow-hidden">
+      {/* Persist ?ref=CODE share links for onboarding credit. Renders nothing. */}
+      <RefCapture />
       {/* Aurora crest field */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         {floatSpots.map((s, i) => (
@@ -277,146 +257,20 @@ export default function Landing() {
           </motion.section>
         ))}
 
-        {/* Champion showcase */}
-        <motion.section
-          initial={{ opacity: 0, y: 28 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6 }}
-          className="glass overflow-hidden p-7 sm:p-9"
-        >
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold">
-            <Icon name="swords" className="h-4 w-4" />
-            The War · Battle for the Realm
-          </div>
-          <h2 className="mt-3 font-display text-2xl font-semibold text-bone sm:text-3xl">
-            Sixty champions. Real-time battle. Your banner.
-          </h2>
-          <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-bone-mut">
-            Collect heroes across the rarities, arm them from a legendary
-            arsenal, and lead them into the melee yourself. Every Glory you win
-            feeds your House's Season.
-          </p>
-          <div className="-mx-1 mt-6 flex gap-3 overflow-x-auto px-1 pb-2">
-            {showcaseChampions.map((c) => (
-              <Link
-                key={c.slug}
-                href="/war/champions"
-                className={`rarity-${c.rarity} rarity-frame group w-36 shrink-0 overflow-hidden rounded-2xl bg-panel`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`/game/champions/${c.slug}.png`}
-                  alt={c.name}
-                  loading="lazy"
-                  className="aspect-[3/4] w-full object-cover transition group-hover:scale-105"
-                />
-                <div className="p-2.5">
-                  <p className="truncate font-display text-sm font-semibold text-bone">
-                    {c.name}
-                  </p>
-                  <p className="text-[11px] text-bone-faint">{c.weapon}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-          <Link
-            href="/war"
-            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-gold transition hover:text-gold-bright"
-          >
-            Enter The War
-            <Icon name="arrow" className="h-4 w-4" />
-          </Link>
-        </motion.section>
+        {/* Platform preview: the four rooms of the realm */}
+        <PlatformPreview />
 
-        {/* @raven sample chat */}
-        <motion.section
-          initial={{ opacity: 0, y: 28 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6 }}
-          className="glass p-7 sm:p-9"
-        >
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold">
-            <Icon name="raven" className="h-4 w-4" />
-            Meet @raven, the Herald
-          </div>
-          <h2 className="mt-3 font-display text-2xl font-semibold text-bone sm:text-3xl">
-            Witty, regal, and always right about the data
-          </h2>
-          <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-bone-mut">
-            Tag @raven anywhere in the realm. It settles debates, narrates the
-            Season, and reads any token or wallet over real data, in a voice you
-            will quote.
-          </p>
-          <div className="mt-6 flex flex-col gap-3">
-            {ravenChat.map((m, i) =>
-              m.from === "user" ? (
-                <div key={i} className="flex justify-end">
-                  <div className="glass-sm max-w-[85%] rounded-2xl rounded-br-md bg-panel-warm px-4 py-2.5 text-sm text-bone">
-                    {m.text}
-                  </div>
-                </div>
-              ) : (
-                <div key={i} className="flex items-start gap-2.5">
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-void text-gold">
-                    <Icon name="raven" className="h-4 w-4" />
-                  </div>
-                  <div className="glass-sm max-w-[85%] rounded-2xl rounded-tl-md px-4 py-2.5 text-sm text-bone-mut">
-                    {m.text}
-                  </div>
-                </div>
-              )
-            )}
-          </div>
-          <Link
-            href="/raven"
-            className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-gold transition hover:text-gold-bright"
-          >
-            Summon the Raven
-            <Icon name="arrow" className="h-4 w-4" />
-          </Link>
-        </motion.section>
+        {/* The Champions gallery, from real roster data */}
+        <TheChampions />
 
-        {/* Tools showcase */}
-        <motion.section
-          initial={{ opacity: 0, y: 28 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6 }}
-          className="glass p-7 sm:p-9"
-        >
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold">
-            <Icon name="shield" className="h-4 w-4" />
-            Superpowers under the hood
-          </div>
-          <h2 className="mt-3 font-display text-2xl font-semibold text-bone sm:text-3xl">
-            The realm is fun. The tools are serious.
-          </h2>
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {tools.map((t) => (
-              <div
-                key={t.name}
-                className="glass-sm flex items-start gap-3 rounded-2xl border border-steel-line bg-panel p-4"
-              >
-                <div className="glass-sm flex h-10 w-10 shrink-0 items-center justify-center text-gold">
-                  <Icon name={t.icon} className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-display text-sm font-semibold text-bone">
-                    {t.name}
-                    <span className="ml-2 text-[10px] uppercase tracking-wider text-bone-faint">
-                      {t.plain}
-                    </span>
-                  </p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-bone-mut">
-                    {t.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.section>
+        {/* The Games: Claim the Throne + The War */}
+        <TheGames />
+
+        {/* Meet @raven, the Herald */}
+        <MeetRaven />
+
+        {/* The Tools: the five serious surfaces */}
+        <TheTools />
 
         {/* The Chapters ahead */}
         <motion.section
@@ -592,26 +446,39 @@ export default function Landing() {
           </Link>
         </motion.section>
 
-        <footer className="flex flex-col items-center gap-3 pb-6 pt-8 text-center text-xs text-bone-faint">
-          <RavenMark className="h-8 w-8 opacity-70" />
-          <p className="text-sm font-medium text-bone-mut">
-            Non-custodial by design. Your keys, your vault, always exportable.
-          </p>
-          <div className="flex items-center gap-4">
-            <Link href="/chronicle" className="transition hover:text-bone">
-              The Chronicle
-            </Link>
-            <Link href="/renown" className="transition hover:text-bone">
-              Crests
-            </Link>
-            <Link href="/throne" className="transition hover:text-bone">
-              The Season
-            </Link>
+        {/* Risk and legal disclaimer band */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6 }}
+          className="glass-sm rounded-2xl border border-steel-line bg-panel/60 p-5 sm:p-6"
+        >
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-bone-faint">
+            <Icon name="shield" className="h-4 w-4 text-gold" />
+            A word before you ride
           </div>
-          <p className="mt-1">
-            Ravenspire. The realm remembers. Reputation is earned, never bought.
+          <p className="mt-3 text-[12px] leading-relaxed text-bone-faint">
+            Ravenspire is a fun-first social platform. $RAVEN is a utility and
+            social token that powers the realm, not an investment. Nothing here
+            is financial advice, and no one at Ravenspire will ever tell you to
+            buy, sell, or hold. There is no presale, anywhere, at any time.
+            Crypto carries real risk, including the loss of everything you put
+            in, so bring only what you can afford to lose. The realm is
+            non-custodial by design: you hold your own keys, they are always
+            exportable, and we never take custody of your funds. Read the{" "}
+            <Link href="/legal/terms" className="text-bone-mut underline decoration-gold/40 underline-offset-2 transition hover:text-bone">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/legal/privacy" className="text-bone-mut underline decoration-gold/40 underline-offset-2 transition hover:text-bone">
+              Privacy Policy
+            </Link>{" "}
+            before you enter.
           </p>
-        </footer>
+        </motion.section>
+
+        <SiteFooter />
       </div>
     </main>
   );

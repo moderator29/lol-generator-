@@ -1,6 +1,12 @@
 import { requireProfile, json } from "@/lib/auth/server";
 import { askRaven, ravenEnabled } from "@/lib/ai/raven";
-import { lookupToken, describeTokenForRaven } from "@/lib/data/tokens";
+import { lookupToken, describeTokenForRaven, type TokenCard } from "@/lib/data/tokens";
+import {
+  detectHouses,
+  describeHousesForRaven,
+  suggestFollowUps,
+} from "@/lib/ai/raven-voice";
+import type { RealmPulse } from "@/components/raven/cards";
 
 /* Per-instance rate limit: the Raven's mind costs real coin. */
 const usage = new Map<string, { count: number; windowStart: number }>();
@@ -72,6 +78,44 @@ function describeWalletForRaven(w: WalletCard): string {
   return body ? `${head}. Top holdings: ${body}.` : `${head}.`;
 }
 
+/* A Realm Pulse: a real, derived read across the tokens the member asked
+   about. Every figure comes from live 24h data. Nothing is invented; when the
+   moves are unknown we simply return null. */
+function computeRealmPulse(cards: TokenCard[]): RealmPulse | null {
+  const withMove = cards.filter((c) => c.change24h !== null);
+  if (cards.length < 2 || withMove.length < 2) return null;
+
+  const green = withMove.filter((c) => (c.change24h ?? 0) >= 0).length;
+  const red = withMove.length - green;
+  const avgChange =
+    withMove.reduce((sum, c) => sum + (c.change24h ?? 0), 0) / withMove.length;
+
+  const spread = green - red;
+  const flat = withMove.every((c) => Math.abs(c.change24h ?? 0) < 1);
+  const tone: RealmPulse["tone"] = flat
+    ? "quiet"
+    : spread > 0
+      ? "rising"
+      : spread < 0
+        ? "falling"
+        : "mixed";
+
+  return {
+    tone,
+    green,
+    red,
+    total: withMove.length,
+    avgChange: Number.isFinite(avgChange) ? avgChange : null,
+    symbols: withMove.map((c) => c.symbol),
+  };
+}
+
+function describeRealmPulseForRaven(p: RealmPulse): string {
+  const avg =
+    p.avgChange !== null ? `${p.avgChange >= 0 ? "+" : ""}${p.avgChange.toFixed(2)}% average 24h move` : "no clear average move";
+  return `Realm Pulse across ${p.symbols.join(", ")}: ${p.green} rising, ${p.red} falling, ${avg}. Tone reads "${p.tone}".`;
+}
+
 export async function POST(req: Request) {
   if (!ravenEnabled())
     return json(
@@ -118,7 +162,7 @@ export async function POST(req: Request) {
     (m) => m[1]
   );
   const contexts: string[] = [];
-  const cards = [];
+  const cards: TokenCard[] = [];
   for (const tag of cashtags.slice(0, 3)) {
     const card = await lookupToken(tag);
     if (card) {
@@ -136,11 +180,28 @@ export async function POST(req: Request) {
     if (walletCard) contexts.push(describeWalletForRaven(walletCard));
   }
 
+  /* Realm awareness: fold any Houses the member named into the context so the
+     Herald can answer with the right character. */
+  const matchedHouses = detectHouses(lastUser);
+  if (matchedHouses.length) contexts.push(describeHousesForRaven(matchedHouses));
+
+  /* A derived Realm Pulse when several tokens were asked about at once. */
+  const pulse = computeRealmPulse(cards);
+  if (pulse) contexts.push(describeRealmPulseForRaven(pulse));
+
   const reply = await askRaven(
     messages,
     contexts.length ? contexts.join("\n") : undefined
   );
   if (!reply)
     return json({ error: "The Raven is preoccupied. Try again shortly." }, 502);
-  return json({ reply, cards, walletCard });
+
+  const suggestions = suggestFollowUps({
+    cashtags,
+    houseSlugs: matchedHouses.map((h) => h.slug),
+    hasWallet: Boolean(walletCard),
+    hadData: cards.length > 0,
+  });
+
+  return json({ reply, cards, walletCard, pulse, suggestions });
 }

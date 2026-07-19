@@ -70,17 +70,33 @@ export async function POST(req: Request) {
       .update({ member_count: h.member_count + 1 })
       .eq("slug", house);
 
-  /* Referral: unlocks on activity later; recorded now. */
+  /* Referral: capture who sent this wanderer (referred_by). It unlocks on
+     real activity later (the third raven, in the posts route); recorded now.
+     Resolve the code against referral_codes first, then fall back to the
+     handle itself so a ?ref that predates a code row still credits a banner. */
   if (body.referral) {
-    const { data: code } = await db
-      .from("referral_codes")
-      .select("owner_id")
-      .eq("code", body.referral.toLowerCase())
-      .maybeSingle();
-    if (code && code.owner_id !== profile.id) {
+    const ref = body.referral.toLowerCase().trim().replace(/^@/, "");
+    let referrerId: string | null = null;
+    if (ref) {
+      const { data: code } = await db
+        .from("referral_codes")
+        .select("owner_id")
+        .eq("code", ref)
+        .maybeSingle();
+      if (code) referrerId = code.owner_id as string;
+      if (!referrerId) {
+        const { data: byHandle } = await db
+          .from("profiles")
+          .select("id")
+          .ilike("handle", ref)
+          .maybeSingle();
+        if (byHandle) referrerId = byHandle.id as string;
+      }
+    }
+    if (referrerId && referrerId !== profile.id) {
       await db
         .from("referrals")
-        .upsert({ profile_id: profile.id, referrer_id: code.owner_id });
+        .upsert({ profile_id: profile.id, referrer_id: referrerId });
     }
   }
   await db

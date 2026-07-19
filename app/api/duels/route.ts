@@ -47,21 +47,34 @@ export async function POST(req: Request) {
     if (!entry) return json({ error: "An empty riposte wins nothing" }, 400);
     const { data: duel } = await db
       .from("duels")
-      .select("id, challenger_id, status")
+      .select("id, challenger_id, status, ends_at")
       .eq("id", body.duel_id)
       .single();
     if (!duel || duel.status !== "open")
       return json({ error: "That duel is not open" }, 400);
+    if (duel.ends_at && new Date(duel.ends_at).getTime() < Date.now())
+      return json({ error: "That duel has closed. The moment has passed." }, 400);
     if (duel.challenger_id === profile.id)
       return json({ error: "You cannot duel yourself, however tempting" }, 400);
-    await db
+
+    /* Guarded update: only the entrant who flips the still open, still
+       unanswered row wins the race. A second entrant sees zero rows changed
+       and is told the duel is already answered, instead of silently
+       overwriting the first riposte. */
+    const { data: entered } = await db
       .from("duels")
       .update({
         opponent_id: profile.id,
         opponent_entry: entry,
         status: "voting",
       })
-      .eq("id", duel.id);
+      .eq("id", duel.id)
+      .eq("status", "open")
+      .is("opponent_id", null)
+      .select("id");
+    if (!entered || entered.length === 0)
+      return json({ error: "That duel has already been answered" }, 409);
+
     await db.from("notifications").insert({
       profile_id: duel.challenger_id,
       kind: "duel_answered",
@@ -74,13 +87,17 @@ export async function POST(req: Request) {
 
   if (body.action === "vote") {
     if (!body.duel_id || !body.choice) return json({ error: "bad request" }, 400);
+    if (body.choice !== "challenger" && body.choice !== "opponent")
+      return json({ error: "Vote for one of the two duelists" }, 400);
     const { data: duel } = await db
       .from("duels")
-      .select("id, status, challenger_id, opponent_id")
+      .select("id, status, challenger_id, opponent_id, ends_at")
       .eq("id", body.duel_id)
       .single();
     if (!duel || duel.status !== "voting")
       return json({ error: "This duel is not taking votes" }, 400);
+    if (duel.ends_at && new Date(duel.ends_at).getTime() < Date.now())
+      return json({ error: "Voting on this duel has closed" }, 400);
     if (profile.id === duel.challenger_id || profile.id === duel.opponent_id)
       return json({ error: "Duelists cannot vote for themselves" }, 400);
     const { error } = await db.from("duel_votes").insert({
@@ -100,17 +117,30 @@ export async function POST(req: Request) {
     const o = votes?.filter((v) => v.choice === "opponent").length ?? 0;
     if ((c >= 5 || o >= 5) && Math.abs(c - o) >= 2 && duel.opponent_id) {
       const winner = c > o ? duel.challenger_id : duel.opponent_id;
-      await db
+      /* Atomic, idempotent settle: only the voter whose conditional update
+         actually flips status from voting to settled awards the winner. Two
+         concurrent voters that both cross the threshold now settle exactly
+         once, so the winner is never double awarded. */
+      const { data: settled } = await db
         .from("duels")
         .update({ status: "settled", winner_id: winner })
-        .eq("id", duel.id);
-      await award(db, winner, { glory: 60, points: 30, reason: "duel_won", ref: duel.id });
-      await db.from("notifications").insert({
-        profile_id: winner,
-        kind: "duel_won",
-        subject_id: duel.id,
-        body: "The realm has spoken. The duel is yours.",
-      });
+        .eq("id", duel.id)
+        .eq("status", "voting")
+        .select("id");
+      if (settled && settled.length === 1) {
+        await award(db, winner, {
+          glory: 60,
+          points: 30,
+          reason: "duel_won",
+          ref: duel.id,
+        });
+        await db.from("notifications").insert({
+          profile_id: winner,
+          kind: "duel_won",
+          subject_id: duel.id,
+          body: "The realm has spoken. The duel is yours.",
+        });
+      }
     }
     return json({ ok: true });
   }

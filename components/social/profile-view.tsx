@@ -11,6 +11,7 @@ import {
   fetchProfilePosts,
   fetchUserCrests,
 } from "@/lib/social/queries";
+import { fetchIsFollowing, fetchViewer } from "@/lib/social/profile-queries";
 import { TIER_NAMES, type Post, type PublicProfile } from "@/lib/social/types";
 import { houses } from "@/lib/data/houses";
 import { realmFetch } from "@/lib/auth/api";
@@ -30,6 +31,12 @@ export function ProfileView({
   const [tab, setTab] = useState<"posts" | "calls" | "media">("posts");
   const [following, setFollowing] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [viewerId, setViewerId] = useState<string | null>(null);
+
+  /* This Keep belongs to the viewer either because the parent said so
+     (own /keep) or because the signed-in member is looking at their own
+     /u/handle. Either way the follow/block controls are hidden. */
+  const isOwn = own || (viewerId !== null && viewerId === profile.id);
 
   useEffect(() => {
     if (!authenticated || own) return;
@@ -38,6 +45,29 @@ export function ProfileView({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated, own, profile.id]);
+
+  /* Resolve the viewer and their real follow relationship to this Keep so
+     the button reflects the true state on load, not a guess. */
+  useEffect(() => {
+    if (!authenticated) {
+      setViewerId(null);
+      setFollowing(false);
+      return;
+    }
+    let cancelled = false;
+    void fetchViewer().then((v) => {
+      if (cancelled || !v) return;
+      setViewerId(v.id);
+      if (v.id !== profile.id) {
+        void fetchIsFollowing(v.id, profile.id).then((f) => {
+          if (!cancelled) setFollowing(f);
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [authenticated, profile.id]);
 
   const toggleBlock = async () => {
     if (!authenticated) {
@@ -103,7 +133,7 @@ export function ProfileView({
       <div className="-mt-8 px-4">
         <div className="flex items-end justify-between">
           <Avatar author={profile} size={76} />
-          {own ? (
+          {isOwn ? (
             <span className="btn-glass px-4 py-1.5 text-xs text-bone-mut">
               This is your Keep
             </span>
@@ -189,6 +219,16 @@ export function ProfileView({
             <span className="tnum">{profile.renown.toLocaleString()}</span>{" "}
             Renown
           </span>
+          {profile.created_at && (
+            <span className="flex items-center gap-1.5">
+              <Icon name="scroll" className="h-3.5 w-3.5" />
+              Joined{" "}
+              {new Date(profile.created_at).toLocaleDateString(undefined, {
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+          )}
           {profile.x_handle && (
             <a
               href={`https://x.com/${profile.x_handle}`}
@@ -262,7 +302,7 @@ export function ProfileView({
             <div className="glass p-8 text-center text-sm text-bone-mut">
               {tab === "calls"
                 ? "No Calls sealed yet."
-                : own
+                : isOwn
                   ? "Your Keep awaits its first raven."
                   : "No ravens from this Keep yet."}
             </div>
