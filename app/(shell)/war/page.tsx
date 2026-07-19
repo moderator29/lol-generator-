@@ -16,7 +16,7 @@ interface WarState {
 
 const openModes = [
   {
-    href: "/war/battle",
+    href: "/war/prepare",
     icon: "swords",
     name: "Quick Battle",
     plain: "Instant skirmish",

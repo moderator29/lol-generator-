@@ -29,6 +29,9 @@ export default function WelcomePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    /* Keep the raised banner through the sign-in detour. */
+    const banner = new URLSearchParams(window.location.search).get("banner");
+    if (banner) localStorage.setItem("rvn_banner", banner);
     if (ready && !authenticated) router.replace("/signin");
   }, [ready, authenticated, router]);
 
@@ -37,9 +40,8 @@ export default function WelcomePage() {
     setBusy(true);
     setError(null);
     const referral =
-      typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search).get("banner")
-        : null;
+      new URLSearchParams(window.location.search).get("banner") ??
+      localStorage.getItem("rvn_banner");
     const res = await realmFetch<{ error?: string }>("/api/onboard", {
       method: "POST",
       json: {
@@ -55,7 +57,8 @@ export default function WelcomePage() {
       setStep(0);
       return;
     }
-    router.replace("/home");
+    localStorage.removeItem("rvn_banner");
+    router.replace("/home?welcome=1");
   };
 
   return (

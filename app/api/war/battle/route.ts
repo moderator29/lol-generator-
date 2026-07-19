@@ -31,10 +31,25 @@ export async function POST(req: Request) {
     : "river-crossing";
 
   /* Server-authoritative rewards: the client reports the outcome, the
-     server decides the prize inside hard caps. */
+     server decides the prize inside hard caps and plausibility walls. */
   const kills = Math.max(0, Math.min(200, Math.floor(body.kills ?? 0)));
   const duration = Math.max(10, Math.min(900, Math.floor(body.duration_s ?? 60)));
   const victory = body.result === "victory";
+  if (victory && duration < 20)
+    return json({ error: "No battle is won in a blink. The heralds doubt you." }, 400);
+  if (kills > duration * 2)
+    return json({ error: "The heralds count blades, not boasts." }, 400);
+
+  /* No more than 12 battles an hour; even legends rest. */
+  const hourAgo = new Date(Date.now() - 3600_000).toISOString();
+  const { count: recentBattles } = await db
+    .from("war_battles")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", profile.id)
+    .gt("created_at", hourAgo);
+  if ((recentBattles ?? 0) >= 12)
+    return json({ error: "Your soldiers need water and rest. Return within the hour." }, 429);
+
   const glory = Math.min(400, (victory ? 120 : 30) + kills * 2);
 
   let { data: state } = await db

@@ -47,6 +47,7 @@ export interface PublicProfile extends Author {
   id: string;
   bio: string | null;
   banner_url: string | null;
+  links: { label: string; url: string }[] | null;
   renown: number;
   points: number;
   glory: number;

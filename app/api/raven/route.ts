@@ -1,6 +1,11 @@
-import { json } from "@/lib/auth/server";
+import { requireProfile, json } from "@/lib/auth/server";
 import { askRaven, ravenEnabled } from "@/lib/ai/raven";
 import { lookupToken, describeTokenForRaven } from "@/lib/data/tokens";
+
+/* Per-instance rate limit: the Raven's mind costs real coin. */
+const usage = new Map<string, { count: number; windowStart: number }>();
+const WINDOW_MS = 3600_000;
+const MAX_PER_WINDOW = 20;
 
 export async function POST(req: Request) {
   if (!ravenEnabled())
@@ -8,6 +13,26 @@ export async function POST(req: Request) {
       { error: "The Raven sleeps: its mind is not configured in this environment." },
       503
     );
+
+  const profile = await requireProfile(req);
+  if (!profile)
+    return json(
+      { error: "The Raven speaks only to members of the realm. Enter first." },
+      401
+    );
+
+  const now = Date.now();
+  const u = usage.get(profile.id);
+  if (!u || now - u.windowStart > WINDOW_MS) {
+    usage.set(profile.id, { count: 1, windowStart: now });
+  } else if (u.count >= MAX_PER_WINDOW) {
+    return json(
+      { error: "The Raven grows hoarse. Return within the hour." },
+      429
+    );
+  } else {
+    u.count += 1;
+  }
 
   const body = (await req.json().catch(() => null)) as {
     messages?: { role: "user" | "assistant"; content: string }[];

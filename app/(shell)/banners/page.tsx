@@ -47,7 +47,7 @@ export default function BannersPage() {
   }, [ready, authenticated]);
 
   const link = me?.handle
-    ? `https://ravenspire.vercel.app/welcome?banner=${me.handle}`
+    ? `${window.location.origin}/welcome?banner=${me.handle}`
     : null;
 
   const copy = async () => {

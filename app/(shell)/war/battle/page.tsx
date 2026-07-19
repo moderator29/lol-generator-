@@ -13,6 +13,14 @@ function BattleInner() {
   const params = useSearchParams();
   const { authenticated } = useRealmAuth();
   const slug = params.get("champion") ?? "aeron-the-black";
+  const FIELDS: Record<string, string> = {
+    "river-crossing": "River Crossing",
+    "castle-siege": "Castle Siege",
+    "snow-valley": "Snow Valley",
+    "dark-fortress": "Dark Fortress",
+  };
+  const fieldParam = params.get("field") ?? "river-crossing";
+  const field = FIELDS[fieldParam] ? fieldParam : "river-crossing";
   const champion =
     champions.find((c) => c.slug === slug && c.art) ??
     champions.find((c) => c.slug === "aeron-the-black")!;
@@ -39,7 +47,7 @@ function BattleInner() {
         method: "POST",
         json: {
           champion: champion.slug,
-          battlefield: "river-crossing",
+          battlefield: field,
           result: o.result,
           kills: o.kills,
           duration_s: o.duration_s,
@@ -61,7 +69,7 @@ function BattleInner() {
           The War
         </Link>
         <p className="text-xs uppercase tracking-[0.24em] text-bone-faint">
-          Quick Battle · River Crossing
+          Quick Battle · {FIELDS[field]}
         </p>
       </div>
 
@@ -70,6 +78,7 @@ function BattleInner() {
           key={key}
           champion={champion}
           mastery={mastery}
+          field={field}
           onEnd={handleEnd}
         />
       ) : (
