@@ -91,6 +91,20 @@ export default function WelcomePage() {
     router.replace("/home?welcome=1");
   };
 
+  /* Never show the oath to a visitor who is not signed in. Until Privy is
+     ready, or when the visitor is not authenticated (being sent to sign in),
+     render only a neutral gate so no onboarding content leaks before login. */
+  if (!ready || !authenticated) {
+    return (
+      <main className="realm-bg flex min-h-screen flex-col items-center justify-center gap-4">
+        <RavenMark className="h-12 w-12 animate-pulse" />
+        <p className="text-xs uppercase tracking-[0.3em] text-bone-faint">
+          Opening the gates
+        </p>
+      </main>
+    );
+  }
+
   return (
     <main className="realm-bg flex min-h-screen flex-col items-center justify-center px-4 py-10">
       <RavenMark className="h-12 w-12" />
