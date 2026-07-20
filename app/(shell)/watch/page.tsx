@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import type {
   WatchCheck,
@@ -166,6 +167,9 @@ export default function WatchPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
+      <div className="mb-4">
+        <BackButton />
+      </div>
       <h1 className="font-display text-xl font-semibold text-bone">The Watch</h1>
       <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
         Token security scanner

@@ -5,6 +5,7 @@ import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { realmFetch } from "@/lib/auth/api";
 import { createClient } from "@/lib/supabase/client";
 import { crests, CrestRoundel } from "@/components/brand/crests";
+import { BackButton } from "@/components/shell/back-button";
 
 interface MeProfile {
   id: string;
@@ -70,6 +71,9 @@ export default function RenownPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
+      <div className="mb-4">
+        <BackButton />
+      </div>
       <h1 className="font-display text-xl font-semibold text-bone">
         Crests and Renown
       </h1>

@@ -7,7 +7,7 @@ import { BattleEngine, type BattleOutcome } from "@/components/war/battle-engine
 import { champions } from "@/lib/game/champions";
 import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
-import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 
 function BattleInner() {
   const params = useSearchParams();
@@ -61,13 +61,7 @@ function BattleInner() {
   return (
     <div className="mx-auto w-full max-w-4xl px-3 py-4 sm:px-4 sm:py-6">
       <div className="mb-3 flex items-center justify-between">
-        <Link
-          href="/war"
-          className="inline-flex items-center gap-2 text-xs text-bone-faint hover:text-bone-mut"
-        >
-          <Icon name="arrow" className="h-4 w-4 rotate-180" />
-          The War
-        </Link>
+        <BackButton href="/war" label="The War" />
         <p className="text-xs uppercase tracking-[0.24em] text-bone-faint">
           Quick Battle · {FIELDS[field]}
         </p>

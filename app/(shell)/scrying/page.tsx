@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { WatchBadge } from "@/components/tools/watch-badge";
+import { BackButton } from "@/components/shell/back-button";
 
 interface TrendingToken {
   symbol: string;
@@ -138,6 +139,9 @@ export default function ScryingPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
+      <div className="mb-4">
+        <BackButton />
+      </div>
       <h1 className="font-display text-xl font-semibold text-bone">
         The Scrying Glass
       </h1>

@@ -6,6 +6,7 @@ import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { champions } from "@/lib/game/champions";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 
 interface WarState {
   unlocked_champions: string[];
@@ -97,14 +98,12 @@ export default function RewardsPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-4 sm:py-6">
-      <div className="mb-1 flex items-center justify-between">
-        <h1 className="gold-text font-display text-2xl font-semibold">
-          Rewards & Progression
-        </h1>
-        <Link href="/war" className="text-xs text-bone-faint hover:text-bone-mut">
-          The War
-        </Link>
+      <div className="mb-3">
+        <BackButton href="/war" label="The War" />
       </div>
+      <h1 className="gold-text font-display text-2xl font-semibold">
+        Rewards & Progression
+      </h1>
       <p className="text-xs uppercase tracking-[0.26em] text-bone-faint">
         Tribute · chests · mastery · the pass
       </p>

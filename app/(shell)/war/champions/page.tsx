@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { champions, type Rarity } from "@/lib/game/champions";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 
@@ -54,6 +55,9 @@ export default function ChampionsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
+      <div className="mb-4">
+        <BackButton href="/war" />
+      </div>
       <h1 className="gold-text font-display text-3xl font-semibold">
         Champions
       </h1>

@@ -6,6 +6,7 @@ import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { timeAgo } from "@/lib/social/types";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 
 interface Notif {
   id: string;
@@ -56,6 +57,9 @@ export default function RavensPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
+      <div className="mb-4">
+        <BackButton />
+      </div>
       <h1 className="font-display text-xl font-semibold text-bone">Ravens</h1>
       <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
         Notifications

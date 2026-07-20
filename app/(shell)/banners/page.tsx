@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { realmFetch } from "@/lib/auth/api";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 
 interface MeProfile {
   handle: string | null;
@@ -63,6 +64,9 @@ export default function BannersPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
+      <div className="mb-4">
+        <BackButton />
+      </div>
       <h1 className="font-display text-xl font-semibold text-bone">
         Raise Your Banners
       </h1>
