@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { champions } from "@/lib/game/champions";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 
@@ -87,13 +88,7 @@ export default function BattlePreparePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
-      <Link
-        href="/war"
-        className="inline-flex items-center gap-1.5 text-xs text-bone-faint hover:text-bone"
-      >
-        <Icon name="arrow" className="h-3.5 w-3.5 rotate-180" />
-        The War
-      </Link>
+      <BackButton href="/war" label="The War" />
 
       <h1 className="gold-text mt-3 font-display text-3xl font-semibold">
         Prepare for Battle

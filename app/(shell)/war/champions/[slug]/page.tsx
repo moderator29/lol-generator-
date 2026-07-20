@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { champions } from "@/lib/game/champions";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 
@@ -70,13 +71,7 @@ export default function ChampionDetailPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
-      <Link
-        href="/war/champions"
-        className="inline-flex items-center gap-1.5 text-xs text-bone-faint hover:text-bone"
-      >
-        <Icon name="arrow" className="h-3.5 w-3.5 rotate-180" />
-        All champions
-      </Link>
+      <BackButton href="/war/champions" label="All champions" />
 
       <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,320px)_1fr]">
         <div
