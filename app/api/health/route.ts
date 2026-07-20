@@ -28,24 +28,67 @@ export async function GET() {
     ANTHROPIC_API_KEY: present(process.env.ANTHROPIC_API_KEY),
   };
 
+  /* Decode a Supabase JWT's claims WITHOUT exposing the key. Only the role,
+     project ref and expiry are surfaced; the token itself is never returned.
+     This is how we tell a wrong-project or wrong-role key apart at a glance. */
+  function keyClaims(raw: string | undefined) {
+    if (!raw) return { present: false as const };
+    try {
+      const payload = raw.split(".")[1];
+      const json = JSON.parse(
+        Buffer.from(payload, "base64").toString("utf8")
+      ) as { role?: string; ref?: string; exp?: number };
+      const expired =
+        typeof json.exp === "number" ? json.exp * 1000 < Date.now() : null;
+      return {
+        present: true as const,
+        looksLikeJwt: true as const,
+        role: json.role ?? null,
+        ref: json.ref ?? null,
+        expired,
+      };
+    } catch {
+      /* Not a JWT (could be a modern sb_secret_/sb_publishable_ key). */
+      return {
+        present: true as const,
+        looksLikeJwt: false as const,
+        prefix: raw.slice(0, 12),
+      };
+    }
+  }
+
+  const keys = {
+    serviceRole: keyClaims(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    anon: keyClaims(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+  };
+
   /* Confirm the service role can actually reach the profiles table, and how
      many rows it sees. A wrong project or bad key surfaces here. */
-  let db: { ok: boolean; profiles: number | null; error: string | null } = {
-    ok: false,
-    profiles: null,
-    error: null,
-  };
+  let db: {
+    ok: boolean;
+    profiles: number | null;
+    error: string | null;
+    code: string | null;
+    status: number | null;
+  } = { ok: false, profiles: null, error: null, code: null, status: null };
   const admin = adminClient();
   if (!admin) {
     db.error = "admin client not configured";
   } else {
     const { count, error } = await admin
       .from("profiles")
-      .select("id", { count: "exact", head: true });
+      .select("id", { count: "exact" })
+      .limit(1);
     db = {
       ok: !error,
       profiles: count ?? null,
-      error: error ? error.message : null,
+      error: error ? error.message || "(empty message)" : null,
+      code: error
+        ? ((error as { code?: string }).code ?? null)
+        : null,
+      status: error
+        ? ((error as { status?: number }).status ?? null)
+        : null,
     };
   }
 
@@ -61,8 +104,9 @@ export async function GET() {
         dataReady: Boolean(dataReady),
         supabaseProjectRef,
         env,
+        keys,
         db,
-        note: "authReady false means Privy token verification cannot run (no profiles will ever be created). Check supabaseProjectRef matches the database that holds your data.",
+        note: "keys.serviceRole.role must be 'service_role' and keys.serviceRole.ref must match supabaseProjectRef. If role is 'anon' or ref differs or expired is true, replace SUPABASE_SERVICE_ROLE_KEY on Vercel and redeploy.",
       },
       null,
       2
