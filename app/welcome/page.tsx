@@ -8,7 +8,7 @@ import { houses } from "@/lib/data/houses";
 import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { Icon } from "@/components/ui/icon";
-import { isOnboardedLocal, markOnboardedLocal } from "@/lib/auth/session";
+import { markOnboardedLocal } from "@/lib/auth/session";
 
 const sigilIcon: Record<string, string> = {
   raven: "raven",
@@ -33,15 +33,30 @@ export default function WelcomePage() {
     /* Keep the raised banner through the sign-in detour. */
     const banner = new URLSearchParams(window.location.search).get("banner");
     if (banner) localStorage.setItem("rvn_banner", banner);
-    if (ready && !authenticated) {
+    if (!ready) return;
+    if (!authenticated) {
       router.replace("/signin");
       return;
     }
-    /* Already sworn in on this device? Do not make them repeat the oath. */
-    if (ready && authenticated && isOnboardedLocal()) {
-      router.replace("/home");
-    }
-  }, [ready, authenticated, router]);
+    /* The server is the single source of truth for onboarded status. A stale
+       local flag once bounced a not-yet-onboarded member straight back to the
+       shell, which sent them here again, an endless loop. Ask the server: only
+       a genuinely onboarded member is carried on to the realm; everyone else
+       stays and swears the oath. */
+    let cancelled = false;
+    void realmFetch<{ profile?: { onboarded?: boolean } }>("/api/me", {
+      method: "POST",
+    }).then((res) => {
+      if (cancelled) return;
+      if (res.ok && res.data?.profile?.onboarded === true) {
+        markOnboardedLocal(handle || "", house || "");
+        router.replace("/home");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, authenticated, router, handle, house]);
 
   const finish = async () => {
     if (!house || busy) return;
