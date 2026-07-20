@@ -7,6 +7,7 @@ import { usePrivy, useSendTransaction } from "@privy-io/react-auth";
 import { parseEther, isAddress } from "viem";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 
 function copyFallback(text: string): boolean {
   try {
@@ -248,6 +249,9 @@ export default function VaultPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
+      <div className="mb-4">
+        <BackButton />
+      </div>
       <h1 className="font-display text-xl font-semibold text-bone">
         The Vault
       </h1>

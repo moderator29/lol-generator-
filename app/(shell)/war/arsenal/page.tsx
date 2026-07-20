@@ -3,10 +3,14 @@
 import { legendaryWeapons } from "@/lib/game/arsenal";
 import { gearCatalog } from "@/lib/game/gear";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 
 export default function ArsenalPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
+      <div className="mb-4">
+        <BackButton href="/war" />
+      </div>
       <h1 className="gold-text font-display text-3xl font-semibold">
         The Arsenal
       </h1>

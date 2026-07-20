@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, MotionConfig, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { RavenMark } from "@/components/brand/raven-mark";
 import { CrestRoundel, crests } from "@/components/brand/crests";
 import { Icon } from "@/components/ui/icon";
@@ -12,6 +12,8 @@ import { TheChampions } from "@/components/landing/the-champions";
 import { TheGames } from "@/components/landing/the-games";
 import { MeetRaven } from "@/components/landing/meet-raven";
 import { TheTools } from "@/components/landing/the-tools";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { StatsStrip } from "@/components/landing/stats-strip";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { RefCapture } from "@/components/referral/ref-capture";
 
@@ -134,12 +136,23 @@ export default function Landing() {
   const { authenticated } = useRealmAuth();
   const ctaHref = authenticated ? "/home" : "/signin";
   const ctaLabel = authenticated ? "Enter the Ravenry" : "Enter the Realm";
+  const reduce = useReducedMotion();
+
+  /* Gentle parallax drift on the ambient crest field as the page scrolls. */
+  const { scrollY } = useScroll();
+  const fieldY = useTransform(scrollY, [0, 900], [0, reduce ? 0 : -120]);
+
   return (
+    <MotionConfig reducedMotion="user">
     <main className="realm-bg relative min-h-screen overflow-hidden">
       {/* Persist ?ref=CODE share links for onboarding credit. Renders nothing. */}
       <RefCapture />
       {/* Aurora crest field */}
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+      <motion.div
+        className="pointer-events-none absolute inset-0"
+        aria-hidden="true"
+        style={{ y: fieldY }}
+      >
         {floatSpots.map((s, i) => (
           <div
             key={i}
@@ -155,7 +168,7 @@ export default function Landing() {
             <CrestRoundel icon={crests[i].icon} dim className="h-full w-full" />
           </div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Hero */}
       <section className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center">
@@ -171,9 +184,23 @@ export default function Landing() {
           initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, delay: 0.15 }}
-          className="mt-8"
+          className="relative mt-8"
         >
-          <RavenMark className="h-20 w-20 sm:h-24 sm:w-24" />
+          {/* Slow pulsing gold halo behind the mark */}
+          <motion.span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl"
+            style={{ background: "radial-gradient(circle, rgba(200,162,76,0.4), transparent 70%)" }}
+            animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.92, 1.08, 0.92] }}
+            transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+          {/* Gentle float on the mark itself */}
+          <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <RavenMark className="h-20 w-20 sm:h-24 sm:w-24" />
+          </motion.div>
         </motion.div>
         <motion.h1
           initial={{ opacity: 0, y: 10 }}
@@ -257,6 +284,9 @@ export default function Landing() {
           </motion.section>
         ))}
 
+        {/* The realm in numbers: animated stat strip */}
+        <StatsStrip />
+
         {/* Platform preview: the four rooms of the realm */}
         <PlatformPreview />
 
@@ -271,6 +301,9 @@ export default function Landing() {
 
         {/* The Tools: the five serious surfaces */}
         <TheTools />
+
+        {/* How the realm works: four plain steps */}
+        <HowItWorks />
 
         {/* The Chapters ahead */}
         <motion.section
@@ -481,5 +514,6 @@ export default function Landing() {
         <SiteFooter />
       </div>
     </main>
+    </MotionConfig>
   );
 }

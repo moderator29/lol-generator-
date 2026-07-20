@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { Icon } from "@/components/ui/icon";
 import { WatchBadge } from "@/components/tools/watch-badge";
+import { BackButton } from "@/components/shell/back-button";
 
 interface Holding {
   symbol: string;
@@ -89,6 +90,9 @@ export default function LedgerPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
+      <div className="mb-4">
+        <BackButton />
+      </div>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-xl font-semibold text-bone">
