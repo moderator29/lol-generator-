@@ -43,11 +43,12 @@ function Feature({ icon, text }: { icon: string; text: string }) {
 export function TheGames() {
   return (
     <motion.section
+      id="games"
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, margin: "-80px" }}
       variants={container}
-      className="glass p-7 sm:p-9"
+      className="glass scroll-mt-28 p-7 sm:p-9"
     >
       <motion.div
         variants={rise}

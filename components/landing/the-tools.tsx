@@ -2,16 +2,26 @@
 
 import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
-import { Icon } from "@/components/ui/icon";
+import { LandingIcon, type LandingIconName } from "@/components/landing/icons";
+import { ScrollRail } from "@/components/landing/scroll-rail";
 
 /*
   The Tools. The five serious surfaces under the play, drawn from lib/nav
-  (toolsNav + the Vault from accountNav). Icons are the project's own.
+  (toolsNav + the Vault from accountNav). Presented as a horizontal rail so
+  the serious side reads as a slick product shelf, not a long list.
 */
 
-const tools = [
+type Tool = {
+  icon: LandingIconName;
+  name: string;
+  plain: string;
+  href: string;
+  desc: string;
+};
+
+const tools: Tool[] = [
   {
-    icon: "book",
+    icon: "ledger",
     name: "The Ledger",
     plain: "Portfolio",
     href: "/ledger",
@@ -47,10 +57,6 @@ const tools = [
   },
 ];
 
-const container: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
-};
 const rise: Variants = {
   hidden: { opacity: 0, y: 24 },
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
@@ -62,14 +68,14 @@ export function TheTools() {
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, margin: "-80px" }}
-      variants={container}
-      className="glass p-7 sm:p-9"
+      variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
+      className="scroll-mt-28"
     >
       <motion.div
         variants={rise}
         className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold"
       >
-        <Icon name="shield" className="h-4 w-4" />
+        <LandingIcon name="compass" className="h-4 w-4" />
         The Tools
       </motion.div>
       <motion.h2
@@ -83,32 +89,35 @@ export function TheTools() {
         className="mt-3 max-w-prose text-[15px] leading-relaxed text-bone-mut"
       >
         Five instruments sit quietly under the play, each reading real data and
-        signed by you alone.
+        signed by you alone. Swipe through the shelf.
       </motion.p>
 
-      <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {tools.map((t) => (
-          <motion.div key={t.name} variants={rise}>
+      <motion.div variants={rise} className="mt-7">
+        <ScrollRail ariaLabel="The tools">
+          {tools.map((t) => (
             <Link
+              key={t.name}
               href={t.href}
-              className="glass-sm glass-hover flex h-full items-start gap-3 rounded-2xl border border-steel-line bg-panel p-4"
+              className="group glass glass-hover snap-start shrink-0 flex w-[76vw] max-w-[300px] flex-col p-5 sm:w-[280px]"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gold/25 bg-void text-gold">
-                <Icon name={t.icon} className="h-5 w-5" />
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-gold/25 bg-void text-gold">
+                <LandingIcon name={t.icon} className="h-5 w-5" />
               </span>
-              <div className="min-w-0">
-                <p className="font-display text-sm font-semibold text-bone">
-                  {t.name}
-                  <span className="ml-2 text-[10px] uppercase tracking-wider text-bone-faint">
-                    {t.plain}
-                  </span>
-                </p>
-                <p className="mt-0.5 text-xs leading-relaxed text-bone-mut">{t.desc}</p>
-              </div>
+              <p className="mt-4 font-display text-base font-semibold text-bone">
+                {t.name}
+                <span className="ml-2 text-[10px] uppercase tracking-wider text-bone-faint">
+                  {t.plain}
+                </span>
+              </p>
+              <p className="mt-2 text-[13px] leading-relaxed text-bone-mut">{t.desc}</p>
+              <span className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-gold transition group-hover:text-gold-bright">
+                Open
+                <LandingIcon name="arrowRight" className="h-3.5 w-3.5" />
+              </span>
             </Link>
-          </motion.div>
-        ))}
-      </div>
+          ))}
+        </ScrollRail>
+      </motion.div>
     </motion.section>
   );
 }

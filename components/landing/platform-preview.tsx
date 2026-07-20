@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform, type Variants } from "framer-motion";
 import { Icon } from "@/components/ui/icon";
+import { LandingIcon } from "@/components/landing/icons";
 import { CrestRoundel } from "@/components/brand/crests";
 import { RavenMark } from "@/components/brand/raven-mark";
 
@@ -261,36 +262,52 @@ export function PlatformPreview() {
 
   return (
     <motion.section
+      id="realm"
       ref={ref}
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, margin: "-80px" }}
       variants={container}
-      className="glass overflow-hidden p-7 sm:p-9"
+      className="glass relative scroll-mt-28 overflow-hidden p-7 sm:p-9"
     >
-      <motion.div
-        variants={rise}
-        className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold"
-      >
-        <Icon name="eye" className="h-4 w-4" />
-        See the realm
+      {/* Ambient premium glow: warm gold meeting a cool steel edge */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-30 blur-3xl"
+        style={{ background: "radial-gradient(circle, rgba(229,112,42,0.18), transparent 70%)" }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full opacity-25 blur-3xl"
+        style={{ background: "radial-gradient(circle, rgba(110,118,131,0.22), transparent 70%)" }}
+      />
+
+      <motion.div variants={rise} className="relative flex flex-wrap items-center gap-3">
+        <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold">
+          <LandingIcon name="vision" className="h-4 w-4" />
+          See the realm
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/25 bg-void/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-bone-mut">
+          <span className="h-1.5 w-1.5 rounded-full bg-ember" />
+          Live product preview
+        </span>
       </motion.div>
       <motion.h2
         variants={rise}
-        className="mt-3 font-display text-2xl font-semibold text-bone sm:text-3xl"
+        className="relative mt-3 font-display text-2xl font-semibold text-bone sm:text-3xl"
       >
         Four rooms of one living realm
       </motion.h2>
       <motion.p
         variants={rise}
-        className="mt-3 max-w-prose text-[15px] leading-relaxed text-bone-mut"
+        className="relative mt-3 max-w-prose text-[15px] leading-relaxed text-bone-mut"
       >
         The Ravenry to post and seal Calls. Whispers to plot in private. Houses
         to rally behind a banner. Your Keep to prove what you have earned. Every
         surface is built to live in.
       </motion.p>
 
-      <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="relative mt-7 grid grid-cols-1 gap-4 md:grid-cols-2">
         <motion.div variants={rise} style={{ y: yA }} className="flex flex-col gap-4">
           <RavenryMock />
           <HousesMock />
