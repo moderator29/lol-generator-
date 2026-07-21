@@ -3,6 +3,7 @@ import { requireProfile, getProfile, json } from "@/lib/auth/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { award } from "@/lib/points";
 import { maybeRavenReplyToComment } from "@/lib/ai/mention";
+import { createNotification, notifyMentions } from "@/lib/notifications";
 
 const COMMENT_SELECT =
   "id, post_id, parent_id, body, like_count, created_at, author_id, author:profiles!comments_author_id_fkey (handle, display_name, avatar_url, house_slug, tier, is_agent)";
@@ -94,12 +95,14 @@ export async function POST(req: Request) {
      Raven's own comments should pull the Herald back into the thread even
      when @raven is not typed out. */
   let parentAuthorIsRaven = false;
+  let parentAuthorId: string | null = null;
   if (body.parent_id) {
     const { data: parent } = await db
       .from("comments")
-      .select("author:profiles!comments_author_id_fkey (handle, is_agent)")
+      .select("author_id, author:profiles!comments_author_id_fkey (handle, is_agent)")
       .eq("id", body.parent_id)
       .maybeSingle();
+    parentAuthorId = (parent?.author_id as string | null) ?? null;
     const author = parent?.author as
       | { handle: string | null; is_agent: boolean | null }
       | { handle: string | null; is_agent: boolean | null }[]
@@ -126,15 +129,37 @@ export async function POST(req: Request) {
     .update({ reply_count: post.reply_count + 1 })
     .eq("id", post.id);
 
-  if (post.author_id !== profile.id) {
-    await db.from("notifications").insert({
-      profile_id: post.author_id,
+  /* Ring the people this reply concerns, each at most once: the raven's author,
+     the parent comment's author (when replying inside a thread), and anyone
+     @mentioned in the body. createNotification skips self-notifications, and we
+     track who has been notified so a mention never doubles a reply raven. */
+  const notified = new Set<string>();
+  await createNotification(db, {
+    profile_id: post.author_id,
+    kind: "reply",
+    actor_id: profile.id,
+    ref: post.id,
+    body: text.slice(0, 120),
+  });
+  notified.add(post.author_id);
+  if (parentAuthorId && !notified.has(parentAuthorId)) {
+    await createNotification(db, {
+      profile_id: parentAuthorId,
       kind: "reply",
       actor_id: profile.id,
-      subject_id: post.id,
+      ref: post.id,
       body: text.slice(0, 120),
     });
+    notified.add(parentAuthorId);
   }
+  await notifyMentions(db, {
+    text,
+    actorId: profile.id,
+    ref: post.id,
+    body: text.slice(0, 120),
+    excludeIds: notified,
+  });
+
   await award(db, profile.id, {
     points: 2,
     glory: 1,

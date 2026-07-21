@@ -176,9 +176,9 @@ export function ReferralPanel({ enabled }: { enabled: boolean }) {
         </div>
       ) : (
         <p className="text-xs leading-relaxed text-bone-mut">
-          No banners raised yet. A recruit counts once they truly live in the
-          realm, posting and showing up, not merely at signup. Rewards flow from
-          deeds, which keeps this sybil-resistant by design.
+          No banners raised yet. A recruit counts the moment they join under your
+          banner. Rewards are earned as they truly live in the realm, posting and
+          showing up, which keeps this sybil-resistant by design.
         </p>
       )}
 

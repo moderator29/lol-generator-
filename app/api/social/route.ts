@@ -1,6 +1,7 @@
 import { requireProfile, json } from "@/lib/auth/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { award } from "@/lib/points";
+import { createNotification } from "@/lib/notifications";
 
 /* One endpoint for the small social verbs: like, bookmark, follow, repost.
    Body: { action, subject_type?, subject_id?, on?, quote? } */
@@ -119,7 +120,8 @@ export async function POST(req: Request) {
         followee_id: body.subject_id,
       });
       if (!error) {
-        await db.from("notifications").insert({
+        /* A new banner-follower rings the followed member's ravens. */
+        await createNotification(db, {
           profile_id: body.subject_id,
           kind: "follow",
           actor_id: profile.id,

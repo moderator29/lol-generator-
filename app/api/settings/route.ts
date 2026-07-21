@@ -8,11 +8,13 @@ interface SettingsBody {
   notifications?: SettingsBucket;
   appearance?: SettingsBucket;
   voice?: SettingsBucket;
+  profile?: SettingsBucket;
 }
 
 /* The settings buckets we accept and deep-merge into profiles.settings. Adding
-   a bucket here is all it takes for a new group of preferences to persist. */
-const BUCKETS = ["privacy", "notifications", "appearance", "voice"] as const;
+   a bucket here is all it takes for a new group of preferences to persist.
+   "profile" holds member-set profile extras such as the shareable thesis line. */
+const BUCKETS = ["privacy", "notifications", "appearance", "voice", "profile"] as const;
 
 const isBucket = (v: unknown): v is SettingsBucket =>
   typeof v === "object" && v !== null && !Array.isArray(v);

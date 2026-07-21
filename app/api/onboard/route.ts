@@ -1,6 +1,7 @@
 import { requireProfile, json } from "@/lib/auth/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { award, grantCrest } from "@/lib/points";
+import { createNotification } from "@/lib/notifications";
 
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 const HOUSES = new Set([
@@ -70,8 +71,10 @@ export async function POST(req: Request) {
       .update({ member_count: h.member_count + 1 })
       .eq("slug", house);
 
-  /* Referral: capture who sent this wanderer (referred_by). It unlocks on
-     real activity later (the third raven, in the posts route); recorded now.
+  /* Referral: capture who sent this wanderer (referred_by). The JOIN itself
+     now COUNTS immediately (joined = true) so the referrer's banner reflects
+     the recruit the moment they take the black, no $RSP reward yet. The third
+     raven later flips `activated` in the posts route as the reward milestone.
      Resolve the code against referral_codes first, then fall back to the
      handle itself so a ?ref that predates a code row still credits a banner. */
   if (body.referral) {
@@ -94,9 +97,19 @@ export async function POST(req: Request) {
       }
     }
     if (referrerId && referrerId !== profile.id) {
+      /* Count the join now. `joined` is set explicitly (not just implied by the
+         row's existence) and `activated` is left untouched so the reward
+         milestone stays separate. Idempotent on profile_id (the primary key). */
       await db
         .from("referrals")
-        .upsert({ profile_id: profile.id, referrer_id: referrerId });
+        .upsert({ profile_id: profile.id, referrer_id: referrerId, joined: true });
+      /* Raven the referrer that a new recruit joined under their banner. */
+      await createNotification(db, {
+        profile_id: referrerId,
+        kind: "referral",
+        actor_id: profile.id,
+        body: `@${handle} joined the realm under your banner`,
+      });
     }
   }
   await db

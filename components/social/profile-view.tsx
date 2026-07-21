@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PostCard } from "@/components/social/post-card";
+import { EarningsSection } from "@/components/profile/earnings-section";
 import { Avatar } from "@/components/social/avatar";
 import { CrestRoundel, findCrest } from "@/components/brand/crests";
 import { Icon } from "@/components/ui/icon";
@@ -427,6 +428,15 @@ export function ProfileView({
           </span>
         </div>
       </div>
+
+      {/* Earnings + balance: sits between the identity header and the content
+          tabs. Its own privacy gate lives server-side in /api/profile/earnings,
+          which respects the member's PnL and public-positions toggles. */}
+      <EarningsSection
+        profileId={profile.id}
+        handle={profile.handle}
+        own={isOwn}
+      />
 
       <div className="mt-5 flex gap-1.5">
         {(["posts", "calls", "media"] as const).map((t) => (
