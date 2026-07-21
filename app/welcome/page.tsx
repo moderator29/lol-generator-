@@ -137,22 +137,43 @@ export default function WelcomePage() {
           animate={{ opacity: 1, y: 0 }}
           className="glass mt-8 w-full max-w-md p-6"
         >
-          <label className="text-xs font-semibold uppercase tracking-wider text-bone-mut">
-            Claim your name
-          </label>
-          <div className="mt-2 flex items-center gap-1 rounded-xl border border-steel-line bg-void px-3 py-2.5">
-            <span className="text-bone-faint">@</span>
-            <input
-              value={handle}
-              onChange={(e) =>
-                setHandle(
-                  e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20)
-                )
-              }
-              placeholder="your_handle"
-              className="min-w-0 flex-1 bg-transparent text-sm text-bone outline-none"
-            />
-          </div>
+          {xHandle ? (
+            /* Signed in with X: the handle is the X username, no need to pick
+               one. It can still be changed later in settings. */
+            <div className="rounded-xl border border-steel-line bg-void px-3 py-2.5">
+              <p className="text-xs uppercase tracking-wider text-bone-faint">
+                Your handle
+              </p>
+              <p className="mt-0.5 text-sm text-bone">
+                @{handle || xHandle.toLowerCase()}
+                <span className="ml-2 text-[11px] text-bone-faint">
+                  from your X account
+                </span>
+              </p>
+            </div>
+          ) : (
+            <>
+              <label className="text-xs font-semibold uppercase tracking-wider text-bone-mut">
+                Claim your name
+              </label>
+              <div className="mt-2 flex items-center gap-1 rounded-xl border border-steel-line bg-void px-3 py-2.5">
+                <span className="text-bone-faint">@</span>
+                <input
+                  value={handle}
+                  onChange={(e) =>
+                    setHandle(
+                      e.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9_]/g, "")
+                        .slice(0, 20)
+                    )
+                  }
+                  placeholder="your_handle"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-bone outline-none"
+                />
+              </div>
+            </>
+          )}
           <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-bone-mut">
             Display name (optional)
           </label>

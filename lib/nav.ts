@@ -30,6 +30,7 @@ export const toolsNav: NavItem[] = [
 ];
 
 export const accountNav: NavItem[] = [
+  { slug: "ravens", href: "/ravens", themed: "Ravens", plain: "Notifications", icon: "bell" },
   { slug: "vault", href: "/vault", themed: "The Vault", plain: "Wallet", icon: "wallet" },
   { slug: "chronicle", href: "/chronicle", themed: "The Chronicle", plain: "Docs", icon: "scroll" },
   { slug: "settings", href: "/settings", themed: "Settings", plain: "Preferences", icon: "sliders" },
