@@ -301,6 +301,19 @@ export function PostCard({ post }: { post: Post }) {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  void toggleBookmark();
+                }}
+                aria-label="Bookmark"
+                className={`flex h-7 w-7 items-center justify-center rounded-full transition hover:bg-panel ${
+                  bookmarked ? "text-gold" : "text-bone-faint hover:text-bone-mut"
+                }`}
+              >
+                <Icon name="bookmark" className="h-4 w-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setMenuOpen((v) => !v);
                 }}
                 aria-label="More"
@@ -456,11 +469,22 @@ export function PostCard({ post }: { post: Post }) {
 
           {firstTag && !post.call && <PriceCard symbol={firstTag} />}
 
-          <div className="mt-2 flex items-center gap-0.5 sm:gap-1">
+          {/* Constant-width action bar: views on the left, the actions spread
+             evenly to the right so every raven reads the same. Bookmark lives
+             up in the header corner. */}
+          <div className="mt-2 flex items-center justify-between">
+            <span
+              className="flex items-center gap-1.5 px-1 py-1 text-xs text-bone-faint"
+              aria-label={`${post.view_count} views`}
+              title={`${post.view_count.toLocaleString()} views`}
+            >
+              <Icon name="eye" className="h-[18px] w-[18px]" />
+              <span className="tnum">{post.view_count.toLocaleString()}</span>
+            </span>
             <Link
               href={`/post/${post.id}`}
               aria-label="Reply"
-              className="flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm text-bone-faint transition hover:bg-panel hover:text-bone-mut"
+              className="flex items-center gap-1.5 rounded-full px-2 py-2 text-sm text-bone-faint transition hover:bg-panel hover:text-bone-mut"
             >
               <Icon name="reply" className="h-[18px] w-[18px]" />
               {post.reply_count > 0 && (
@@ -483,12 +507,6 @@ export function PostCard({ post }: { post: Post }) {
               onClick={toggleLike}
             />
             <ActionButton
-              icon="bookmark"
-              active={bookmarked}
-              label="Bookmark"
-              onClick={toggleBookmark}
-            />
-            <ActionButton
               icon="coin"
               active={tipSent || tipOpen}
               label="Tip"
@@ -498,14 +516,6 @@ export function PostCard({ post }: { post: Post }) {
               }}
             />
             <ActionButton icon="share" label="Copy link" onClick={share} />
-            <span
-              className="ml-auto flex items-center gap-1.5 px-2 py-1 text-xs text-bone-faint"
-              aria-label={`${post.view_count} views`}
-              title={`${post.view_count.toLocaleString()} views`}
-            >
-              <Icon name="eye" className="h-[18px] w-[18px]" />
-              <span className="tnum">{post.view_count.toLocaleString()}</span>
-            </span>
           </div>
 
           {tipSent && (
