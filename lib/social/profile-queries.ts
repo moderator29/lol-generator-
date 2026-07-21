@@ -38,6 +38,36 @@ export async function fetchIsFollowing(
   return Boolean(data);
 }
 
+/* People the viewer already follows who also follow this member: the mutual
+   connections shown on a Keep ("followed by ... whom you follow"). */
+export interface Mutuals {
+  count: number;
+  preview: { handle: string | null; display_name: string | null; avatar_url: string | null }[];
+}
+export async function fetchMutuals(
+  viewerId: string,
+  targetId: string
+): Promise<Mutuals> {
+  const db = createClient();
+  const [{ data: targetFollowers }, { data: myFollowing }] = await Promise.all([
+    db.from("follows").select("follower_id").eq("followee_id", targetId),
+    db.from("follows").select("followee_id").eq("follower_id", viewerId),
+  ]);
+  const mine = new Set(
+    (myFollowing ?? []).map((r) => (r as { followee_id: string }).followee_id)
+  );
+  const mutualIds = (targetFollowers ?? [])
+    .map((r) => (r as { follower_id: string }).follower_id)
+    .filter((id) => mine.has(id));
+  if (!mutualIds.length) return { count: 0, preview: [] };
+  const { data: profs } = await db
+    .from("profiles")
+    .select("handle, display_name, avatar_url")
+    .in("id", mutualIds)
+    .limit(5);
+  return { count: mutualIds.length, preview: profs ?? [] };
+}
+
 /* Count of Calls this member sealed that landed as hits. */
 export async function fetchCrestCount(profileId: string): Promise<number> {
   const db = createClient();

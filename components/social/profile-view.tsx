@@ -12,7 +12,12 @@ import {
   fetchProfilePosts,
   fetchUserCrests,
 } from "@/lib/social/queries";
-import { fetchIsFollowing, fetchViewer } from "@/lib/social/profile-queries";
+import {
+  fetchIsFollowing,
+  fetchViewer,
+  fetchMutuals,
+  type Mutuals,
+} from "@/lib/social/profile-queries";
 import { TIER_NAMES, type Post, type PublicProfile } from "@/lib/social/types";
 import { houses } from "@/lib/data/houses";
 import { realmFetch } from "@/lib/auth/api";
@@ -40,6 +45,7 @@ export function ProfileView({
   const [uploading, setUploading] = useState<"avatar" | "banner" | null>(null);
   const [portraitError, setPortraitError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mutuals, setMutuals] = useState<Mutuals | null>(null);
 
   /* This Keep belongs to the viewer either because the parent said so
      (own /keep) or because the signed-in member is looking at their own
@@ -104,6 +110,9 @@ export function ProfileView({
       if (v.id !== profile.id) {
         void fetchIsFollowing(v.id, profile.id).then((f) => {
           if (!cancelled) setFollowing(f);
+        });
+        void fetchMutuals(v.id, profile.id).then((m) => {
+          if (!cancelled) setMutuals(m);
         });
       }
     });
@@ -427,6 +436,38 @@ export function ProfileView({
             <span className="text-bone-faint">Calls won</span>
           </span>
         </div>
+
+        {!isOwn && mutuals && mutuals.count > 0 && (
+          <div className="mt-2.5 flex items-center gap-2">
+            <div className="flex -space-x-2">
+              {mutuals.preview.slice(0, 3).map((m, i) => (
+                <span
+                  key={i}
+                  className="h-5 w-5 overflow-hidden rounded-full border border-obsidian bg-void"
+                  title={m.handle ? `@${m.handle}` : undefined}
+                >
+                  {m.avatar_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={m.avatar_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-[8px] text-gold">
+                      {(m.display_name ?? m.handle ?? "?").slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
+            <p className="text-[11px] text-bone-faint">
+              Followed by{" "}
+              <span className="text-bone-mut">
+                {mutuals.preview[0]?.handle
+                  ? `@${mutuals.preview[0].handle}`
+                  : "someone"}
+              </span>
+              {mutuals.count > 1 && ` and ${mutuals.count - 1} others`} you follow
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Earnings + balance: sits between the identity header and the content
