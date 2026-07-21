@@ -33,9 +33,12 @@ interface Prefs {
   soundEffects: boolean;
 }
 
+/* PnL and public positions default ON: a member is visible unless they choose
+   to hide. This matches the server-side gate in /api/profile/earnings, which
+   treats an absent flag as ON. */
 const DEFAULT_PREFS: Prefs = {
-  publicPositions: false,
-  pnlVisible: false,
+  publicPositions: true,
+  pnlVisible: true,
   discoverable: true,
   notifyMentions: true,
   notifyReplies: true,
@@ -293,7 +296,7 @@ export default function SettingsPage() {
             <Card icon="eye" title="Privacy" plain="What others see">
               <Row
                 title="Public positions"
-                desc="Let others see what you hold"
+                desc="Let others see your earning sources and allocation"
               >
                 <Toggle
                   on={prefs.publicPositions}
@@ -302,7 +305,10 @@ export default function SettingsPage() {
                   label="Public positions"
                 />
               </Row>
-              <Row title="PnL visibility" desc="Show your gains and losses">
+              <Row
+                title="Show my PnL / earnings"
+                desc="Show your $RSP earnings and balance on your Keep"
+              >
                 <Toggle
                   on={prefs.pnlVisible}
                   onChange={setPref("pnlVisible")}

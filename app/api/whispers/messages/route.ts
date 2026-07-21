@@ -1,5 +1,6 @@
 import { requireProfile, json } from "@/lib/auth/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { createNotification } from "@/lib/notifications";
 
 type Db = NonNullable<ReturnType<typeof adminClient>>;
 
@@ -145,12 +146,22 @@ export async function POST(req: Request) {
     .select("profile_id")
     .eq("conversation_id", body.conversation)
     .neq("profile_id", profile.id);
+  const preview = text ? text.slice(0, 120) : "sent you an image";
   await Promise.all(
-    (members ?? []).map((m) =>
+    (members ?? []).flatMap((m) => [
       broadcast(`whispers:user:${m.profile_id}`, "bump", {
         conversation: body.conversation,
-      })
-    )
+      }),
+      /* A new whisper also lands in the recipient's ravens. Best effort; the
+         conversation id rides as the ref so the center links to the thread. */
+      createNotification(db, {
+        profile_id: m.profile_id as string,
+        kind: "whisper",
+        actor_id: profile.id,
+        ref: body.conversation,
+        body: preview,
+      }),
+    ])
   );
 
   return json({ ok: true, message });

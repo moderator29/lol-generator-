@@ -3,6 +3,7 @@ import { requireProfile, json } from "@/lib/auth/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { award } from "@/lib/points";
 import { maybeRavenReplyToPost } from "@/lib/ai/mention";
+import { notifyMentions } from "@/lib/notifications";
 import { lookupToken } from "@/lib/data/tokens";
 
 export async function POST(req: Request) {
@@ -174,6 +175,13 @@ export async function POST(req: Request) {
 
   after(async () => {
     await maybeRavenReplyToPost(db, post.id, text, profile.handle, profile.id);
+    /* Tell anyone named in the raven that they were mentioned. */
+    await notifyMentions(db, {
+      text,
+      actorId: profile.id,
+      ref: post.id,
+      body: text.slice(0, 140),
+    });
   });
 
   return json({ ok: true, id: post.id, post });
