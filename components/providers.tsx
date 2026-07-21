@@ -9,6 +9,7 @@ import {
   type RealmAuth,
 } from "@/lib/auth/realm-auth-context";
 import { PostAuthGate } from "@/components/auth/post-auth-gate";
+import { IdentitySync } from "@/components/auth/identity-sync";
 
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
@@ -41,6 +42,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
   return (
     <RealmAuthContext.Provider value={value}>
       <PostAuthGate />
+      <IdentitySync />
       {children}
     </RealmAuthContext.Provider>
   );

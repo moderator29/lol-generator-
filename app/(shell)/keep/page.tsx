@@ -17,20 +17,34 @@ export default function KeepPage() {
   );
   const [editOpen, setEditOpen] = useState(false);
   const [refresh, setRefresh] = useState(0);
+  const [tries, setTries] = useState(0);
 
   useEffect(() => {
     if (!ready) return;
+    /* Only a Privy-confirmed signed-out visitor is anonymous. */
     if (!authenticated) {
       setState("anon");
       return;
     }
+    let cancelled = false;
     void (async () => {
       const res = await realmFetch<{
         profile?: { handle: string | null; onboarded: boolean };
       }>("/api/me", { method: "POST" });
+      if (cancelled) return;
       const me = res.data?.profile;
       if (!me) {
-        setState("anon");
+        /* Authenticated on the client but the server has no profile yet: a
+           transient token or creation race, not a signed-out state. Retry a
+           few times, then send them to finish onboarding rather than falsely
+           claiming they are signed out. */
+        if (tries < 4) {
+          setTimeout(() => {
+            if (!cancelled) setTries((t) => t + 1);
+          }, 700);
+          return;
+        }
+        setState("onboard");
         return;
       }
       if (!me.onboarded || !me.handle) {
@@ -38,12 +52,15 @@ export default function KeepPage() {
         return;
       }
       const full = await fetchProfile(me.handle);
-      if (full) {
+      if (full && !cancelled) {
         setProfile(full);
         setState("ok");
       }
     })();
-  }, [ready, authenticated, refresh]);
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, authenticated, refresh, tries]);
 
   if (state === "loading")
     return <div className="mx-auto max-w-2xl p-6"><div className="glass h-48 animate-pulse" /></div>;

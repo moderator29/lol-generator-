@@ -21,10 +21,11 @@ const sigilIcon: Record<string, string> = {
 
 export default function WelcomePage() {
   const router = useRouter();
-  const { ready, authenticated } = useRealmAuth();
+  const { ready, authenticated, xHandle, displayName: xName } = useRealmAuth();
   const [step, setStep] = useState(0);
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [prefilled, setPrefilled] = useState(false);
   const [house, setHouse] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +58,21 @@ export default function WelcomePage() {
       cancelled = true;
     };
   }, [ready, authenticated, router, handle, house]);
+
+  /* Prefill the oath from the X account so members are not typing their name
+     and handle from scratch. They can still edit both; the handle is checked
+     for uniqueness on submit. */
+  useEffect(() => {
+    if (prefilled) return;
+    if (!xHandle && !xName) return;
+    setPrefilled(true);
+    if (xHandle) {
+      setHandle(
+        xHandle.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20)
+      );
+    }
+    if (xName) setDisplayName(xName.slice(0, 40));
+  }, [xHandle, xName, prefilled]);
 
   const finish = async () => {
     if (!house || busy) return;
