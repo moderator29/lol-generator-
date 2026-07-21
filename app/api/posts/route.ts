@@ -166,3 +166,28 @@ export async function POST(req: Request) {
 
   return json({ ok: true, id: post.id, post });
 }
+
+/* Soft delete the caller's own raven. Only the author may remove a post; the
+   row is kept but flagged deleted so feed reads (which filter deleted) drop
+   it. Admin takedown lives on its own route. */
+export async function DELETE(req: Request) {
+  const profile = await requireProfile(req);
+  if (!profile) return json({ error: "unauthenticated" }, 401);
+  const db = adminClient();
+  if (!db) return json({ error: "unavailable" }, 503);
+
+  const body = (await req.json().catch(() => null)) as { id?: unknown } | null;
+  const id = typeof body?.id === "string" ? body.id : null;
+  if (!id) return json({ error: "bad request" }, 400);
+
+  const { data, error } = await db
+    .from("posts")
+    .update({ deleted: true })
+    .eq("id", id)
+    .eq("author_id", profile.id)
+    .select("id")
+    .maybeSingle();
+  if (error) return json({ error: "could not delete" }, 500);
+  if (!data) return json({ error: "not your raven" }, 403);
+  return json({ ok: true });
+}

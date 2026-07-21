@@ -271,7 +271,21 @@ export function ProfileView({
             </span>
           )}
         </div>
-        <p className="text-sm text-bone-faint">@{profile.handle}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-bone-faint">@{profile.handle}</p>
+          {profile.x_handle && (
+            <a
+              href={`https://x.com/${profile.x_handle}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`@${profile.x_handle} on X`}
+              className="inline-flex items-center gap-1 rounded-full border border-steel-line bg-void px-2 py-0.5 text-[11px] text-bone-mut transition hover:border-gold/40 hover:text-bone"
+            >
+              <Icon name="xlogo" className="h-3 w-3" />
+              {profile.x_handle}
+            </a>
+          )}
+        </div>
 
         {profile.bio && (
           <p className="mt-2 max-w-prose text-sm leading-relaxed text-bone-mut">

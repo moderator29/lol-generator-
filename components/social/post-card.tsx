@@ -9,6 +9,7 @@ import { Icon } from "@/components/ui/icon";
 import { TipDialog } from "@/components/tip/tip-dialog";
 import { realmFetch } from "@/lib/auth/api";
 import { muteMember, unmuteMember } from "@/lib/social/mutes";
+import { useViewerId } from "@/lib/social/use-viewer";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { timeAgo, TIER_NAMES, type Post } from "@/lib/social/types";
 
@@ -100,6 +101,9 @@ function ActionButton({
 
 export function PostCard({ post }: { post: Post }) {
   const { authenticated } = useRealmAuth();
+  const viewerId = useViewerId();
+  const isOwn = viewerId !== null && viewerId === post.author_id;
+  const [removed, setRemoved] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(post.like_count);
   const [reposted, setReposted] = useState(false);
@@ -157,6 +161,16 @@ export function PostCard({ post }: { post: Post }) {
       /* no clipboard, no drama */
     }
   };
+  const doDelete = async () => {
+    if (!requireAuth()) return;
+    setMenuOpen(false);
+    if (!window.confirm("Delete this raven for good?")) return;
+    setRemoved(true);
+    await realmFetch("/api/posts", {
+      method: "DELETE",
+      json: { id: post.id },
+    });
+  };
   const doReport = async () => {
     if (!requireAuth()) return;
     setMenuOpen(false);
@@ -201,6 +215,8 @@ export function PostCard({ post }: { post: Post }) {
   };
   const a = post.author;
   const firstTag = post.cashtags[0];
+
+  if (removed) return null;
 
   if (hidden) {
     const who = a.handle ? `@${a.handle}` : "this member";
@@ -302,40 +318,56 @@ export function PostCard({ post }: { post: Post }) {
                     className="fixed inset-0 z-20 cursor-default"
                   />
                   <div className="glass glass-sm absolute right-0 top-8 z-30 w-40 p-1">
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        void doReport();
-                      }}
-                      disabled={reported}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-bone-mut transition hover:bg-panel disabled:opacity-50"
-                    >
-                      <Icon name="flag" className="h-3.5 w-3.5" />
-                      {reported ? "Reported" : "Report"}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        void doMute();
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-bone-mut transition hover:bg-panel"
-                    >
-                      <Icon name="bell" className="h-3.5 w-3.5" />
-                      Mute
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        void doBlock();
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-bone-mut transition hover:bg-panel"
-                    >
-                      <Icon name="shield" className="h-3.5 w-3.5" />
-                      Block
-                    </button>
+                    {isOwn ? (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void doDelete();
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-ember-deep transition hover:bg-panel"
+                      >
+                        <Icon name="flag" className="h-3.5 w-3.5" />
+                        Delete raven
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void doReport();
+                          }}
+                          disabled={reported}
+                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-bone-mut transition hover:bg-panel disabled:opacity-50"
+                        >
+                          <Icon name="flag" className="h-3.5 w-3.5" />
+                          {reported ? "Reported" : "Report"}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void doMute();
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-bone-mut transition hover:bg-panel"
+                        >
+                          <Icon name="bell" className="h-3.5 w-3.5" />
+                          Mute
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void doBlock();
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-bone-mut transition hover:bg-panel"
+                        >
+                          <Icon name="shield" className="h-3.5 w-3.5" />
+                          Block
+                        </button>
+                      </>
+                    )}
                   </div>
                 </>
               )}
