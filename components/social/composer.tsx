@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/social/avatar";
 import { Icon } from "@/components/ui/icon";
 import { realmFetch } from "@/lib/auth/api";
@@ -18,7 +19,20 @@ const AUDIENCES = [
 
 type Audience = (typeof AUDIENCES)[number]["value"];
 
-export function Composer({ onPosted }: { onPosted?: (post?: Post) => void }) {
+export function Composer({
+  onPosted,
+  page = false,
+  onDone,
+}: {
+  onPosted?: (post?: Post) => void;
+  /* When true, the composer renders as a focused full compose screen (its own
+     top bar, a large textarea) and navigates to /home once a raven is sent. */
+  page?: boolean;
+  /* Called after a successful post in page mode instead of the default
+     navigation to /home, so a caller can steer where the member lands. */
+  onDone?: () => void;
+}) {
+  const router = useRouter();
   const { authenticated, displayName } = useRealmAuth();
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
@@ -113,12 +127,45 @@ export function Composer({ onPosted }: { onPosted?: (post?: Post) => void }) {
     setPollOptions(["", ""]);
     setVisibility("public");
     setAudienceOpen(false);
+    if (page) {
+      if (onDone) onDone();
+      else router.push("/home");
+      return;
+    }
     onPosted?.(res.data?.post);
   };
 
+  const sendDisabled =
+    busy ||
+    uploading ||
+    (!body.trim() && !callToken.trim() && images.length === 0);
+
   return (
-    <div className="glass glass-sm p-4">
-      <div className="flex gap-3">
+    <div className={page ? "flex min-h-[calc(100dvh-3.5rem)] flex-col" : "glass glass-sm p-4"}>
+      {page && (
+        <div className="glass sticky top-0 z-30 flex items-center justify-between gap-3 px-3 py-2.5">
+          <button
+            type="button"
+            onClick={() => router.push("/home")}
+            aria-label="Close"
+            className="btn-glass group px-3.5 py-1.5 text-xs font-semibold tracking-wide text-bone-mut hover:text-bone"
+          >
+            <Icon
+              name="arrow"
+              className="h-3.5 w-3.5 rotate-180 transition-transform duration-200 group-hover:-translate-x-0.5"
+            />
+            Close
+          </button>
+          <button
+            onClick={send}
+            disabled={sendDisabled}
+            className="btn-gold px-5 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy ? "Flying..." : "Send raven"}
+          </button>
+        </div>
+      )}
+      <div className={page ? "flex flex-1 gap-3 px-4 py-4" : "flex gap-3"}>
         <Avatar
           author={{
             handle: null,
@@ -126,15 +173,20 @@ export function Composer({ onPosted }: { onPosted?: (post?: Post) => void }) {
             avatar_url: null,
             house_slug: null,
           }}
-          size={40}
+          size={page ? 44 : 40}
         />
-        <div className="min-w-0 flex-1">
+        <div className={page ? "flex min-w-0 flex-1 flex-col" : "min-w-0 flex-1"}>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value.slice(0, 1000))}
             placeholder="Send a raven..."
-            rows={body.length > 80 ? 4 : 2}
-            className="w-full resize-none bg-transparent text-[15px] text-bone placeholder-bone-faint outline-none"
+            autoFocus={page}
+            rows={page ? undefined : body.length > 80 ? 4 : 2}
+            className={
+              page
+                ? "min-h-[40vh] w-full flex-1 resize-none bg-transparent text-lg leading-relaxed text-bone placeholder-bone-faint outline-none"
+                : "w-full resize-none bg-transparent text-[15px] text-bone placeholder-bone-faint outline-none"
+            }
           />
           {callOpen && (
             <div className="glass-sm mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-gold/25 bg-panel-warm p-2.5">
@@ -350,17 +402,15 @@ export function Composer({ onPosted }: { onPosted?: (post?: Post) => void }) {
             <span className="text-[11px] text-bone-faint">
               {body.length > 0 && `${body.length}/1000`}
             </span>
-            <button
-              onClick={send}
-              disabled={
-                busy ||
-                uploading ||
-                (!body.trim() && !callToken.trim() && images.length === 0)
-              }
-              className="btn-gold px-4 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {busy ? "Flying..." : "Post"}
-            </button>
+            {!page && (
+              <button
+                onClick={send}
+                disabled={sendDisabled}
+                className="btn-gold px-4 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy ? "Flying..." : "Post"}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PostCard } from "@/components/social/post-card";
-import { Composer } from "@/components/social/composer";
 import { Icon } from "@/components/ui/icon";
 import {
   fetchFeed,
@@ -103,37 +102,8 @@ export function Feed() {
     return subscribeToFeed(() => setHasNew(true));
   }, []);
 
-  /* When a member sends a raven, show it at the very top at once, without
-     waiting on the realtime roundtrip or a refetch. The realtime subscription
-     stays in place; a later refresh simply reconciles by id. */
-  const onPosted = useCallback(
-    (created?: Post) => {
-      if (!created) {
-        void load();
-        return;
-      }
-      const fitsTab =
-        tab === "foryou" ||
-        tab === "latest" ||
-        (tab === "signal" && created.kind === "call") ||
-        (tab === "houses" &&
-          !!me.current?.house_slug &&
-          created.house_slug === me.current.house_slug);
-      if (!fitsTab) return;
-      setPosts((prev) =>
-        prev.some((p) => p.id === created.id && !p.repostedBy)
-          ? prev
-          : [{ ...created, effectiveTime: created.created_at }, ...prev]
-      );
-      setHasNew(false);
-    },
-    [tab, load]
-  );
-
   return (
     <div className="flex flex-col gap-3">
-      <Composer onPosted={onPosted} />
-
       <div className="relative">
         <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pr-10">
           {TABS.map((t) => (
