@@ -5,6 +5,7 @@ export type NavItem = {
   plain: string;
   icon: string;
   blurb?: string;
+  badge?: string;
 };
 
 /* Social-first grouping: the social realm and the games lead, tools support. */
@@ -23,9 +24,9 @@ export const socialNav: NavItem[] = [
 
 export const toolsNav: NavItem[] = [
   { slug: "raven", href: "/raven", themed: "The Raven", plain: "Ask anything", icon: "raven" },
-  { slug: "dna", href: "/dna", themed: "The Bloodline", plain: "Wallet & profile DNA", icon: "orb" },
+  { slug: "dna", href: "/dna", themed: "The Bloodline", plain: "Wallet & profile DNA", icon: "orb", badge: "Beta" },
   { slug: "ledger", href: "/ledger", themed: "The Ledger", plain: "Portfolio", icon: "book" },
-  { slug: "watch", href: "/watch", themed: "The Watch", plain: "Safety", icon: "shield" },
+  { slug: "watch", href: "/watch", themed: "The Watch", plain: "Safety", icon: "shield", badge: "Beta" },
   { slug: "scrying", href: "/scrying", themed: "The Scrying Glass", plain: "Smart money", icon: "eye" },
   { slug: "forge", href: "/forge", themed: "The Forge", plain: "Staking", icon: "flame" },
 ];

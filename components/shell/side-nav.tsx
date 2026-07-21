@@ -40,7 +40,16 @@ function NavGroup({
           >
             <Icon name={item.icon} className="h-[17px] w-[17px] shrink-0" />
             <span className="truncate font-medium">{item.themed}</span>
-            <span className="ml-auto hidden truncate text-[10px] text-bone-faint group-hover:inline">
+            {item.badge && (
+              <span className="shrink-0 rounded-full border border-gold/30 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-gold/80">
+                {item.badge}
+              </span>
+            )}
+            <span
+              className={`hidden truncate text-[10px] text-bone-faint group-hover:inline ${
+                item.badge ? "" : "ml-auto"
+              }`}
+            >
               {item.plain}
             </span>
           </Link>
