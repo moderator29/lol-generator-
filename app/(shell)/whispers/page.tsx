@@ -498,8 +498,8 @@ export default function WhispersPage() {
 
             {/* Thread */}
             {activeId ? (
-              <div className="glass flex h-[calc(100dvh-13rem)] min-h-[24rem] flex-col overflow-hidden">
-                <div className="flex items-center gap-3 border-b border-steel-line px-3 py-2.5">
+              <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-obsidian md:static md:z-auto md:h-[calc(100dvh-13rem)] md:min-h-[24rem] md:rounded-[24px] md:border md:border-gold/15 md:bg-panel/40 md:backdrop-blur-xl">
+                <div className="flex items-center gap-3 border-b border-steel-line px-3 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] md:pt-2.5">
                   <button
                     type="button"
                     onClick={closeThread}
@@ -630,7 +630,7 @@ export default function WhispersPage() {
 
                 <form
                   onSubmit={(e) => void send(e)}
-                  className="flex items-center gap-2 border-t border-steel-line px-3 py-2.5"
+                  className="flex items-center gap-2 border-t border-steel-line px-3 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] md:pb-2.5"
                 >
                   <input
                     ref={fileRef}
