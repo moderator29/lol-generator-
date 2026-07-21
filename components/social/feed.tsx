@@ -104,8 +104,8 @@ export function Feed() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative">
-        <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pr-10">
+      <div className="relative flex items-center gap-2">
+        <div className="scrollbar-none -mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1">
           {TABS.map((t) => (
             <button
               key={t.key}
@@ -121,7 +121,7 @@ export function Feed() {
         <button
           onClick={() => setFiltersOpen((v) => !v)}
           aria-label="Feed filters"
-          className={`absolute right-0 top-0 flex h-[30px] w-[30px] items-center justify-center rounded-full transition ${
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition ${
             filtersOpen || filters.hideHerald || filters.mediaOnly || filters.callsOnly
               ? "btn-gold"
               : "btn-glass text-bone-mut"
@@ -130,7 +130,7 @@ export function Feed() {
           <Icon name="sliders" className="h-4 w-4" />
         </button>
         {filtersOpen && (
-          <div className="glass glass-sm absolute right-0 top-9 z-20 w-56 p-3">
+          <div className="glass glass-sm absolute right-0 top-11 z-20 w-56 p-3">
             {(
               [
                 ["hideHerald", "Hide the Herald's posts"],
