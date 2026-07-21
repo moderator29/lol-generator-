@@ -45,7 +45,7 @@ const chat = [
     from: "raven",
     text: "Bread embracing filling meets the letter of sandwich law, but no one who orders a sandwich expects a hotdog to arrive. Verdict: technically yes, spiritually no. Both of you may claim victory, the rarest outcome in Ravenspire.",
   },
-  { from: "user", text: "@raven read $RAVEN for me." },
+  { from: "user", text: "@raven read $RSP for me." },
   {
     from: "raven",
     text: "The scrolls before me carry the live figures, not my invention. A card rides below with price, day move and market cap, straight from the markets. I read the weather, I do not promise the sky.",
@@ -137,7 +137,7 @@ export function MeetRaven() {
                 without printing a fabricated number. */}
             <div className="ml-9 flex min-w-[200px] max-w-[260px] flex-col gap-1.5 rounded-2xl border border-gold/20 bg-panel px-3.5 py-3">
               <div className="flex items-center justify-between gap-3">
-                <span className="font-display text-sm font-semibold text-bone">$RAVEN</span>
+                <span className="font-display text-sm font-semibold text-bone">$RSP</span>
                 <Icon name="coin" className="h-4 w-4 text-gold" />
               </div>
               {[

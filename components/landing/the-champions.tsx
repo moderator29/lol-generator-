@@ -15,19 +15,24 @@ import { champions } from "@/lib/game/champions";
   sit in a caption BELOW the artwork, never over the character.
 */
 
+/*
+  Only the full-resolution portraits (roughly 218px wide source art) are
+  featured here so the roster stays crisp. The smaller thumbnail-sized files
+  in the roster are deliberately left out to avoid any upscaling blur.
+*/
 const featuredSlugs = [
-  "kaelen-dragonborn",
   "aeron-the-black",
   "the-faceless",
   "mira-stormborn",
-  "isolde-the-pure",
-  "vorian-nightblade",
-  "morrigan-shadowmist",
-  "ser-willas",
-  "ser-elyra",
+  "ser-aldric",
   "grommash",
+  "sable-nightwood",
   "lady-ysolde",
+  "torvald-ironhand",
+  "nymeria-vale",
+  "ser-elyra",
   "karn-the-reaver",
+  "bael-the-bard",
 ];
 
 const bySlug = new Map(champions.map((c) => [c.slug, c]));
@@ -95,16 +100,22 @@ export function TheChampions() {
               href="/war/champions"
               className={`rarity-${c.rarity} rarity-frame group snap-start shrink-0 w-[54vw] max-w-[220px] overflow-hidden rounded-2xl bg-panel sm:w-[210px]`}
             >
-              {/* Artwork only, no text over the character */}
+              {/* Artwork only, no text over the character. Full-resolution
+                  source rendered crisp: object-cover, no blur filter. */}
               <div className="relative overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={c.art}
                   alt={c.name}
+                  width={218}
+                  height={291}
                   loading="lazy"
-                  className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-105"
+                  decoding="async"
+                  draggable={false}
+                  className="aspect-[3/4] w-full object-cover object-top transition duration-500 group-hover:scale-[1.04]"
                 />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-void/70 via-transparent to-transparent" />
+                {/* Slim base scrim only, kept clear of the face so the art reads sharp */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-void/60 to-transparent" />
                 <span className={`rarity-${c.rarity} rarity-chip absolute left-2 top-2`}>
                   {c.rarity}
                 </span>

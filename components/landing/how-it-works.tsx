@@ -29,7 +29,7 @@ const steps = [
   {
     icon: "medal",
     title: "Earn and claim",
-    body: "Real deeds earn points that convert to $RAVEN at Season's end, claimed straight to the wallet only you control.",
+    body: "Real deeds earn points that convert to $RSP at Season's end, claimed straight to the wallet only you control.",
   },
 ];
 
@@ -68,8 +68,8 @@ export function HowItWorks() {
         variants={rise}
         className="mt-3 max-w-prose text-[15px] leading-relaxed text-bone-mut"
       >
-        No presale, no seat to buy, no shortcut. Everything of worth is earned in
-        the open, and the road is short.
+        Presale coming soon. No seat to buy, no shortcut. Everything of worth is
+        earned in the open, and the road is short.
       </motion.p>
 
       <ol className="relative mt-8 flex flex-col gap-4">
