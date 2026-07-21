@@ -35,6 +35,53 @@ interface BreakdownSlice {
   value: number;
 }
 
+interface WindowBlock {
+  /* Cumulative $RSP total across the window, anchored by a baseline point at
+     the window's start and a trailing point at "now", so the chart always has
+     at least two points and reads as a live window rather than all-time. */
+  series: SeriesPoint[];
+  /* $RSP earned within the window (may be negative if deltas net down). */
+  delta: number;
+  /* Change vs. the balance held at window start. */
+  changePct: number;
+  /* How many real earning events fell inside the window; 0 means a flat line
+     and an honest "quiet" state rather than an invented trend. */
+  events: number;
+}
+
+const WINDOW_MS: Record<string, number> = {
+  "24h": 24 * 60 * 60 * 1000,
+  "7d": 7 * 24 * 60 * 60 * 1000,
+  "30d": 30 * 24 * 60 * 60 * 1000,
+};
+
+/* Slice a windowed cumulative series from the raw, time-ordered delta events.
+   The full running total is preserved so a window that starts mid-history
+   opens at the correct baseline instead of zero. Nothing is invented: a window
+   with no events collapses to a flat baseline -> now line. */
+function buildWindow(events: SeriesPoint[], ms: number, now: number): WindowBlock {
+  const start = now - ms;
+  let running = 0;
+  let baseline = 0;
+  const pts: SeriesPoint[] = [];
+  for (const e of events) {
+    const t = Date.parse(e.t);
+    running += e.v;
+    if (t <= start) baseline = running;
+    else pts.push({ t: e.t, v: running });
+  }
+  const startIso = new Date(start).toISOString();
+  const nowIso = new Date(now).toISOString();
+  const series: SeriesPoint[] = [{ t: startIso, v: baseline }, ...pts];
+  if (pts.length === 0 || Date.parse(pts[pts.length - 1].t) < now) {
+    series.push({ t: nowIso, v: running });
+  }
+  const delta = running - baseline;
+  const changePct =
+    baseline !== 0 ? (delta / baseline) * 100 : delta > 0 ? 100 : 0;
+  return { series, delta, changePct, events: pts.length };
+}
+
 /* Group a raw ledger reason into a member-facing earning category. */
 function labelForReason(reason: string | null): string {
   if (!reason) return "Other";
@@ -223,6 +270,16 @@ export async function GET(req: Request) {
 
   const grandTotal = ledgerPoints + tipsTotal;
 
+  /* Real windowed views over the same event stream, built from the actual
+     points_ledger + tips timestamps. Each drives the chart and headline change
+     for its timeframe; sparse windows degrade to an honest flat line. */
+  const now = Date.now();
+  const windows: Record<string, WindowBlock> = {
+    "24h": buildWindow(events, WINDOW_MS["24h"], now),
+    "7d": buildWindow(events, WINDOW_MS["7d"], now),
+    "30d": buildWindow(events, WINDOW_MS["30d"], now),
+  };
+
   /* Allocation breakdown, largest source first, positives only. Gated behind
      public-positions for non-owners: a member can show earnings totals while
      keeping the source mix private. */
@@ -248,6 +305,7 @@ export async function GET(req: Request) {
       referralRewards,
       totalGlory,
       series,
+      windows,
       breakdown,
       firstEarnedAt,
       lastEarnedAt,

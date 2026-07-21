@@ -2,11 +2,12 @@
 
 import { useId } from "react";
 
-/* Dependency-free cumulative earnings chart, FOMO-style: a gold area under a
-   gold line, drawn as pure inline SVG. No libraries, no canvas, no animation
-   that fights reduced-motion. The path is a static shape, so it is inherently
-   reduced-motion safe; the only motion is a subtle CSS pulse on the leading
-   dot, which the global reduced-motion rule already neutralizes. */
+/* Dependency-free cumulative earnings chart for The Coffers: a forged-gold
+   area under a gold line, drawn as pure inline SVG. No libraries, no canvas.
+   The path is a static shape, so it is inherently reduced-motion safe; the
+   only motion is a subtle pulse on the leading dot, which the global
+   reduced-motion rule neutralizes. The series is a windowed cumulative total,
+   so a quiet window renders as an honest flat line rather than a faked trend. */
 
 export interface EarningsPoint {
   t: string;
@@ -14,14 +15,16 @@ export interface EarningsPoint {
 }
 
 const W = 320;
-const H = 96;
-const PAD_Y = 10;
+const H = 104;
+const PAD_Y = 12;
 
 export function EarningsChart({
   series,
+  emptyLabel = "Not enough history yet to chart. Earn on to watch it climb.",
   className = "",
 }: {
   series: EarningsPoint[];
+  emptyLabel?: string;
   className?: string;
 }) {
   const gradId = useId();
@@ -30,11 +33,9 @@ export function EarningsChart({
   if (series.length < 2) {
     return (
       <div
-        className={`flex h-24 items-center justify-center rounded-2xl border border-steel-line/60 bg-void/40 ${className}`}
+        className={`flex h-[104px] items-center justify-center rounded-2xl border border-steel-line/60 bg-void/40 ${className}`}
       >
-        <p className="text-xs text-bone-faint">
-          Not enough history yet to chart. Earn on to watch it climb.
-        </p>
+        <p className="px-4 text-center text-xs text-bone-faint">{emptyLabel}</p>
       </div>
     );
   }
@@ -59,17 +60,20 @@ export function EarningsChart({
   const area = `${line} L${W} ${H} L0 ${H} Z`;
   const last = pts[pts.length - 1];
 
+  /* Flat window: every value equal (no earning events landed inside it). */
+  const flat = maxV - Math.min(...values) < 1e-9;
+
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
       role="img"
-      aria-label="Cumulative earnings over time"
-      className={`h-24 w-full ${className}`}
+      aria-label="Cumulative $RSP earned over the selected window"
+      className={`h-[104px] w-full ${className}`}
     >
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--gold-bright)" stopOpacity="0.34" />
+          <stop offset="0%" stopColor="var(--gold-bright)" stopOpacity="0.32" />
           <stop offset="100%" stopColor="var(--gold)" stopOpacity="0" />
         </linearGradient>
         <linearGradient id={lineId} x1="0" y1="0" x2="1" y2="0">
@@ -78,6 +82,24 @@ export function EarningsChart({
           <stop offset="100%" stopColor="var(--gold-bright)" />
         </linearGradient>
       </defs>
+
+      {/* Faint baseline + mid gridlines for depth, non-scaling so they stay
+          hairline-thin regardless of the stretched viewBox. */}
+      {[0.5].map((f) => (
+        <line
+          key={f}
+          x1="0"
+          x2={W}
+          y1={H * f}
+          y2={H * f}
+          stroke="var(--steel-line)"
+          strokeWidth="1"
+          strokeDasharray="2 4"
+          vectorEffect="non-scaling-stroke"
+          opacity="0.5"
+        />
+      ))}
+
       <path d={area} fill={`url(#${gradId})`} />
       <path
         d={line}
@@ -87,16 +109,19 @@ export function EarningsChart({
         strokeLinecap="round"
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
+        opacity={flat ? 0.6 : 1}
       />
       <circle cx={last.x} cy={last.y} r="3" fill="var(--gold-bright)" />
-      <circle
-        cx={last.x}
-        cy={last.y}
-        r="6"
-        fill="var(--gold-bright)"
-        opacity="0.35"
-        className="animate-ping"
-      />
+      {!flat && (
+        <circle
+          cx={last.x}
+          cy={last.y}
+          r="6"
+          fill="var(--gold-bright)"
+          opacity="0.35"
+          className="animate-ping"
+        />
+      )}
     </svg>
   );
 }
