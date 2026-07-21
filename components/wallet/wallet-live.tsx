@@ -8,7 +8,9 @@ import { CopyButton } from "@/components/wallet/copy-button";
 import { WalletModal } from "@/components/wallet/wallet-modal";
 import { WalletSend } from "@/components/wallet/wallet-send";
 import { WalletReceive } from "@/components/wallet/wallet-receive";
-import { WalletBackup } from "@/components/wallet/wallet-backup";
+import { WalletSwap } from "@/components/wallet/wallet-swap";
+import { WalletEarn } from "@/components/wallet/wallet-earn";
+import { WalletSettings } from "@/components/wallet/wallet-settings";
 import {
   addressExplorerUrl,
   chainMetaFor,
@@ -16,32 +18,40 @@ import {
   shortAddress,
 } from "@/components/wallet/chains";
 
-type Panel = "send" | "receive" | "backup" | null;
+type Panel = "send" | "receive" | "swap" | "earn" | "settings" | null;
 
-/* The Privy-powered wallet overview: locates the embedded wallet, reads its
-   live chain + native balance straight from the wallet's own provider (no
-   invented numbers), and presents a real, non-custodial wallet: account header,
-   balance hero, primary actions (Send / Receive / Backup) in secure modals, and
-   an honest holdings + activity area. MUST render only when Privy is enabled so
-   useWallets / useSendTransaction have their provider. */
+/* The Privy-powered wallet overview, built to feel like a real modern
+   non-custodial wallet: it locates the embedded Ethereum (0x) wallet, reads its
+   live chain + native balance straight from the wallet's own EIP-1193 provider
+   (no invented numbers), and presents a balance hero, a horizontal action row
+   (Send / Receive / Swap / Earn) that opens clean modals, honest holdings and
+   activity, and a settings sheet that holds account details and Backup. MUST
+   render only when Privy is enabled so useWallets / useSendTransaction have
+   their provider. */
 export function WalletLive({ address }: { address?: string }) {
   const { wallets, ready } = useWallets();
 
+  /* Always resolve the embedded EVM wallet with a 0x address. useWallets() from
+     @privy-io/react-auth returns Ethereum wallets, but we still guard hard so a
+     Solana (base58) address can never leak into this view. */
   const wallet = useMemo(() => {
-    if (!wallets.length) return undefined;
-    const byAddress = address
-      ? wallets.find((w) => w.address.toLowerCase() === address.toLowerCase())
-      : undefined;
-    const embedded = wallets.find(
+    const evm = wallets.filter((w) => w.address?.startsWith("0x"));
+    if (!evm.length) return undefined;
+    const embedded = evm.find(
       (w) =>
         w.walletClientType === "privy" || w.walletClientType === "privy-v2"
     );
-    return byAddress ?? embedded ?? wallets[0];
+    const byAddress =
+      address && address.startsWith("0x")
+        ? evm.find((w) => w.address.toLowerCase() === address.toLowerCase())
+        : undefined;
+    return embedded ?? byAddress ?? evm[0];
   }, [wallets, address]);
 
   const chainId = parseChainId(wallet?.chainId);
   const chainMeta = chainMetaFor(chainId);
-  const walletAddress = wallet?.address ?? address;
+  const walletAddress =
+    wallet?.address ?? (address?.startsWith("0x") ? address : undefined);
 
   const [balanceWei, setBalanceWei] = useState<bigint | undefined>(undefined);
   const [balanceState, setBalanceState] = useState<
@@ -106,16 +116,16 @@ export function WalletLive({ address }: { address?: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Account header + balance hero */}
-      <section className="glass glass-warm overflow-hidden p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-3">
+      {/* Balance hero */}
+      <section className="glass glass-warm relative overflow-hidden p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-panel">
               <Icon name="wallet" className="h-5 w-5 text-gold" />
             </span>
             <div className="min-w-0">
               <p className="font-display text-sm font-semibold text-bone">
-                Realm Wallet
+                The Vault
               </p>
               <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-steel-line bg-panel/60 px-2.5 py-0.5 text-[11px] font-medium text-bone-mut">
                 <span className="h-1.5 w-1.5 rounded-full bg-gold" />
@@ -124,23 +134,18 @@ export function WalletLive({ address }: { address?: string }) {
             </div>
           </div>
 
-          {walletAddress ? (
-            <div className="flex shrink-0 items-center gap-2">
-              <code className="tnum hidden rounded-lg border border-steel-line bg-panel/50 px-2.5 py-1.5 font-mono text-xs text-bone-mut sm:block">
-                {shortAddress(walletAddress)}
-              </code>
-              <CopyButton value={walletAddress} label="Copy address" iconOnly />
-            </div>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => setPanel("settings")}
+            aria-label="Wallet settings"
+            title="Wallet settings"
+            className="btn-glass inline-flex h-9 w-9 shrink-0 items-center justify-center p-0"
+          >
+            <Icon name="sliders" className="h-4 w-4" />
+          </button>
         </div>
 
-        {walletAddress ? (
-          <code className="tnum mt-3 block font-mono text-xs text-bone-mut sm:hidden">
-            {shortAddress(walletAddress)}
-          </code>
-        ) : null}
-
-        <div className="mt-5 border-t border-steel-line/60 pt-5">
+        <div className="mt-6">
           <p className="text-[11px] uppercase tracking-[0.22em] text-bone-faint">
             Total balance
           </p>
@@ -175,7 +180,22 @@ export function WalletLive({ address }: { address?: string }) {
           </p>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 rounded-2xl border border-gold/15 bg-panel/40 px-3.5 py-2.5">
+        {/* Address + copy */}
+        {walletAddress ? (
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-steel-line/60 pt-4">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-bone-faint">
+                Address
+              </span>
+              <code className="tnum min-w-0 truncate font-mono text-xs text-bone-mut">
+                {shortAddress(walletAddress, 8, 6)}
+              </code>
+            </div>
+            <CopyButton value={walletAddress} label="Copy address" iconOnly />
+          </div>
+        ) : null}
+
+        <div className="mt-3 flex items-center gap-2 rounded-2xl border border-gold/15 bg-panel/40 px-3.5 py-2.5">
           <Icon name="lock" className="h-4 w-4 shrink-0 text-gold" />
           <p className="text-xs text-bone-mut">
             Non-custodial. You hold the keys, and only you can move these funds.
@@ -183,9 +203,9 @@ export function WalletLive({ address }: { address?: string }) {
         </div>
       </section>
 
-      {/* Primary actions */}
-      <section className="glass p-5 sm:p-6">
-        <div className="grid grid-cols-3 gap-3">
+      {/* Action row */}
+      <section className="glass p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-2 sm:justify-around">
           <ActionButton
             icon="send"
             label="Send"
@@ -199,9 +219,14 @@ export function WalletLive({ address }: { address?: string }) {
             onClick={() => setPanel("receive")}
           />
           <ActionButton
-            icon="shield"
-            label="Backup"
-            onClick={() => setPanel("backup")}
+            icon="repost"
+            label="Swap"
+            onClick={() => setPanel("swap")}
+          />
+          <ActionButton
+            icon="crown"
+            label="Earn"
+            onClick={() => setPanel("earn")}
           />
         </div>
       </section>
@@ -222,7 +247,7 @@ export function WalletLive({ address }: { address?: string }) {
             <div className="min-w-0">
               <p className="text-sm font-medium text-bone">{chainMeta.symbol}</p>
               <p className="text-xs text-bone-faint">
-                {chainMeta.name} · native coin
+                {chainMeta.name} native coin
               </p>
             </div>
           </div>
@@ -296,13 +321,33 @@ export function WalletLive({ address }: { address?: string }) {
       </WalletModal>
 
       <WalletModal
-        open={panel === "backup"}
+        open={panel === "swap"}
         onClose={() => setPanel(null)}
-        title="Back up wallet"
-        caption="Export private key"
-        icon="shield"
+        title="Swap"
+        caption={chainMeta.name}
+        icon="repost"
       >
-        <WalletBackup />
+        <WalletSwap chainMeta={chainMeta} />
+      </WalletModal>
+
+      <WalletModal
+        open={panel === "earn"}
+        onClose={() => setPanel(null)}
+        title="Earn"
+        caption="Referrals"
+        icon="crown"
+      >
+        <WalletEarn />
+      </WalletModal>
+
+      <WalletModal
+        open={panel === "settings"}
+        onClose={() => setPanel(null)}
+        title="Wallet settings"
+        caption="Account and backup"
+        icon="sliders"
+      >
+        <WalletSettings address={walletAddress} chainMeta={chainMeta} />
       </WalletModal>
     </div>
   );
@@ -325,13 +370,13 @@ function ActionButton({
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col items-center gap-2.5"
+      className="group flex flex-1 flex-col items-center gap-2.5"
     >
       <span
-        className={`flex h-14 w-14 items-center justify-center rounded-2xl border transition-all duration-200 ${
+        className={`flex h-14 w-14 items-center justify-center rounded-full border transition-all duration-200 ${
           primary
             ? "gold-metal border-gold/50 text-[#171204] shadow-[0_8px_24px_rgba(200,162,76,0.22)] group-hover:brightness-105"
-            : "border-steel-line bg-panel/60 text-gold group-hover:border-gold/45"
+            : "border-steel-line bg-panel/60 text-gold group-hover:border-gold/45 group-hover:bg-panel"
         }`}
       >
         <Icon name={icon} className={`h-5 w-5 ${iconClassName}`} />
