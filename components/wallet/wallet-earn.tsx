@@ -14,7 +14,7 @@ interface RefData {
 
 /* Earn: reads the caller's referral banner from /api/referrals and frames the
    real earnings honestly. Shows the shareable link (copy), how many recruits
-   have activated, and how rewards accrue. No invented balances; $RAVEN framing
+   have activated, and how rewards accrue. No invented balances; $RSP framing
    only, credited later at Season claims. Rendered as the body of the Earn
    modal. */
 export function WalletEarn() {
@@ -94,7 +94,7 @@ export function WalletEarn() {
 
       <p className="flex items-start gap-2 text-xs leading-relaxed text-bone-faint">
         <Icon name="crown" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
-        Points and Renown are credited as your recruits act. $RAVEN comes later,
+        Points and Renown are credited as your recruits act. $RSP comes later,
         at Season claims, non-custodial and claimed by you alone. We will not
         show you a number that does not exist yet.
       </p>

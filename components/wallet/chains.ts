@@ -43,6 +43,18 @@ const CHAINS: Record<number, ChainMeta> = {
     symbol: "POL",
     explorer: "https://polygonscan.com",
   },
+  56: {
+    id: 56,
+    name: "BNB Chain",
+    symbol: "BNB",
+    explorer: "https://bscscan.com",
+  },
+  43114: {
+    id: 43114,
+    name: "Avalanche",
+    symbol: "AVAX",
+    explorer: "https://snowtrace.io",
+  },
 };
 
 /* Parse Privy's CAIP-2 chainId ("eip155:1") or a raw / hex id into a number. */
@@ -78,4 +90,107 @@ export function addressExplorerUrl(
 export function shortAddress(addr: string, lead = 6, tail = 4): string {
   if (addr.length <= lead + tail + 2) return addr;
   return `${addr.slice(0, lead)}...${addr.slice(-tail)}`;
+}
+
+/* ----- Multi-chain EVM support (Trust / Exodus style) -----
+   The seven EVM chains the Vault reads balances across. `covalent` is the
+   GoldRush/Covalent chain slug used by the balances route; `explorer` powers
+   tx + address deep links; `native` is the gas coin shown for that chain. */
+export interface EvmChain {
+  id: number;
+  name: string;
+  short: string;
+  native: string;
+  covalent: string;
+  explorer: string;
+}
+
+export const EVM_CHAINS: EvmChain[] = [
+  {
+    id: 1,
+    name: "Ethereum",
+    short: "ETH",
+    native: "ETH",
+    covalent: "eth-mainnet",
+    explorer: "https://etherscan.io",
+  },
+  {
+    id: 42161,
+    name: "Arbitrum",
+    short: "ARB",
+    native: "ETH",
+    covalent: "arbitrum-mainnet",
+    explorer: "https://arbiscan.io",
+  },
+  {
+    id: 137,
+    name: "Polygon",
+    short: "POL",
+    native: "POL",
+    covalent: "matic-mainnet",
+    explorer: "https://polygonscan.com",
+  },
+  {
+    id: 43114,
+    name: "Avalanche",
+    short: "AVAX",
+    native: "AVAX",
+    covalent: "avalanche-mainnet",
+    explorer: "https://snowtrace.io",
+  },
+  {
+    id: 56,
+    name: "BNB Chain",
+    short: "BNB",
+    native: "BNB",
+    covalent: "bsc-mainnet",
+    explorer: "https://bscscan.com",
+  },
+  {
+    id: 8453,
+    name: "Base",
+    short: "BASE",
+    native: "ETH",
+    covalent: "base-mainnet",
+    explorer: "https://basescan.org",
+  },
+  {
+    id: 10,
+    name: "Optimism",
+    short: "OP",
+    native: "ETH",
+    covalent: "optimism-mainnet",
+    explorer: "https://optimistic.etherscan.io",
+  },
+];
+
+export function evmChainById(id: number | null | undefined): EvmChain | undefined {
+  if (id === null || id === undefined) return undefined;
+  return EVM_CHAINS.find((c) => c.id === id);
+}
+
+export function evmChainByCovalent(slug: string): EvmChain | undefined {
+  return EVM_CHAINS.find((c) => c.covalent === slug);
+}
+
+/* Explorer deep links that take a raw chain id rather than a ChainMeta. */
+export function txExplorerUrlFor(chainId: number, hash: string): string | null {
+  const c = evmChainById(chainId);
+  return c ? `${c.explorer}/tx/${hash}` : null;
+}
+
+export function addressExplorerUrlFor(
+  chainId: number,
+  address: string
+): string | null {
+  const c = evmChainById(chainId);
+  return c ? `${c.explorer}/address/${address}` : null;
+}
+
+export function tokenExplorerUrlFor(
+  chainId: number,
+  contract: string
+): string | null {
+  const c = evmChainById(chainId);
+  return c ? `${c.explorer}/token/${contract}` : null;
 }
