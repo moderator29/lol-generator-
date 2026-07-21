@@ -244,9 +244,9 @@ export default function RavenPage() {
   const activeVoice = VOICES.find((v) => v.id === voice) ?? VOICES[0];
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-9.5rem)] w-full max-w-3xl flex-col px-3 py-3 sm:px-4 lg:h-[calc(100dvh-2rem)] lg:py-5">
-      {/* Header */}
-      <header className="glass-sm flex items-center gap-3 px-3 py-2.5 sm:px-4">
+    <div className="mx-auto flex h-[calc(100dvh-9.5rem)] w-full max-w-3xl flex-col lg:h-[calc(100dvh-2rem)]">
+      {/* Header bar: thin, full width, border below like a real chat app. */}
+      <header className="flex shrink-0 items-center gap-2.5 border-b border-steel-line/70 bg-obsidian/60 px-3 py-2.5 backdrop-blur-sm sm:px-4">
         <button
           type="button"
           onClick={() => setHistoryOpen(true)}
@@ -289,24 +289,28 @@ export default function RavenPage() {
         </button>
       </header>
 
-      {/* Transcript */}
+      {/* Transcript: the only scrolling region, fills the middle. */}
       <div
         ref={scrollerRef}
-        className="min-h-0 flex-1 overflow-y-auto py-4"
+        className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4"
       >
         <MessageList messages={messages} busy={busy} onSend={(t) => void send(t)} />
       </div>
 
-      {/* Composer pinned to the bottom, clear of the mobile bottom nav. */}
-      <div className="mx-auto w-full max-w-2xl">
-        <ChatInput
-          value={draft}
-          onChange={setDraft}
-          onSend={() => void send()}
-          busy={busy}
-          browse={browse}
-          onToggleBrowse={() => setBrowsePref(!browse)}
-        />
+      {/* Composer: pinned to the bottom of the column, full width, with a top
+          border and safe-area padding so it is never crowded by the mobile
+          bottom nav. */}
+      <div className="shrink-0 border-t border-steel-line/60 bg-obsidian/60 px-3 pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-1 backdrop-blur-sm sm:px-4">
+        <div className="mx-auto w-full max-w-2xl">
+          <ChatInput
+            value={draft}
+            onChange={setDraft}
+            onSend={() => void send()}
+            busy={busy}
+            browse={browse}
+            onToggleBrowse={() => setBrowsePref(!browse)}
+          />
+        </div>
       </div>
 
       <SettingsSheet
