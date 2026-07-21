@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { BackButton } from "@/components/shell/back-button";
 import { houses as houseData } from "@/lib/data/houses";
 import { PostCard } from "@/components/social/post-card";
 import { fetchFeed } from "@/lib/social/queries";
@@ -38,6 +39,9 @@ export default function HousePage({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
+      <div className="mb-3">
+        <BackButton href="/houses" />
+      </div>
       <div
         className="glass p-6"
         style={{ boxShadow: `inset 0 1px 0 rgba(240,214,140,0.1), 0 18px 50px rgba(0,0,0,0.45), 0 0 44px ${meta.color}14` }}
