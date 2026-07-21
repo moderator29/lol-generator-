@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { BackButton } from "@/components/shell/back-button";
 import { PostCard } from "@/components/social/post-card";
 import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
@@ -20,7 +21,8 @@ export default function BookmarksPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
-      <h1 className="font-display text-xl font-semibold text-bone">Bookmarks</h1>
+      <BackButton />
+      <h1 className="mt-3 font-display text-xl font-semibold text-bone">Bookmarks</h1>
       <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
         Saved ravens
       </p>
