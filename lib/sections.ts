@@ -146,7 +146,7 @@ export const sectionMeta: Record<string, SectionMeta> = {
     plain: "Staking",
     icon: "flame",
     description:
-      "Swear an oath. Stake $RAVEN and earn real yield from protocol fees, never emissions.",
+      "Swear an oath. Stake $RSP and earn real yield from protocol fees, never emissions.",
     emptyNote: "The Forge lights when staking goes live on-chain.",
   },
   settings: {
