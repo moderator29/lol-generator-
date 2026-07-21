@@ -2,11 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Champion } from "@/lib/game/champions";
+import { champions } from "@/lib/game/champions";
+import { Icon } from "@/components/ui/icon";
 
 /*
-  The War: real-time battle engine. Canvas simulation, DOM HUD.
-  Two armies clash; the player fights inside the melee as their champion.
-  Deterministic core (seeded PRNG), server-authoritative rewards.
+  The War, real-time. A full screen, landscape battle where the player's
+  champion leads an army of real characters against an enemy host. Units are
+  rendered from champion art, clash with lunge and slash animations, and the
+  player commands Attack, an Ultimate and a Shield. Kills build a Glory streak
+  that converts to $RSP at the season's rate. Rewards stay server authoritative
+  (the battle page banks the outcome); this engine reports kills, duration and
+  an estimated Glory.
 */
 
 export interface BattleOutcome {
@@ -18,657 +24,709 @@ export interface BattleOutcome {
 
 interface Unit {
   id: number;
-  side: 0 | 1; // 0 ally, 1 foe
-  x: number;
-  y: number;
+  team: 0 | 1; // 0 = your host, 1 = the enemy
+  hero: boolean;
+  x: number; // fraction 0..1 across the field
+  y: number; // fraction 0..1 down the field
   hp: number;
   maxHp: number;
   atk: number;
-  speed: number;
   range: number;
-  cd: number;
-  flash: number;
-  dead: boolean;
+  speed: number;
+  size: number;
+  cooldown: number;
+  alive: boolean;
+  hitFlash: number;
+  lunge: number;
+  shield: number;
+  img: HTMLImageElement | null;
 }
-
-interface FloatText {
+interface Float {
   x: number;
   y: number;
   text: string;
-  age: number;
+  life: number;
   color: string;
 }
-
-function mulberry32(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+interface Slash {
+  x: number;
+  y: number;
+  life: number;
+  team: 0 | 1;
 }
 
-const W = 900;
-const H = 560;
-const BATTLE_SECONDS = 150;
-
-/* Each battlefield fights differently: light, weather, and the enemy line. */
-const FIELD_MODS: Record<
-  string,
-  { foes: number; allies: number; tint: string; tintAlpha: number }
-> = {
-  "river-crossing": { foes: 26, allies: 22, tint: "#07070A", tintAlpha: 0.35 },
-  "castle-siege": { foes: 30, allies: 22, tint: "#1B1E26", tintAlpha: 0.45 },
-  "snow-valley": { foes: 24, allies: 20, tint: "#B9C2CE", tintAlpha: 0.14 },
-  "dark-fortress": { foes: 32, allies: 20, tint: "#000000", tintAlpha: 0.5 },
-};
+const BATTLE_SECONDS = 200;
+/* Illustrative season conversion, shown to players. Not a promise. */
+const GLORY_PER_RSP = 1000;
 
 export function BattleEngine({
   champion,
-  mastery = 0,
-  field = "river-crossing",
+  mastery,
+  field,
   onEnd,
 }: {
   champion: Champion;
-  mastery?: number;
-  field?: string;
+  mastery: number;
+  field: string;
   onEnd: (o: BattleOutcome) => void;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [phase, setPhase] = useState<"howto" | "rotate" | "playing">("howto");
+  const [landscape, setLandscape] = useState(true);
   const [hud, setHud] = useState({
-    hp: 1,
-    allies: 1,
-    foes: 1,
+    heroHp: 1,
     time: BATTLE_SECONDS,
+    kills: 0,
+    streak: 1,
     glory: 0,
-    mult: 1,
-    powerCd: 0,
-    blocking: false,
+    ultReady: 0,
+    shieldReady: 0,
   });
-  const [overlay, setOverlay] = useState<"intro" | "none">("intro");
-  const endedRef = useRef(false);
-  const onEndRef = useRef(onEnd);
+
+  /* Live game state kept in refs so the animation loop never re-renders. */
+  const stateRef = useRef({
+    units: [] as Unit[],
+    floats: [] as Float[],
+    slashes: [] as Slash[],
+    nextId: 1,
+    kills: 0,
+    streak: 1,
+    elapsed: 0,
+    wave: 0,
+    ended: false,
+    ultCd: 0,
+    shieldCd: 0,
+    lastHudPush: 0,
+  });
+  const imgs = useRef<Record<string, HTMLImageElement>>({});
+  const ended = useRef(false);
+
+  /* Orientation: a landscape phone (or any wide screen) can fight. */
   useEffect(() => {
-    onEndRef.current = onEnd;
-  }, [onEnd]);
-
-  const keys = useRef<Record<string, boolean>>({});
-  const pointer = useRef<{ x: number; y: number; active: boolean }>({
-    x: 0,
-    y: 0,
-    active: false,
-  });
-  const actions = useRef({ attack: false, power: false, block: false });
-  const started = useRef(false);
-
-  const start = useCallback(() => {
-    setOverlay("none");
-    started.current = true;
+    const check = () => {
+      const wide =
+        typeof window !== "undefined" &&
+        window.innerWidth >= window.innerHeight;
+      setLandscape(wide || window.innerWidth >= 900);
+    };
+    check();
+    window.addEventListener("resize", check);
+    window.addEventListener("orientationchange", check);
+    return () => {
+      window.removeEventListener("resize", check);
+      window.removeEventListener("orientationchange", check);
+    };
   }, []);
 
+  /* Preload champion art for the hero, the enemy champion and the host. */
   useEffect(() => {
+    const withArt = champions.filter((c) => c.art);
+    const pool = [champion, ...withArt].filter(
+      (c, i, a) => a.findIndex((x) => x.slug === c.slug) === i
+    );
+    pool.forEach((c) => {
+      if (!c.art || imgs.current[c.slug]) return;
+      const im = new Image();
+      im.src = c.art;
+      imgs.current[c.slug] = im;
+    });
+  }, [champion]);
+
+  const spawnHost = useCallback(() => {
+    const s = stateRef.current;
+    const withArt = champions.filter((c) => c.art && c.slug !== champion.slug);
+    const enemyHero =
+      withArt[Math.floor((mastery + field.length) % withArt.length)] ??
+      withArt[0];
+    const heroHp = 200 + champion.stats.health / 60 + mastery * 20;
+
+    const mk = (
+      team: 0 | 1,
+      hero: boolean,
+      x: number,
+      y: number,
+      art: string | undefined
+    ): Unit => ({
+      id: s.nextId++,
+      team,
+      hero,
+      x,
+      y,
+      hp: hero ? (team === 0 ? heroHp : heroHp * 0.9) : 46,
+      maxHp: hero ? (team === 0 ? heroHp : heroHp * 0.9) : 46,
+      atk: hero ? 26 : 9,
+      range: hero ? 0.05 : 0.045,
+      speed: hero ? 0.05 : 0.06 + Math.abs(((s.nextId * 7) % 5) - 2) * 0.006,
+      size: hero ? 0.085 : 0.05,
+      cooldown: 0,
+      alive: true,
+      hitFlash: 0,
+      lunge: 0,
+      shield: 0,
+      img: art ? (imgs.current[artSlug(art)] ?? null) : null,
+    });
+
+    /* Your hero and a first line of the host. */
+    s.units.push(mk(0, true, 0.16, 0.55, champion.art));
+    const allyArt = withArt.slice(0, 6);
+    for (let i = 0; i < 5; i++) {
+      s.units.push(
+        mk(0, false, 0.1 + (i % 2) * 0.05, 0.3 + i * 0.1, allyArt[i % allyArt.length]?.art)
+      );
+    }
+    /* The enemy champion leads the first wave. */
+    s.units.push(mk(1, true, 0.85, 0.5, enemyHero?.art));
+  }, [champion, mastery, field]);
+
+  const spawnWave = useCallback((count: number) => {
+    const s = stateRef.current;
+    const foes = champions.filter((c) => c.art && c.slug !== champion.slug);
+    for (let i = 0; i < count; i++) {
+      const art = foes[(s.nextId + i) % foes.length]?.art;
+      s.units.push({
+        id: s.nextId++,
+        team: 1,
+        hero: false,
+        x: 0.98 + Math.random() * 0.04,
+        y: 0.24 + Math.random() * 0.6,
+        hp: 40 + s.wave * 6,
+        maxHp: 40 + s.wave * 6,
+        atk: 8 + s.wave,
+        range: 0.045,
+        speed: 0.058 + Math.random() * 0.02,
+        size: 0.05,
+        cooldown: Math.random(),
+        alive: true,
+        hitFlash: 0,
+        lunge: 0,
+        shield: 0,
+        img: art ? (imgs.current[artSlug(art)] ?? null) : null,
+      });
+    }
+  }, [champion]);
+
+  const finish = useCallback(
+    (result: "victory" | "defeat") => {
+      if (ended.current) return;
+      ended.current = true;
+      const s = stateRef.current;
+      const glory = Math.round(s.kills * 3 * (1 + s.kills * 0.012));
+      onEnd({
+        result,
+        kills: s.kills,
+        glory,
+        duration_s: Math.max(10, Math.round(s.elapsed)),
+      });
+    },
+    [onEnd]
+  );
+
+  const hero = () => stateRef.current.units.find((u) => u.team === 0 && u.hero);
+
+  /* Player commands. */
+  const doAttack = useCallback(() => {
+    const s = stateRef.current;
+    const h = hero();
+    if (!h || !h.alive) return;
+    const foe = nearestEnemy(s.units, h);
+    if (!foe) return;
+    h.lunge = 1;
+    if (dist(h, foe) < 0.22) {
+      damage(s, foe, h.atk * 2, h.team);
+      s.slashes.push({ x: foe.x, y: foe.y, life: 1, team: h.team });
+    }
+  }, []);
+
+  const doUlt = useCallback(() => {
+    const s = stateRef.current;
+    const h = hero();
+    if (!h || !h.alive || s.ultCd > 0) return;
+    s.ultCd = 14;
+    h.lunge = 1;
+    s.units.forEach((u) => {
+      if (u.team === 1 && u.alive && dist(h, u) < 0.28) {
+        damage(s, u, h.atk * 3, h.team);
+        s.slashes.push({ x: u.x, y: u.y, life: 1, team: h.team });
+      }
+    });
+    s.floats.push({ x: h.x, y: h.y - 0.06, text: champion.ultimate.name, life: 1.4, color: "#F0D68C" });
+  }, [champion]);
+
+  const doShield = useCallback(() => {
+    const s = stateRef.current;
+    const h = hero();
+    if (!h || !h.alive || s.shieldCd > 0) return;
+    s.shieldCd = 16;
+    s.units.forEach((u) => {
+      if (u.team === 0 && u.alive && dist(h, u) < 0.18) u.shield = 3;
+    });
+    h.shield = 3.5;
+  }, []);
+
+  /* The battle loop. Runs only while playing and in landscape. */
+  useEffect(() => {
+    if (phase !== "playing") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const rand = mulberry32(1207);
-    const bg = new Image();
-    bg.src = "/game/battlefield.png";
-    const art = new Image();
-    if (champion.art) art.src = champion.art;
+    if (stateRef.current.units.length === 0) spawnHost();
 
-    /* Player scaled from champion stats; mastery sharpens the blade. */
-    const m = 1 + Math.min(10, mastery) * 0.05;
-    const pStats = {
-      maxHp: (260 + champion.stats.health / 60) * m,
-      atk: (18 + champion.stats.attack / 90) * m,
-      speed: 95 + champion.stats.speed / 6,
-      range: 46,
-    };
-    const player = {
-      x: W * 0.2,
-      y: H * 0.55,
-      hp: pStats.maxHp,
-      cd: 0,
-      powerCd: 0,
-      blockT: 0,
-      blockCd: 0,
-      kills: 0,
-      streak: 0,
-      streakT: 0,
-      glory: 0,
-      flash: 0,
-    };
-
-    let nextId = 1;
-    const units: Unit[] = [];
-    const spawn = (side: 0 | 1, n: number) => {
-      for (let i = 0; i < n; i++) {
-        units.push({
-          id: nextId++,
-          side,
-          x: side === 0 ? W * (0.06 + rand() * 0.2) : W * (0.74 + rand() * 0.2),
-          y: H * (0.18 + rand() * 0.7),
-          hp: 46,
-          maxHp: 46,
-          atk: side === 0 ? 7 : 6.4,
-          speed: 34 + rand() * 22,
-          range: 18,
-          cd: rand(),
-          flash: 0,
-          dead: false,
-        });
-      }
-    };
-    const mods = FIELD_MODS[field] ?? FIELD_MODS["river-crossing"];
-    spawn(0, mods.allies);
-    spawn(1, mods.foes);
-
-    const floats: FloatText[] = [];
-    const embers: { x: number; y: number; vx: number; vy: number; age: number }[] = [];
-
-    let timeLeft = BATTLE_SECONDS;
     let raf = 0;
     let last = performance.now();
-    let hudTick = 0;
+    const s = stateRef.current;
 
-    const finish = (result: "victory" | "defeat") => {
-      if (endedRef.current) return;
-      endedRef.current = true;
-      onEndRef.current({
-        result,
-        kills: player.kills,
-        glory: Math.round(player.glory),
-        duration_s: Math.round(BATTLE_SECONDS - timeLeft),
-      });
+    const resize = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.floor(canvas.clientWidth * dpr);
+      canvas.height = Math.floor(canvas.clientHeight * dpr);
     };
-
-    const step = (dt: number) => {
-      /* --- player input --- */
-      let dx = 0;
-      let dy = 0;
-      const k = keys.current;
-      if (k["arrowleft"] || k["a"]) dx -= 1;
-      if (k["arrowright"] || k["d"]) dx += 1;
-      if (k["arrowup"] || k["w"]) dy -= 1;
-      if (k["arrowdown"] || k["s"]) dy += 1;
-      if (pointer.current.active) {
-        const px = pointer.current.x - player.x;
-        const py = pointer.current.y - player.y;
-        const d = Math.hypot(px, py);
-        if (d > 14) {
-          dx = px / d;
-          dy = py / d;
-        }
-      }
-      const mag = Math.hypot(dx, dy) || 1;
-      const blocking = player.blockT > 0;
-      const spd = pStats.speed * (blocking ? 0.4 : 1);
-      player.x = Math.max(20, Math.min(W - 20, player.x + (dx / mag) * spd * dt));
-      player.y = Math.max(20, Math.min(H - 20, player.y + (dy / mag) * spd * dt));
-
-      player.cd = Math.max(0, player.cd - dt);
-      player.powerCd = Math.max(0, player.powerCd - dt);
-      player.blockT = Math.max(0, player.blockT - dt);
-      player.blockCd = Math.max(0, player.blockCd - dt);
-      player.streakT = Math.max(0, player.streakT - dt);
-      player.flash = Math.max(0, player.flash - dt);
-      if (player.streakT === 0) player.streak = 0;
-
-      const foesAlive = units.filter((u) => !u.dead && u.side === 1);
-      const alliesAlive = units.filter((u) => !u.dead && u.side === 0);
-
-      const killFoe = (u: Unit, gloryBase: number) => {
-        u.dead = true;
-        player.kills += 1;
-        player.streak += 1;
-        player.streakT = 4;
-        const mult = 1 + Math.min(2.2, player.streak * 0.2);
-        const g = Math.round(gloryBase * mult);
-        player.glory += g;
-        floats.push({ x: u.x, y: u.y - 14, text: `+${g}`, age: 0, color: "#F0D68C" });
-        for (let i = 0; i < 6; i++)
-          embers.push({
-            x: u.x,
-            y: u.y,
-            vx: (rand() - 0.5) * 80,
-            vy: -40 - rand() * 60,
-            age: 0,
-          });
-      };
-
-      /* attack action: strike nearest foe in range */
-      if (actions.current.attack && player.cd === 0) {
-        actions.current.attack = false;
-        player.cd = 0.38;
-        let best: Unit | null = null;
-        let bd = pStats.range + 10;
-        for (const u of foesAlive) {
-          const d = Math.hypot(u.x - player.x, u.y - player.y);
-          if (d < bd) {
-            bd = d;
-            best = u;
-          }
-        }
-        if (best) {
-          best.hp -= pStats.atk;
-          best.flash = 0.12;
-          player.flash = 0.1;
-          if (best.hp <= 0) killFoe(best, 10);
-        }
-      } else {
-        actions.current.attack = false;
-      }
-
-      /* power: the champion's ultimate, an ember shockwave */
-      if (actions.current.power && player.powerCd === 0) {
-        actions.current.power = false;
-        player.powerCd = 12;
-        for (const u of foesAlive) {
-          const d = Math.hypot(u.x - player.x, u.y - player.y);
-          if (d < 130) {
-            u.hp -= pStats.atk * 1.6;
-            u.flash = 0.2;
-            if (u.hp <= 0) killFoe(u, 14);
-          }
-        }
-        for (let i = 0; i < 26; i++)
-          embers.push({
-            x: player.x,
-            y: player.y,
-            vx: Math.cos((i / 26) * Math.PI * 2) * 130,
-            vy: Math.sin((i / 26) * Math.PI * 2) * 130,
-            age: 0,
-          });
-      } else {
-        actions.current.power = false;
-      }
-
-      /* block */
-      if (actions.current.block && player.blockCd === 0) {
-        actions.current.block = false;
-        player.blockT = 1.4;
-        player.blockCd = 4;
-      } else {
-        actions.current.block = false;
-      }
-
-      /* --- soldier AI: seek nearest enemy, swing on cooldown --- */
-      for (const u of units) {
-        if (u.dead) continue;
-        u.cd = Math.max(0, u.cd - dt);
-        u.flash = Math.max(0, u.flash - dt);
-        const enemies = u.side === 0 ? foesAlive : alliesAlive;
-        let target: { x: number; y: number; isPlayer: boolean; ref?: Unit } | null =
-          null;
-        let bd = Infinity;
-        for (const e of enemies) {
-          const d = Math.hypot(e.x - u.x, e.y - u.y);
-          if (d < bd) {
-            bd = d;
-            target = { x: e.x, y: e.y, isPlayer: false, ref: e };
-          }
-        }
-        if (u.side === 1) {
-          const dp = Math.hypot(player.x - u.x, player.y - u.y);
-          if (dp < bd) {
-            bd = dp;
-            target = { x: player.x, y: player.y, isPlayer: true };
-          }
-        }
-        if (!target) continue;
-        if (bd > u.range) {
-          const tx = (target.x - u.x) / bd;
-          const ty = (target.y - u.y) / bd;
-          /* light separation so they fight like soldiers, not soup */
-          let sx = 0;
-          let sy = 0;
-          for (const o of units) {
-            if (o === u || o.dead) continue;
-            const d = Math.hypot(o.x - u.x, o.y - u.y);
-            if (d < 14 && d > 0) {
-              sx += (u.x - o.x) / d;
-              sy += (u.y - o.y) / d;
-            }
-          }
-          u.x += (tx * u.speed + sx * 20) * dt;
-          u.y += (ty * u.speed + sy * 20) * dt;
-        } else if (u.cd === 0) {
-          u.cd = 0.9;
-          if (target.isPlayer) {
-            const dmg = u.atk * (player.blockT > 0 ? 0.2 : 1);
-            player.hp -= dmg;
-            player.flash = 0.12;
-            if (player.hp <= 0) finish("defeat");
-          } else if (target.ref) {
-            target.ref.hp -= u.atk;
-            target.ref.flash = 0.1;
-            if (target.ref.hp <= 0) target.ref.dead = true;
-          }
-        }
-      }
-
-      /* --- timers, win conditions --- */
-      timeLeft -= dt;
-      if (foesAlive.length === 0) {
-        player.glory += 120;
-        finish("victory");
-      } else if (alliesAlive.length === 0 && foesAlive.length > 8) {
-        finish("defeat");
-      } else if (timeLeft <= 0) {
-        finish(alliesAlive.length >= foesAlive.length ? "victory" : "defeat");
-      }
-
-      for (const f of floats) f.age += dt;
-      while (floats.length && floats[0].age > 1.1) floats.shift();
-      for (const e of embers) {
-        e.age += dt;
-        e.x += e.vx * dt;
-        e.y += e.vy * dt;
-        e.vy += 60 * dt;
-      }
-      while (embers.length && embers[0].age > 0.9) embers.shift();
-
-      hudTick += dt;
-      if (hudTick > 0.12) {
-        hudTick = 0;
-        setHud({
-          hp: Math.max(0, player.hp / pStats.maxHp),
-          allies: alliesAlive.length / mods.allies,
-          foes: foesAlive.length / mods.foes,
-          time: Math.max(0, timeLeft),
-          glory: Math.round(player.glory),
-          mult: 1 + Math.min(2.2, player.streak * 0.2),
-          powerCd: player.powerCd,
-          blocking: player.blockT > 0,
-        });
-      }
-    };
-
-    const draw = () => {
-      ctx.clearRect(0, 0, W, H);
-      if (bg.complete && bg.naturalWidth) {
-        const scale = Math.max(W / bg.naturalWidth, H / bg.naturalHeight);
-        const bw = bg.naturalWidth * scale;
-        const bh = bg.naturalHeight * scale;
-        ctx.globalAlpha = 0.9;
-        ctx.drawImage(bg, (W - bw) / 2, (H - bh) / 2, bw, bh);
-        ctx.globalAlpha = 1;
-      } else {
-        ctx.fillStyle = "#0C0C11";
-        ctx.fillRect(0, 0, W, H);
-      }
-      ctx.globalAlpha = mods.tintAlpha;
-      ctx.fillStyle = mods.tint;
-      ctx.fillRect(0, 0, W, H);
-      ctx.globalAlpha = 1;
-
-      /* units */
-      for (const u of units) {
-        if (u.dead) continue;
-        const color = u.side === 0 ? "#3E6EA8" : "#B02E2A";
-        ctx.beginPath();
-        ctx.arc(u.x, u.y + 5, 6, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0,0,0,0.4)";
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(u.x, u.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = u.flash > 0 ? "#ECE4D2" : color;
-        ctx.fill();
-        /* hp sliver */
-        ctx.fillStyle = "rgba(0,0,0,0.55)";
-        ctx.fillRect(u.x - 7, u.y - 12, 14, 2.5);
-        ctx.fillStyle = color;
-        ctx.fillRect(u.x - 7, u.y - 12, 14 * (u.hp / u.maxHp), 2.5);
-      }
-
-      /* player champion */
-      const grad = ctx.createRadialGradient(
-        player.x,
-        player.y,
-        2,
-        player.x,
-        player.y,
-        26
-      );
-      grad.addColorStop(0, "rgba(240,214,140,0.5)");
-      grad.addColorStop(1, "rgba(240,214,140,0)");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, 26, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, 10, 0, Math.PI * 2);
-      ctx.fillStyle = player.flash > 0 ? "#ECE4D2" : "#C8A24C";
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = player.blockT > 0 ? "#ECE4D2" : "#F0D68C";
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, 14, 0, Math.PI * 2);
-      ctx.stroke();
-
-      /* embers + floats */
-      for (const e of embers) {
-        ctx.globalAlpha = Math.max(0, 1 - e.age);
-        ctx.fillStyle = "#E5702A";
-        ctx.fillRect(e.x, e.y, 2.5, 2.5);
-      }
-      ctx.globalAlpha = 1;
-      for (const f of floats) {
-        ctx.globalAlpha = Math.max(0, 1 - f.age);
-        ctx.font = "bold 15px Inter, sans-serif";
-        ctx.fillStyle = f.color;
-        ctx.fillText(f.text, f.x - 12, f.y - f.age * 26);
-      }
-      ctx.globalAlpha = 1;
-    };
+    resize();
+    window.addEventListener("resize", resize);
 
     const loop = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      if (started.current && !endedRef.current) step(dt);
-      draw();
-      if (!endedRef.current) raf = requestAnimationFrame(loop);
+      step(s, dt, spawnWave);
+      render(ctx, canvas, s, field, champion);
+
+      s.elapsed += dt;
+      s.ultCd = Math.max(0, s.ultCd - dt);
+      s.shieldCd = Math.max(0, s.shieldCd - dt);
+
+      const h = s.units.find((u) => u.team === 0 && u.hero);
+      const foesLeft = s.units.some((u) => u.team === 1 && u.alive);
+
+      /* Push HUD ~10x a second, not every frame. */
+      if (now - s.lastHudPush > 100) {
+        s.lastHudPush = now;
+        setHud({
+          heroHp: h ? Math.max(0, h.hp / h.maxHp) : 0,
+          time: Math.max(0, Math.ceil(BATTLE_SECONDS - s.elapsed)),
+          kills: s.kills,
+          streak: s.streak,
+          glory: Math.round(s.kills * 3 * (1 + s.kills * 0.012)),
+          ultReady: s.ultCd,
+          shieldReady: s.shieldCd,
+        });
+      }
+
+      if (!ended.current) {
+        if (!h || h.hp <= 0) {
+          finish("defeat");
+          return;
+        }
+        if (s.elapsed >= BATTLE_SECONDS) {
+          finish("victory");
+          return;
+        }
+        if (!foesLeft && s.wave >= 4) {
+          finish("victory");
+          return;
+        }
+      }
+      raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
 
-    const down = (e: KeyboardEvent) => {
-      keys.current[e.key.toLowerCase()] = true;
-      if (e.key === " ") {
-        actions.current.attack = true;
-        e.preventDefault();
-      }
-      if (e.key.toLowerCase() === "q") actions.current.power = true;
-      if (e.key.toLowerCase() === "e") actions.current.block = true;
-    };
-    const up = (e: KeyboardEvent) => {
-      keys.current[e.key.toLowerCase()] = false;
-    };
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-
-    const toLocal = (ev: PointerEvent) => {
-      const r = canvas.getBoundingClientRect();
-      return {
-        x: ((ev.clientX - r.left) / r.width) * W,
-        y: ((ev.clientY - r.top) / r.height) * H,
-      };
-    };
-    const pDown = (ev: PointerEvent) => {
-      const p = toLocal(ev);
-      pointer.current = { ...p, active: true };
-    };
-    const pMove = (ev: PointerEvent) => {
-      if (!pointer.current.active) return;
-      const p = toLocal(ev);
-      pointer.current = { ...p, active: true };
-    };
-    const pUp = () => {
-      pointer.current.active = false;
-    };
-    canvas.addEventListener("pointerdown", pDown);
-    canvas.addEventListener("pointermove", pMove);
-    window.addEventListener("pointerup", pUp);
-
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-      canvas.removeEventListener("pointerdown", pDown);
-      canvas.removeEventListener("pointermove", pMove);
-      window.removeEventListener("pointerup", pUp);
+      window.removeEventListener("resize", resize);
     };
-  }, [champion, mastery, field]);
+  }, [phase, spawnHost, spawnWave, finish, field, champion]);
 
-  const mmss = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(
-      Math.floor(s % 60)
-    ).padStart(2, "0")}`;
+  /* A landscape phone is required to command the field. */
+  const wantRotate = phase === "playing" && !landscape && isTouch();
 
   return (
-    <div className="relative w-full select-none overflow-hidden rounded-3xl border border-steel-line bg-void">
-      {/* top HUD */}
-      <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-3 p-3">
-        <div className="glass glass-sm flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2">
-          {champion.art ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={champion.art}
-              alt=""
-              className="h-9 w-9 rounded-lg border border-gold/40 object-cover"
-            />
-          ) : (
-            <div className="h-9 w-9 rounded-lg border border-gold/40 bg-panel" />
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-bone">
-              {champion.name}
-            </p>
-            <div className="bar-track mt-1 h-2 w-full">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{
-                  width: `${hud.hp * 100}%`,
-                  background:
-                    hud.hp > 0.4
-                      ? "linear-gradient(90deg,#8A6A2C,#C8A24C,#F0D68C)"
-                      : "linear-gradient(90deg,#7E1F1C,#C6402F)",
-                }}
-              />
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-obsidian">
+      {phase === "howto" ? (
+        <HowToPlay champion={champion} onBegin={() => setPhase("playing")} onExit={() => history.back()} />
+      ) : (
+        <>
+          <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+          {wantRotate && <RotatePrompt />}
+
+          {/* Top HUD */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-3 p-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+            <div className="glass glass-sm pointer-events-auto flex min-w-0 flex-1 items-center gap-2 p-2">
+              {champion.art && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={champion.art} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-bone">{champion.name}</p>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-void">
+                  <div
+                    className="h-full rounded-full transition-[width] duration-150"
+                    style={{
+                      width: `${hud.heroHp * 100}%`,
+                      background: hud.heroHp > 0.3 ? "linear-gradient(90deg,#C8A24C,#F0D68C)" : "#E5702A",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="glass glass-sm pointer-events-auto px-3 py-2 text-center">
+              <p className="tnum text-sm font-bold text-bone">{fmt(hud.time)}</p>
+              <p className="text-[9px] uppercase tracking-wider text-bone-faint">Time</p>
+            </div>
+            <button
+              onClick={() => history.back()}
+              className="glass glass-sm pointer-events-auto flex h-9 w-9 items-center justify-center text-bone-mut"
+              aria-label="Retreat"
+            >
+              <Icon name="arrow" className="h-4 w-4 rotate-180" />
+            </button>
+          </div>
+
+          {/* Score strip */}
+          <div className="pointer-events-none absolute left-1/2 top-[calc(3.75rem+env(safe-area-inset-top))] -translate-x-1/2">
+            <div className="glass glass-sm px-4 py-1.5 text-center">
+              <span className="tnum text-sm font-bold text-gold-bright">{hud.kills}</span>
+              <span className="ml-1 text-[10px] uppercase tracking-wider text-bone-faint">felled</span>
+              <span className="mx-2 text-bone-faint">·</span>
+              <span className="tnum text-sm font-bold text-ember">x{hud.streak.toFixed(1)}</span>
             </div>
           </div>
-        </div>
-        <div className="glass glass-sm px-3 py-2 text-sm font-bold text-bone tnum">
-          {mmss(hud.time)}
-        </div>
-      </div>
-      {/* army bars */}
-      <div className="absolute inset-x-0 top-[62px] z-10 flex gap-2 px-3">
-        <div className="bar-track h-1.5 flex-1">
-          <div
-            className="h-full rounded-full bg-ally transition-all"
-            style={{ width: `${hud.allies * 100}%` }}
-          />
-        </div>
-        <div className="bar-track h-1.5 flex-1">
-          <div
-            className="ml-auto h-full rounded-full bg-foe transition-all"
-            style={{ width: `${hud.foes * 100}%` }}
-          />
-        </div>
-      </div>
 
-      <canvas
-        ref={canvasRef}
-        width={W}
-        height={H}
-        className="block aspect-[900/560] w-full touch-none"
-      />
-
-      {/* glory meter */}
-      <div className="absolute inset-x-0 bottom-20 z-10 px-4 sm:bottom-16">
-        <div className="mx-auto flex max-w-sm items-center gap-2">
-          <div className="bar-track h-2 flex-1">
-            <div
-              className="bar-gold h-full transition-all"
-              style={{ width: `${Math.min(100, (hud.glory / 800) * 100)}%` }}
-            />
+          {/* Controls */}
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <button
+              onClick={doShield}
+              disabled={hud.shieldReady > 0}
+              className="glass glass-sm flex h-14 w-14 items-center justify-center rounded-full text-bone disabled:opacity-40"
+              aria-label="Shield"
+            >
+              {hud.shieldReady > 0 ? (
+                <span className="tnum text-xs">{Math.ceil(hud.shieldReady)}</span>
+              ) : (
+                <Icon name="shield" className="h-6 w-6" />
+              )}
+            </button>
+            <div className="flex items-end gap-3">
+              <button
+                onClick={doUlt}
+                disabled={hud.ultReady > 0}
+                className="flex h-16 w-16 items-center justify-center rounded-full border border-ember/60 bg-ember/20 text-ember disabled:opacity-40"
+                aria-label={champion.ultimate.name}
+              >
+                {hud.ultReady > 0 ? (
+                  <span className="tnum text-sm font-bold">{Math.ceil(hud.ultReady)}</span>
+                ) : (
+                  <Icon name="flame" className="h-7 w-7" />
+                )}
+              </button>
+              <button
+                onClick={doAttack}
+                className="gold-metal flex h-20 w-20 items-center justify-center rounded-full border border-gold-bright/60 text-obsidian active:scale-95"
+                aria-label="Attack"
+              >
+                <Icon name="swords" className="h-9 w-9" />
+              </button>
+            </div>
           </div>
-          <span className="tnum text-xs font-bold text-gold-bright">
-            {hud.glory} · x{hud.mult.toFixed(1)}
-          </span>
-        </div>
-      </div>
-
-      {/* action buttons */}
-      <div className="absolute bottom-3 right-3 z-10 flex items-end gap-2.5">
-        <button
-          onPointerDown={() => (actions.current.block = true)}
-          className={`flex h-12 w-12 items-center justify-center rounded-full border text-bone-mut backdrop-blur ${
-            hud.blocking
-              ? "border-bone bg-bone/20 text-bone"
-              : "border-steel-line bg-void/70"
-          }`}
-          aria-label="Block"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-            <path d="M12 3l8 3v6c0 4.5-3.2 7.6-8 9-4.8-1.4-8-4.5-8-9V6l8-3z" />
-          </svg>
-        </button>
-        <button
-          onPointerDown={() => (actions.current.power = true)}
-          disabled={hud.powerCd > 0}
-          className="relative flex h-14 w-14 items-center justify-center rounded-full border border-ember/60 bg-ember/20 text-ember backdrop-blur disabled:opacity-50"
-          aria-label="Power"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
-            <path d="M12 3c1 3-3 4.5-3 8a3.5 3.5 0 0 0 7 0c0-1-.4-1.8-1-2.6.2 2-1 2.6-1 2.6.6-3.4-1-6.5-2-8z" />
-          </svg>
-          {hud.powerCd > 0 && (
-            <span className="tnum absolute text-xs font-bold text-bone">
-              {Math.ceil(hud.powerCd)}
-            </span>
-          )}
-        </button>
-        <button
-          onPointerDown={() => (actions.current.attack = true)}
-          className="gold-metal flex h-16 w-16 items-center justify-center rounded-full border border-gold-bright/60 text-obsidian shadow-lg"
-          aria-label="Attack"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7">
-            <path d="M4 4l10 10M20 4L10 14M6.5 17.5L4 20m2.5-2.5l2 2m9.5-2.5L20 20m-2.5-2.5l-2 2" />
-          </svg>
-        </button>
-      </div>
-
-      {/* movement hint */}
-      <p className="absolute bottom-3 left-3 z-10 hidden text-[10px] uppercase tracking-wider text-bone-faint sm:block">
-        Move: WASD / drag · Attack: space · Power: Q · Block: E
-      </p>
-
-      {overlay === "intro" && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-obsidian/80 p-6 text-center backdrop-blur-sm">
-          <p className="text-xs uppercase tracking-[0.3em] text-bone-faint">
-            {field.split("-").join(" ")}
-          </p>
-          <h2 className="gold-text mt-2 font-display text-3xl font-semibold">
-            {champion.name}
-          </h2>
-          <p className="mt-1 text-sm text-bone-mut">
-            {champion.title} · Ultimate: {champion.ultimate.name}
-          </p>
-          <p className="mt-4 max-w-sm text-xs leading-relaxed text-bone-faint">
-            Lead the charge. Cut through the enemy line, keep your shield ready,
-            and let your Glory multiply with every unbroken streak.
-          </p>
-          <button onClick={start} className="btn-gold mt-6 px-8 py-3 text-sm">
-            Sound the horns
-          </button>
-        </div>
+        </>
       )}
     </div>
   );
+}
+
+/* ---------- pure helpers ---------- */
+
+function artSlug(art: string) {
+  return art.split("/").pop()?.replace(/\.\w+$/, "") ?? art;
+}
+function dist(a: { x: number; y: number }, b: { x: number; y: number }) {
+  const dx = a.x - b.x;
+  const dy = (a.y - b.y) * 0.6;
+  return Math.hypot(dx, dy);
+}
+function nearestEnemy(units: Unit[], u: Unit): Unit | null {
+  let best: Unit | null = null;
+  let bd = Infinity;
+  for (const o of units) {
+    if (!o.alive || o.team === u.team) continue;
+    const d = dist(u, o);
+    if (d < bd) {
+      bd = d;
+      best = o;
+    }
+  }
+  return best;
+}
+function damage(s: { units: Unit[]; floats: Float[]; kills: number; streak: number }, target: Unit, amount: number, byTeam: 0 | 1) {
+  if (!target.alive) return;
+  const dealt = target.shield > 0 ? amount * 0.25 : amount;
+  target.hp -= dealt;
+  target.hitFlash = 1;
+  s.floats.push({ x: target.x, y: target.y - 0.03, text: `-${Math.round(dealt)}`, life: 0.8, color: byTeam === 0 ? "#F0D68C" : "#E5702A" });
+  if (target.hp <= 0) {
+    target.alive = false;
+    if (byTeam === 0) {
+      s.kills += 1;
+      s.streak = Math.min(5, 1 + s.kills * 0.05);
+    }
+  }
+}
+
+function step(
+  s: {
+    units: Unit[];
+    floats: Float[];
+    slashes: Slash[];
+    kills: number;
+    streak: number;
+    wave: number;
+    elapsed: number;
+  },
+  dt: number,
+  spawnWave: (n: number) => void
+) {
+  /* Waves arrive over the first half of the battle. */
+  const wavesDue = Math.min(4, Math.floor(s.elapsed / 24));
+  if (wavesDue >= s.wave && s.wave < 4) {
+    s.wave += 1;
+    spawnWave(5 + s.wave);
+  }
+
+  for (const u of s.units) {
+    if (!u.alive) continue;
+    u.hitFlash = Math.max(0, u.hitFlash - dt * 3);
+    u.lunge = Math.max(0, u.lunge - dt * 3);
+    u.shield = Math.max(0, u.shield - dt);
+    u.cooldown = Math.max(0, u.cooldown - dt);
+
+    const foe = nearestEnemy(s.units, u);
+    if (!foe) continue;
+    const d = dist(u, foe);
+    if (d > u.range) {
+      /* March toward the foe. */
+      const dx = foe.x - u.x;
+      const dy = foe.y - u.y;
+      const m = Math.hypot(dx, dy) || 1;
+      u.x += (dx / m) * u.speed * dt;
+      u.y += (dy / m) * u.speed * dt;
+      u.y = Math.max(0.22, Math.min(0.88, u.y));
+    } else if (u.cooldown <= 0) {
+      /* The host and enemy auto-strike; the player hero mostly waits on
+         commands but still trades blows in the press of battle. */
+      u.cooldown = u.hero ? 1.1 : 0.9;
+      u.lunge = 1;
+      damage(s, foe, u.atk, u.team);
+    }
+  }
+
+  /* Cull the fallen after a beat so their fade can play, and decay effects. */
+  for (const f of s.floats) f.life -= dt;
+  for (const sl of s.slashes) sl.life -= dt * 2.5;
+  s.floats = s.floats.filter((f) => f.life > 0);
+  s.slashes = s.slashes.filter((sl) => sl.life > 0);
+  s.units = s.units.filter((u) => u.alive || u.hitFlash > 0.01 || u.hero);
+}
+
+const FIELD_TINT: Record<string, string> = {
+  "river-crossing": "#0d1420",
+  "castle-siege": "#1a1108",
+  "snow-valley": "#141821",
+  "dark-fortress": "#120b12",
+};
+
+function render(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  s: { units: Unit[]; floats: Float[]; slashes: Slash[] },
+  field: string,
+  champion: Champion
+) {
+  const W = canvas.width;
+  const H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  /* Ground and sky. */
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, FIELD_TINT[field] ?? "#0d1018");
+  sky.addColorStop(1, "#050507");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "rgba(200,162,76,0.06)";
+  ctx.fillRect(0, H * 0.62, W, H * 0.38);
+  /* Center line where the hosts meet. */
+  ctx.strokeStyle = "rgba(200,162,76,0.10)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W / 2, H * 0.2);
+  ctx.lineTo(W / 2, H);
+  ctx.stroke();
+
+  /* Draw back to front by y. */
+  const ordered = [...s.units].sort((a, b) => a.y - b.y);
+  for (const u of ordered) {
+    const px = u.x * W + (u.lunge * (u.team === 0 ? 1 : -1) * 0.02 * W);
+    const py = u.y * H;
+    const r = u.size * H;
+    const ring = u.team === 0 ? "#C8A24C" : "#E5702A";
+
+    /* Shadow */
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.beginPath();
+    ctx.ellipse(px, py + r * 0.9, r * 0.8, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const alpha = u.alive ? 1 : Math.max(0, u.hitFlash);
+    ctx.globalAlpha = alpha;
+
+    /* Portrait clipped to a circle. */
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    if (u.img && u.img.complete && u.img.naturalWidth > 0) {
+      const iw = u.img.naturalWidth;
+      const ih = u.img.naturalHeight;
+      const scale = Math.max((r * 2) / iw, (r * 2) / ih);
+      ctx.drawImage(u.img, px - (iw * scale) / 2, py - (ih * scale) / 2 - r * 0.15, iw * scale, ih * scale);
+    } else {
+      ctx.fillStyle = u.team === 0 ? "#26210f" : "#2a130a";
+      ctx.fillRect(px - r, py - r, r * 2, r * 2);
+    }
+    ctx.restore();
+
+    /* Ring, hero crown, hit flash, shield. */
+    ctx.lineWidth = u.hero ? 3 : 2;
+    ctx.strokeStyle = ring;
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.stroke();
+    if (u.shield > 0) {
+      ctx.strokeStyle = "rgba(240,214,140,0.8)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(px, py, r + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (u.hitFlash > 0.02 && u.alive) {
+      ctx.fillStyle = `rgba(255,255,255,${u.hitFlash * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    /* Health bar */
+    if (u.alive) {
+      const bw = r * 1.8;
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(px - bw / 2, py - r - 8, bw, 4);
+      ctx.fillStyle = ring;
+      ctx.fillRect(px - bw / 2, py - r - 8, bw * Math.max(0, u.hp / u.maxHp), 4);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* Slashes */
+  for (const sl of s.slashes) {
+    ctx.globalAlpha = sl.life;
+    ctx.strokeStyle = sl.team === 0 ? "#F0D68C" : "#E5702A";
+    ctx.lineWidth = 3;
+    const x = sl.x * W;
+    const y = sl.y * H;
+    ctx.beginPath();
+    ctx.moveTo(x - 14, y - 14);
+    ctx.lineTo(x + 14, y + 14);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  /* Damage numbers */
+  ctx.textAlign = "center";
+  ctx.font = `bold ${Math.round(H * 0.03)}px ui-sans-serif, system-ui`;
+  for (const f of s.floats) {
+    ctx.globalAlpha = Math.max(0, Math.min(1, f.life));
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, f.x * W, f.y * H - (1 - f.life) * 20);
+    ctx.globalAlpha = 1;
+  }
+
+  void champion;
+}
+
+/* ---------- overlays ---------- */
+
+function HowToPlay({
+  champion,
+  onBegin,
+  onExit,
+}: {
+  champion: Champion;
+  onBegin: () => void;
+  onExit: () => void;
+}) {
+  return (
+    <div className="realm-bg flex h-full flex-col items-center justify-center overflow-y-auto p-6 text-center">
+      <p className="text-[11px] uppercase tracking-[0.3em] text-gold">The War · How to play</p>
+      <h2 className="gold-text mt-2 font-display text-3xl font-semibold">Command your host</h2>
+      <div className="glass mt-5 w-full max-w-md p-5 text-left text-sm text-bone-mut">
+        <Rule icon="swords" title="Attack">
+          Tap the gold swords to have {champion.name} strike the nearest enemy. Your host fights at your side.
+        </Rule>
+        <Rule icon="flame" title={`Ultimate: ${champion.ultimate.name}`}>
+          Unleash an area blast on cooldown. It clears clustered foes and turns the tide.
+        </Rule>
+        <Rule icon="shield" title="Shield">
+          Raise a guard on you and nearby allies for a few seconds. Time it against the enemy charge.
+        </Rule>
+        <Rule icon="medal" title="Glory and $RSP">
+          Every foe felled builds your streak and Glory. Survive the waves to claim victory. Glory converts to
+          $RSP at the season rate (about {GLORY_PER_RSP} Glory per $RSP, illustrative for the season).
+        </Rule>
+      </div>
+      <p className="mt-3 text-xs text-bone-faint">On a phone, turn it sideways for the full field.</p>
+      <div className="mt-5 flex gap-3">
+        <button onClick={onExit} className="btn-glass px-6 py-2.5 text-sm text-bone-mut">
+          Not yet
+        </button>
+        <button onClick={onBegin} className="btn-gold px-8 py-2.5 text-sm">
+          Sound the horns
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Rule({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-3 flex gap-3 last:mb-0">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gold/25 bg-void text-gold">
+        <Icon name={icon} className="h-4 w-4" />
+      </span>
+      <div>
+        <p className="text-sm font-semibold text-bone">{title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-bone-mut">{children}</p>
+      </div>
+    </div>
+  );
+}
+
+function RotatePrompt() {
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-obsidian/95 p-6 text-center">
+      <div className="animate-pulse text-gold">
+        <Icon name="compass" className="h-12 w-12" />
+      </div>
+      <p className="mt-4 font-display text-xl font-semibold text-bone">Turn your device sideways</p>
+      <p className="mt-2 text-sm text-bone-mut">Rotate to landscape to command the field.</p>
+    </div>
+  );
+}
+
+/* ---------- tiny utils ---------- */
+function fmt(sec: number) {
+  const m = Math.floor(sec / 60);
+  const r = sec % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
+}
+function isTouch() {
+  return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 }

@@ -111,6 +111,13 @@ function BattleInner() {
               </p>
             </div>
           </div>
+          <p className="mt-4 text-xs text-bone-mut">
+            Glory converts to $RSP at the season rate, about{" "}
+            <span className="text-gold">
+              {(((serverGlory ?? outcome.glory) / 1000) || 0).toFixed(3)} $RSP
+            </span>{" "}
+            this run (illustrative for the season).
+          </p>
           {!authenticated && (
             <p className="mt-4 text-xs text-bone-faint">
               Enter the realm to bank your Glory; this battle was fought for
