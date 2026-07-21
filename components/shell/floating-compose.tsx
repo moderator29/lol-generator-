@@ -9,7 +9,9 @@ import { Icon } from "@/components/ui/icon";
    the compose screen itself, since you are already there. */
 export function FloatingCompose() {
   const pathname = usePathname();
-  if (pathname?.startsWith("/compose")) return null;
+  /* The raven is sent from the feed. Show the compose action only on Home so
+     it does not float over every other page. */
+  if (pathname !== "/home") return null;
   return (
     <Link
       href="/compose"

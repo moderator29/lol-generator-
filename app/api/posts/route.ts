@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { requireProfile, json } from "@/lib/auth/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { award } from "@/lib/points";
-import { maybeRavenReply } from "@/lib/ai/mention";
+import { maybeRavenReplyToPost } from "@/lib/ai/mention";
 import { lookupToken } from "@/lib/data/tokens";
 
 export async function POST(req: Request) {
@@ -47,15 +47,27 @@ export async function POST(req: Request) {
     ),
   ];
 
-  /* Media must live in our own storage; no hotlinked strangers. */
-  const storagePrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/`;
+  /* Media must live in our own public media shelf; no hotlinked strangers.
+     We match on the storage path segment rather than the full origin so a
+     trailing slash, a custom storage domain, or any drift between the upload
+     host and NEXT_PUBLIC_SUPABASE_URL cannot silently strip every image (the
+     bug that left every post with media = []). The url must still be an
+     absolute https URL that resolves to /storage/v1/object/public/media/. */
+  const MEDIA_PATH = "/storage/v1/object/public/media/";
+  const isOwnMedia = (url: unknown): url is string => {
+    if (typeof url !== "string") return false;
+    try {
+      const u = new URL(url);
+      return u.protocol === "https:" && u.pathname.startsWith(MEDIA_PATH);
+    } catch {
+      return false;
+    }
+  };
   const media = (body.media ?? [])
     .slice(0, 4)
     .filter(
       (m) =>
-        typeof m?.url === "string" &&
-        m.url.startsWith(storagePrefix) &&
-        (m.type === "image" || m.type === "video")
+        isOwnMedia(m?.url) && (m.type === "image" || m.type === "video")
     );
 
   const cashtags = [...text.matchAll(/\$([a-zA-Z]{2,12})\b/g)].map((m) =>
@@ -161,7 +173,7 @@ export async function POST(req: Request) {
   }
 
   after(async () => {
-    await maybeRavenReply(db, post.id, text, profile.handle);
+    await maybeRavenReplyToPost(db, post.id, text, profile.handle, profile.id);
   });
 
   return json({ ok: true, id: post.id, post });

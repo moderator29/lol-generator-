@@ -14,7 +14,9 @@ import { shortAddress } from "@/components/wallet/chains";
    and settings. */
 export function WalletSection() {
   const { enabled, authenticated, address } = useRealmAuth();
-  const addr = authenticated ? address : undefined;
+  /* Only ever surface an Ethereum (0x) address here; never a Solana one. */
+  const addr =
+    authenticated && address?.startsWith("0x") ? address : undefined;
 
   if (enabled) {
     return <WalletLive address={addr} />;

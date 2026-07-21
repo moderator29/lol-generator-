@@ -183,7 +183,7 @@ export function ReferralPanel({ enabled }: { enabled: boolean }) {
       )}
 
       <p className="text-xs leading-relaxed text-bone-faint">
-        Points and Renown are credited as your recruits act. $RAVEN comes later,
+        Points and Renown are credited as your recruits act. $RSP comes later,
         at Season claims, non-custodial and claimed by you alone.
       </p>
     </div>

@@ -20,9 +20,11 @@ import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 export function ProfileView({
   profile,
   own = false,
+  onEdit,
 }: {
   profile: PublicProfile;
   own?: boolean;
+  onEdit?: () => void;
 }) {
   const { authenticated } = useRealmAuth();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -194,7 +196,7 @@ export function ProfileView({
           </label>
         )}
       </div>
-      <div className="-mt-8 px-4">
+      <div className="relative z-10 -mt-8 px-4">
         <div className="flex items-end justify-between">
           {isOwn ? (
             <label className="group relative inline-flex cursor-pointer">
@@ -223,9 +225,19 @@ export function ProfileView({
             <Avatar author={displayProfile} size={76} />
           )}
           {isOwn ? (
-            <span className="btn-glass px-4 py-1.5 text-xs text-bone-mut">
-              This is your Keep
-            </span>
+            onEdit ? (
+              <button
+                onClick={onEdit}
+                className="btn-gold flex items-center gap-1.5 px-4 py-1.5 text-xs"
+              >
+                <Icon name="sliders" className="h-3.5 w-3.5" />
+                Edit profile
+              </button>
+            ) : (
+              <span className="btn-glass px-4 py-1.5 text-xs text-bone-mut">
+                This is your Keep
+              </span>
+            )
           ) : (
             <div className="flex items-center gap-2">
               <button
@@ -257,6 +269,17 @@ export function ProfileView({
           <h1 className="font-display text-xl font-semibold text-bone">
             {profile.display_name ?? profile.handle}
           </h1>
+          {profile.x_handle && (
+            <a
+              href={`https://x.com/${profile.x_handle}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`@${profile.x_handle} on X`}
+              className="flex h-6 w-6 items-center justify-center rounded-md border border-steel-line bg-void text-bone-mut transition hover:border-gold/40 hover:text-bone"
+            >
+              <Icon name="xlogo" className="h-4 w-4" />
+            </a>
+          )}
           {crestSlugs.slice(0, 4).map((slug) => {
             const def = findCrest(slug);
             return def ? (
@@ -271,21 +294,7 @@ export function ProfileView({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <p className="text-sm text-bone-faint">@{profile.handle}</p>
-          {profile.x_handle && (
-            <a
-              href={`https://x.com/${profile.x_handle}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={`@${profile.x_handle} on X`}
-              className="inline-flex items-center gap-1 rounded-full border border-steel-line bg-void px-2 py-0.5 text-[11px] text-bone-mut transition hover:border-gold/40 hover:text-bone"
-            >
-              <Icon name="xlogo" className="h-3 w-3" />
-              {profile.x_handle}
-            </a>
-          )}
-        </div>
+        <p className="text-sm text-bone-faint">@{profile.handle}</p>
 
         {profile.bio && (
           <p className="mt-2 max-w-prose text-sm leading-relaxed text-bone-mut">
@@ -335,17 +344,6 @@ export function ProfileView({
                 year: "numeric",
               })}
             </span>
-          )}
-          {profile.x_handle && (
-            <a
-              href={`https://x.com/${profile.x_handle}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-bone-mut hover:text-bone"
-            >
-              <Icon name="xlogo" className="h-3.5 w-3.5" />
-              @{profile.x_handle}
-            </a>
           )}
         </div>
 

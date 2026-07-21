@@ -83,7 +83,7 @@ export const chronicle: ChronicleSection[] = [
     plain: "The roadmap: Mint, Forge, Prophecies, the full Raven, and the Long Night.",
     body: [
       "Ravenspire is a realm under construction, and we would rather show you the map than pretend the castle is finished. What exists today is the foundation: the Ravenry, the Houses, Renown, Crests, and the first Games.",
-      "The Forge already stands at the gates: the realm's staking hall, where oaths sworn in $RAVEN earn real yield from protocol fees, never emissions. Its fires light fully when staking goes live on-chain.",
+      "The Forge already stands at the gates: the realm's staking hall, where oaths sworn in $RSP earn real yield from protocol fees, never emissions. Its fires light fully when staking goes live on-chain.",
       "The chapters ahead: the Mint, trading across chains shielded from MEV and gasless. Prophecies, on-chain prediction markets where you call the market and win the realm. The Raven, Unbound, the full autonomous agent that trades, watches and hunts alpha at your word. And the Long Night, the co-op survival event where the realm holds the Wall together when markets crash.",
       "Roadmaps are intentions, not oaths. Order may shift, chapters may change shape, and we will say so plainly when they do. What will not change is the constitution of the realm: fun first, standing earned, keys yours, always.",
     ],

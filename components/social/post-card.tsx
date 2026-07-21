@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Avatar } from "@/components/social/avatar";
 import { RichBody } from "@/components/social/rich-body";
 import { PriceCard } from "@/components/social/price-card";
+import { CallChart } from "@/components/social/call-chart";
 import { Icon } from "@/components/ui/icon";
 import { TipDialog } from "@/components/tip/tip-dialog";
 import { realmFetch } from "@/lib/auth/api";
@@ -89,12 +90,14 @@ function ActionButton({
         onClick?.();
       }}
       aria-label={label}
-      className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs transition hover:bg-panel ${
+      className={`flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm transition hover:bg-panel ${
         active ? (activeClass ?? "text-gold") : "text-bone-faint hover:text-bone-mut"
       }`}
     >
-      <Icon name={icon} className="h-4 w-4" />
-      {count !== undefined && count > 0 && <span className="tnum">{count}</span>}
+      <Icon name={icon} className="h-[18px] w-[18px]" />
+      {count !== undefined && count > 0 && (
+        <span className="tnum text-xs">{count}</span>
+      )}
     </button>
   );
 }
@@ -409,6 +412,14 @@ export function PostCard({ post }: { post: Post }) {
             </div>
           )}
 
+          {post.call && (
+            <CallChart
+              symbol={post.call.token}
+              entryPrice={post.call.entry_price}
+              stance={post.call.stance}
+            />
+          )}
+
           {post.media.length > 0 && (
             <div
               className={`mt-2 grid gap-1.5 overflow-hidden rounded-2xl ${
@@ -445,11 +456,15 @@ export function PostCard({ post }: { post: Post }) {
 
           {firstTag && !post.call && <PriceCard symbol={firstTag} />}
 
-          <div className="mt-2 flex items-center gap-1">
-            <Link href={`/post/${post.id}`} className="flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-bone-faint transition hover:bg-panel hover:text-bone-mut">
-              <Icon name="reply" className="h-4 w-4" />
+          <div className="mt-2 flex items-center gap-0.5 sm:gap-1">
+            <Link
+              href={`/post/${post.id}`}
+              aria-label="Reply"
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm text-bone-faint transition hover:bg-panel hover:text-bone-mut"
+            >
+              <Icon name="reply" className="h-[18px] w-[18px]" />
               {post.reply_count > 0 && (
-                <span className="tnum">{post.reply_count}</span>
+                <span className="tnum text-xs">{post.reply_count}</span>
               )}
             </Link>
             <ActionButton
@@ -483,6 +498,14 @@ export function PostCard({ post }: { post: Post }) {
               }}
             />
             <ActionButton icon="share" label="Copy link" onClick={share} />
+            <span
+              className="ml-auto flex items-center gap-1.5 px-2 py-1 text-xs text-bone-faint"
+              aria-label={`${post.view_count} views`}
+              title={`${post.view_count.toLocaleString()} views`}
+            >
+              <Icon name="eye" className="h-[18px] w-[18px]" />
+              <span className="tnum">{post.view_count.toLocaleString()}</span>
+            </span>
           </div>
 
           {tipSent && (

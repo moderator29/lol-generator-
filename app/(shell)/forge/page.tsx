@@ -69,7 +69,7 @@ export default function ForgePage() {
             Swear an oath. Earn real yield from protocol fees, not emissions.
           </h2>
           <p className="mt-3 max-w-lg text-sm text-bone-mut">
-            Stake $RAVEN, lock it at the anvil, and take a share of what the
+            Stake $RSP, lock it at the anvil, and take a share of what the
             realm actually earns. No printed rewards, no borrowed shine.
           </p>
           {live === null ? (
@@ -115,7 +115,7 @@ export default function ForgePage() {
 
           <label className="mt-4 block">
             <span className="text-xs uppercase tracking-[0.2em] text-bone-faint">
-              Amount ($RAVEN)
+              Amount ($RSP)
             </span>
             <input
               type="text"
@@ -169,7 +169,7 @@ export default function ForgePage() {
             </p>
           ) : !amountValid && amount.trim() !== "" ? (
             <p className="mt-2 text-xs text-ember">
-              Enter a positive amount of $RAVEN to stake.
+              Enter a positive amount of $RSP to stake.
             </p>
           ) : null}
         </section>

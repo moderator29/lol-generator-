@@ -67,60 +67,67 @@ export function LandingNav({
             : "border-transparent bg-transparent"
         }`}
       >
-        {/* Brand */}
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Ravenspire home">
+        {/* Left group: desktop anchors. flex-1 so it balances the right group
+            and the centered brand sits dead center of the bar. */}
+        <div className="flex flex-1 items-center gap-1">
+          <div className="hidden items-center gap-1 md:flex">
+            {links.map((l) =>
+              l.route ? (
+                <Link
+                  key={l.label}
+                  href={l.target}
+                  className="rounded-xl px-3 py-2 text-[13px] font-medium text-bone-mut transition hover:bg-gold/5 hover:text-bone"
+                >
+                  {l.label}
+                </Link>
+              ) : (
+                <a
+                  key={l.label}
+                  href={`#${l.target}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    jump(l.target);
+                  }}
+                  className="rounded-xl px-3 py-2 text-[13px] font-medium text-bone-mut transition hover:bg-gold/5 hover:text-bone"
+                >
+                  {l.label}
+                </a>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* Center: brand, perfectly balanced between the two flex-1 groups */}
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-2.5"
+          aria-label="Ravenspire home"
+        >
           <RavenMark className="h-7 w-7" />
           <span className="gold-text font-display text-sm font-semibold tracking-[0.18em] sm:text-base">
             RAVENSPIRE
           </span>
         </Link>
 
-        {/* Desktop anchors */}
-        <div className="ml-auto hidden items-center gap-1 md:flex">
-          {links.map((l) =>
-            l.route ? (
-              <Link
-                key={l.label}
-                href={l.target}
-                className="rounded-xl px-3 py-2 text-[13px] font-medium text-bone-mut transition hover:bg-gold/5 hover:text-bone"
-              >
-                {l.label}
-              </Link>
-            ) : (
-              <a
-                key={l.label}
-                href={`#${l.target}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  jump(l.target);
-                }}
-                className="rounded-xl px-3 py-2 text-[13px] font-medium text-bone-mut transition hover:bg-gold/5 hover:text-bone"
-              >
-                {l.label}
-              </a>
-            )
-          )}
+        {/* Right group: CTA + mobile toggle */}
+        <div className="flex flex-1 items-center justify-end gap-2">
+          <Link href={ctaHref} className="btn-gold px-4 py-2 text-[13px]">
+            <span className="hidden sm:inline">{ctaLabel}</span>
+            <span className="sm:hidden">Enter</span>
+            <LandingIcon name="arrowRight" className="h-4 w-4" />
+          </Link>
+
+          {/* Mobile menu toggle */}
+          <button
+            type="button"
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gold/20 bg-void/60 text-bone-mut transition hover:text-bone md:hidden"
+          >
+            <LandingIcon name={open ? "close" : "menu"} className="h-5 w-5" />
+          </button>
         </div>
-
-        {/* CTA */}
-        <Link
-          href={ctaHref}
-          className="btn-gold ml-auto px-4 py-2 text-[13px] md:ml-2"
-        >
-          {ctaLabel}
-          <LandingIcon name="arrowRight" className="h-4 w-4" />
-        </Link>
-
-        {/* Mobile menu toggle */}
-        <button
-          type="button"
-          aria-label={open ? "Close menu" : "Open menu"}
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          className="flex h-9 w-9 items-center justify-center rounded-xl border border-gold/20 bg-void/60 text-bone-mut transition hover:text-bone md:hidden"
-        >
-          <LandingIcon name={open ? "close" : "menu"} className="h-5 w-5" />
-        </button>
 
         {/* Mobile dropdown */}
         {open && (

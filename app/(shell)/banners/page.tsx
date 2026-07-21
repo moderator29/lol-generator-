@@ -143,7 +143,7 @@ export default function BannersPage() {
               <span className="font-semibold text-bone">
                 What you earn, plainly:
               </span>{" "}
-              points and Renown now, credited as your recruits act. $RAVEN
+              points and Renown now, credited as your recruits act. $RSP
               comes later, at Season claims, non-custodial and claimed by you
               alone. No promises of profit, just a fair cut of the standing you
               helped build.

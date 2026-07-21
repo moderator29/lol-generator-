@@ -9,6 +9,7 @@ import { ReferralPanel } from "@/components/referral/referral-panel";
 import { WalletSection } from "@/components/wallet/wallet-section";
 import { AccountSecurity } from "@/components/settings/account-security";
 import { Card, Row, Toggle, SectionHeader } from "@/components/settings/ui";
+import { BackButton } from "@/components/shell/back-button";
 
 interface MeProfile {
   id: string;
@@ -144,7 +145,8 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
-      <div className="flex items-baseline justify-between gap-3">
+      <BackButton />
+      <div className="mt-3 flex items-baseline justify-between gap-3">
         <div>
           <h1 className="font-display text-xl font-semibold text-bone">
             Settings

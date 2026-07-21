@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/shell/back-button";
 import { comingSoonNav, findComingSoon } from "@/lib/nav";
 
 export function generateStaticParams() {
@@ -17,8 +18,11 @@ export default async function ComingSoonPage({
   if (!item) notFound();
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-4 py-16 text-center sm:py-24">
-      <div className="glass flex w-full max-w-md flex-col items-center p-8">
+    <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-4 py-6 text-center">
+      <div className="w-full max-w-md self-center">
+        <BackButton />
+      </div>
+      <div className="glass mt-6 flex w-full max-w-md flex-col items-center p-8">
         <span className="hairline mb-5 rounded-full bg-panel-warm px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-gold">
           Chapter II
         </span>

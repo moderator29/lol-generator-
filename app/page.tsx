@@ -16,6 +16,9 @@ import { TheChampions } from "@/components/landing/the-champions";
 import { TheGames } from "@/components/landing/the-games";
 import { MeetRaven } from "@/components/landing/meet-raven";
 import { TheTools } from "@/components/landing/the-tools";
+import { ComingSoonTeasers } from "@/components/landing/coming-soon-teasers";
+import { Tokenomics } from "@/components/landing/tokenomics";
+import { Roadmap } from "@/components/landing/roadmap";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { StatsStrip } from "@/components/landing/stats-strip";
 import { SiteFooter } from "@/components/landing/site-footer";
@@ -54,7 +57,7 @@ const faqs = [
   },
   {
     q: "How do I earn?",
-    a: "Real actions earn points: ravens that move the realm, verified Calls, courts you host, newcomers you welcome. At Season's end, points convert to $RAVEN you claim straight to your own wallet. Earned, never bought.",
+    a: "Real actions earn points: ravens that move the realm, verified Calls, courts you host, newcomers you welcome. At Season's end, points convert to $RSP you claim straight to your own wallet. Earned, never bought.",
   },
   {
     q: "What is a Call?",
@@ -180,13 +183,13 @@ export default function Landing() {
               {ctaLabel}
               <LandingIcon name="arrowRight" className="h-4 w-4" />
             </Link>
-            <a
-              href="#overview"
+            <Link
+              href="/chronicle"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-bone-mut transition hover:text-bone"
             >
               Discover the realm
-              <LandingIcon name="chevronDown" className="h-4 w-4" />
-            </a>
+              <LandingIcon name="arrowUpRight" className="h-4 w-4" />
+            </Link>
           </motion.div>
           <motion.div
             initial={{ opacity: 0 }}
@@ -249,6 +252,15 @@ export default function Landing() {
 
           {/* See the realm: premium platform showcase */}
           <PlatformPreview />
+
+          {/* Two forward-looking Coming soon teasers */}
+          <ComingSoonTeasers />
+
+          {/* $RSP tokenomics: allocation donut + legend */}
+          <Tokenomics />
+
+          {/* The phased roadmap on Ethereum */}
+          <Roadmap />
 
           {/* How the realm works: four plain steps */}
           <HowItWorks />
@@ -412,10 +424,11 @@ export default function Landing() {
               A word before you ride
             </div>
             <p className="mt-3 text-[12px] leading-relaxed text-bone-faint">
-              Ravenspire is a fun-first social platform. $RAVEN is a utility and
+              Ravenspire is a fun-first social platform. $RSP is a utility and
               social token that powers the realm, not an investment. Nothing here
               is financial advice, and no one at Ravenspire will ever tell you to
-              buy, sell, or hold. There is no presale, anywhere, at any time.
+              buy, sell, or hold. Presale coming soon, and details will be
+              announced in the open when it is ready.
               Crypto carries real risk, including the loss of everything you put
               in, so bring only what you can afford to lose. The realm is
               non-custodial by design: you hold your own keys, they are always

@@ -90,16 +90,21 @@ export async function POST(req: Request) {
 
   if (body.action === "bookmark") {
     if (!body.subject_id) return json({ error: "bad request" }, 400);
+    /* Bookmarks live in two shelves: posts and comments. Default to posts so
+       older clients that omit subject_type keep working unchanged. */
+    const onComment = body.subject_type === "comment";
+    const table = onComment ? "comment_bookmarks" : "bookmarks";
+    const col = onComment ? "comment_id" : "post_id";
     if (body.on) {
       await db
-        .from("bookmarks")
-        .upsert({ profile_id: profile.id, post_id: body.subject_id });
+        .from(table)
+        .upsert({ profile_id: profile.id, [col]: body.subject_id });
     } else {
       await db
-        .from("bookmarks")
+        .from(table)
         .delete()
         .eq("profile_id", profile.id)
-        .eq("post_id", body.subject_id);
+        .eq(col, body.subject_id);
     }
     return json({ ok: true });
   }

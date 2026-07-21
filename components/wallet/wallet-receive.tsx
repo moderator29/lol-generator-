@@ -2,15 +2,16 @@
 
 import { Icon } from "@/components/ui/icon";
 import { CopyButton } from "@/components/wallet/copy-button";
+import { AddressQR } from "@/components/wallet/address-qr";
 import {
   type ChainMeta,
   addressExplorerUrl,
 } from "@/components/wallet/chains";
 
-/* Receive: shows the user's non-custodial realm wallet address in full with a
-   clear copy affordance and the network to receive on. No balances are invented
-   here; this is the true, shareable receiving address. Rendered as the body of
-   the Receive modal. */
+/* Receive: shows the user's non-custodial 0x wallet address in full with a
+   scannable QR, a clear copy affordance, and an EVM-only warning. No balances
+   are invented here; this is the true, shareable receiving address. Rendered as
+   the body of the Receive modal. */
 export function WalletReceive({
   address,
   chainMeta,
@@ -32,16 +33,18 @@ export function WalletReceive({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-bone-mut">
-        Share this address to receive {chainMeta.symbol} and tokens. It is yours
-        alone, non-custodial, and safe to share.
+        Scan the code or copy the address to receive {chainMeta.symbol} and
+        tokens. It is yours alone, non-custodial, and safe to share.
       </p>
 
-      <div className="flex items-center gap-2 rounded-2xl border border-steel-line bg-panel/50 px-3.5 py-2.5">
-        <span className="flex h-2 w-2 shrink-0 rounded-full bg-gold" />
-        <span className="text-sm text-bone">Receiving on</span>
-        <span className="ml-auto text-sm font-medium text-bone">
-          {chainMeta.name}
-        </span>
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-steel-line bg-panel/40 p-5">
+        <AddressQR value={address} />
+        <div className="flex items-center gap-2 rounded-full border border-gold/25 bg-panel-warm/60 px-3 py-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+          <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-bone-mut">
+            EVM / Ethereum only
+          </span>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-steel-line bg-panel/50 p-3.5">
@@ -72,9 +75,11 @@ export function WalletReceive({
         ) : null}
       </div>
 
-      <p className="text-xs leading-relaxed text-bone-faint">
-        Only send assets on {chainMeta.name} to this address. Coins sent on an
-        unsupported chain can be lost for good.
+      <p className="flex items-start gap-2 text-xs leading-relaxed text-bone-faint">
+        <Icon name="shield" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ember" />
+        Only send assets on {chainMeta.name} or another EVM network to this
+        address. Coins sent from a non-EVM chain such as Solana can be lost for
+        good.
       </p>
     </div>
   );

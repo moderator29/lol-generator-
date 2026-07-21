@@ -10,7 +10,7 @@ import { realmFetch } from "@/lib/auth/api";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 
 export default function KeepPage() {
-  const { ready, authenticated, enabled, signOut } = useRealmAuth();
+  const { ready, authenticated, enabled } = useRealmAuth();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [state, setState] = useState<"loading" | "anon" | "onboard" | "ok">(
     "loading"
@@ -97,21 +97,9 @@ export default function KeepPage() {
 
   return (
     <div>
-      {profile && <ProfileView profile={profile} own />}
-      <div className="mx-auto flex max-w-2xl flex-wrap gap-2 px-4 pb-8">
-        <button
-          onClick={() => setEditOpen(true)}
-          className="btn-glass px-4 py-2 text-xs text-bone-mut"
-        >
-          Edit Profile
-        </button>
-        <button
-          onClick={signOut}
-          className="btn-glass px-4 py-2 text-xs text-bone-faint"
-        >
-          Leave the realm (sign out)
-        </button>
-      </div>
+      {profile && (
+        <ProfileView profile={profile} own onEdit={() => setEditOpen(true)} />
+      )}
       <EditProfile
         open={editOpen}
         onClose={() => setEditOpen(false)}

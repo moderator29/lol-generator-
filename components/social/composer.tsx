@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/social/avatar";
 import { Icon } from "@/components/ui/icon";
@@ -41,7 +41,11 @@ export function Composer({
   const [callToken, setCallToken] = useState("");
   const [callStance, setCallStance] = useState<"up" | "down">("up");
   const [callTimeframe, setCallTimeframe] = useState("24h");
-  const [images, setImages] = useState<string[]>([]);
+  /* Each attachment carries a local blob `preview` for instant, reliable
+     on-screen display and the persisted public `url` used when the raven is
+     sent. Previewing the blob (not the fresh remote URL) means the thumbnail
+     never shows a black box while the public object propagates. */
+  const [images, setImages] = useState<{ url: string; preview: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
@@ -62,8 +66,19 @@ export function Composer({
     else setError(res.data?.error ?? "The words would not come. Try again.");
   };
 
+  /* Blob preview URLs to revoke on unmount so we do not leak object URLs. */
+  const previewUrls = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const urls = previewUrls.current;
+    return () => {
+      for (const u of urls) URL.revokeObjectURL(u);
+    };
+  }, []);
+
   const attachImage = async (file: File) => {
     if (images.length >= 4 || uploading) return;
+    const preview = URL.createObjectURL(file);
+    previewUrls.current.add(preview);
     setUploading(true);
     setError(null);
     const form = new FormData();
@@ -73,8 +88,24 @@ export function Composer({
       { method: "POST", body: form }
     );
     setUploading(false);
-    if (res.data?.url) setImages((prev) => [...prev, res.data!.url!]);
-    else setError(res.data?.error ?? "The image would not attach.");
+    if (res.data?.url) {
+      setImages((prev) => [...prev, { url: res.data!.url!, preview }]);
+    } else {
+      previewUrls.current.delete(preview);
+      URL.revokeObjectURL(preview);
+      setError(res.data?.error ?? "The image would not attach.");
+    }
+  };
+
+  const removeImage = (i: number) => {
+    setImages((prev) => {
+      const gone = prev[i];
+      if (gone) {
+        previewUrls.current.delete(gone.preview);
+        URL.revokeObjectURL(gone.preview);
+      }
+      return prev.filter((_, j) => j !== i);
+    });
   };
 
   if (!authenticated) {
@@ -103,7 +134,7 @@ export function Composer({
       };
     }
     if (images.length)
-      payload.media = images.map((url) => ({ url, type: "image" }));
+      payload.media = images.map((img) => ({ url: img.url, type: "image" }));
     const validPoll = pollOptions.map((o) => o.trim()).filter(Boolean);
     if (pollOpen && validPoll.length >= 2) {
       payload.kind = "poll";
@@ -122,6 +153,10 @@ export function Composer({
     setBody("");
     setCallOpen(false);
     setCallToken("");
+    for (const img of images) {
+      previewUrls.current.delete(img.preview);
+      URL.revokeObjectURL(img.preview);
+    }
     setImages([]);
     setPollOpen(false);
     setPollOptions(["", ""]);
@@ -184,7 +219,7 @@ export function Composer({
             rows={page ? undefined : body.length > 80 ? 4 : 2}
             className={
               page
-                ? "min-h-[40vh] w-full flex-1 resize-none bg-transparent text-lg leading-relaxed text-bone placeholder-bone-faint outline-none"
+                ? "min-h-[28vh] w-full flex-1 resize-none bg-transparent text-lg leading-relaxed text-bone placeholder-bone-faint outline-none"
                 : "w-full resize-none bg-transparent text-[15px] text-bone placeholder-bone-faint outline-none"
             }
           />
@@ -237,18 +272,16 @@ export function Composer({
           )}
           {images.length > 0 && (
             <div className="mt-2 flex gap-2 overflow-x-auto">
-              {images.map((url, i) => (
-                <div key={url} className="relative shrink-0">
+              {images.map((img, i) => (
+                <div key={img.preview} className="relative shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={url}
-                    alt=""
+                    src={img.preview}
+                    alt="Attached image preview"
                     className="h-20 w-20 rounded-xl border border-steel-line object-cover"
                   />
                   <button
-                    onClick={() =>
-                      setImages((prev) => prev.filter((_, j) => j !== i))
-                    }
+                    onClick={() => removeImage(i)}
                     aria-label="Remove image"
                     className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-steel-line bg-void text-[10px] text-bone-mut"
                   >
@@ -286,7 +319,13 @@ export function Composer({
           )}
 
           {error && <p className="mt-2 text-xs text-ember-deep">{error}</p>}
-          <div className="mt-2 flex items-center gap-1">
+          <div
+            className={
+              page
+                ? "sticky bottom-0 z-10 mt-2 flex flex-wrap items-center gap-1 border-t border-steel-line bg-void/95 py-2 backdrop-blur"
+                : "mt-2 flex items-center gap-1"
+            }
+          >
             <label
               className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition ${
                 uploading
@@ -373,7 +412,11 @@ export function Composer({
                     onClick={() => setAudienceOpen(false)}
                     className="fixed inset-0 z-20 cursor-default"
                   />
-                  <div className="glass glass-sm absolute right-0 top-9 z-30 w-52 p-1">
+                  <div
+                    className={`glass glass-sm absolute right-0 z-30 w-52 p-1 ${
+                      page ? "bottom-10" : "top-9"
+                    }`}
+                  >
                     <p className="px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-bone-faint">
                       Who can see this
                     </p>

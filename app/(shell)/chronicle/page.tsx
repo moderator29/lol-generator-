@@ -1,9 +1,11 @@
 import { chronicle } from "@/lib/data/chronicle";
+import { BackButton } from "@/components/shell/back-button";
 
 export default function ChroniclePage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-4 sm:py-6">
-      <h1 className="gold-text font-display text-2xl font-semibold sm:text-3xl">
+      <BackButton />
+      <h1 className="gold-text mt-3 font-display text-2xl font-semibold sm:text-3xl">
         The Chronicle
       </h1>
       <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
