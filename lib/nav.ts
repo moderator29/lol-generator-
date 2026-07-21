@@ -23,6 +23,7 @@ export const socialNav: NavItem[] = [
 
 export const toolsNav: NavItem[] = [
   { slug: "raven", href: "/raven", themed: "The Raven", plain: "Ask anything", icon: "raven" },
+  { slug: "dna", href: "/dna", themed: "The Bloodline", plain: "Wallet & profile DNA", icon: "orb" },
   { slug: "ledger", href: "/ledger", themed: "The Ledger", plain: "Portfolio", icon: "book" },
   { slug: "watch", href: "/watch", themed: "The Watch", plain: "Safety", icon: "shield" },
   { slug: "scrying", href: "/scrying", themed: "The Scrying Glass", plain: "Smart money", icon: "eye" },

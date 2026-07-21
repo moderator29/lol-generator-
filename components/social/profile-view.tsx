@@ -38,6 +38,7 @@ export function ProfileView({
   const [bannerOverride, setBannerOverride] = useState<string | null>(null);
   const [uploading, setUploading] = useState<"avatar" | "banner" | null>(null);
   const [portraitError, setPortraitError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   /* This Keep belongs to the viewer either because the parent said so
      (own /keep) or because the signed-in member is looking at their own
@@ -196,7 +197,7 @@ export function ProfileView({
           </label>
         )}
       </div>
-      <div className="relative z-10 -mt-8 px-4">
+      <div className="relative z-20 -mt-8 px-4">
         <div className="flex items-end justify-between">
           {isOwn ? (
             <label className="group relative inline-flex cursor-pointer">
@@ -239,16 +240,7 @@ export function ProfileView({
               </span>
             )
           ) : (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleBlock}
-                title={isBlocked ? "Unblock" : "Block"}
-                className={`btn-glass px-3 py-1.5 text-xs ${
-                  isBlocked ? "text-ember" : "text-bone-faint"
-                }`}
-              >
-                {isBlocked ? "Blocked" : "Block"}
-              </button>
+            <div className="relative flex items-center gap-2">
               {!isBlocked && (
                 <button
                   onClick={toggleFollow}
@@ -256,6 +248,35 @@ export function ProfileView({
                 >
                   {following ? "Following" : "Follow"}
                 </button>
+              )}
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-label="More"
+                className="btn-glass flex h-8 w-8 items-center justify-center text-bone-mut"
+              >
+                <Icon name="dots" className="h-4 w-4" />
+              </button>
+              {menuOpen && (
+                <>
+                  <button
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={() => setMenuOpen(false)}
+                    className="fixed inset-0 z-20 cursor-default"
+                  />
+                  <div className="glass glass-sm absolute right-0 top-10 z-30 w-40 p-1">
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        void toggleBlock();
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-bone-mut transition hover:bg-panel"
+                    >
+                      <Icon name="shield" className="h-3.5 w-3.5" />
+                      {isBlocked ? "Unblock" : "Block"}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           )}
