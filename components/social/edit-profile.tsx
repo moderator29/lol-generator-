@@ -21,6 +21,7 @@ export function EditProfile({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [links, setLinks] = useState<LinkRow[]>(EMPTY_LINKS);
@@ -40,10 +41,11 @@ export function EditProfile({
         "/api/me",
         { method: "POST" }
       );
-      const handle = res.data?.profile?.handle;
-      if (!handle || cancelled) return;
-      const p = await fetchProfile(handle);
+      const currentHandle = res.data?.profile?.handle;
+      if (!currentHandle || cancelled) return;
+      const p = await fetchProfile(currentHandle);
       if (!p || cancelled) return;
+      setHandle(p.handle ?? "");
       setDisplayName(p.display_name ?? "");
       setBio(p.bio ?? "");
       setLinks([0, 1, 2].map((i) => ({ ...(p.links?.[i] ?? { label: "", url: "" }) })));
@@ -74,6 +76,10 @@ export function EditProfile({
   };
 
   const save = async () => {
+    if (!/^[a-z0-9_]{3,20}$/.test(handle)) {
+      setError("Username must be 3 to 20 characters, a-z 0-9 _.");
+      return;
+    }
     if (!displayName.trim()) {
       setError("A display name is required.");
       return;
@@ -92,6 +98,7 @@ export function EditProfile({
       {
         method: "POST",
         json: {
+          handle,
           display_name: displayName.trim(),
           bio,
           links: filled.map((l) => ({ label: l.label.trim(), url: l.url.trim() })),
@@ -126,6 +133,29 @@ export function EditProfile({
         </h2>
 
         <label className="mt-4 block text-xs font-semibold text-bone-faint">
+          Username
+          <div className="mt-1 flex items-center gap-1 rounded-lg border border-steel-line bg-void px-3 focus-within:border-gold/40">
+            <span className="text-bone-faint">@</span>
+            <input
+              value={handle}
+              onChange={(e) =>
+                setHandle(
+                  e.target.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9_]/g, "")
+                    .slice(0, 20)
+                )
+              }
+              placeholder="your_handle"
+              className="min-w-0 flex-1 bg-transparent py-2 text-sm text-bone placeholder-bone-faint outline-none"
+            />
+          </div>
+          <span className="mt-1 block text-[10px] text-bone-faint">
+            3 to 20 characters, a-z 0-9 _. Must be unique in the realm.
+          </span>
+        </label>
+
+        <label className="mt-3 block text-xs font-semibold text-bone-faint">
           Display name
           <input
             value={displayName}

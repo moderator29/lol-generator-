@@ -9,6 +9,7 @@ export async function POST(req: Request) {
   if (!db) return json({ error: "unavailable" }, 503);
 
   const body = (await req.json().catch(() => null)) as {
+    handle?: unknown;
     display_name?: unknown;
     bio?: unknown;
     links?: unknown;
@@ -18,6 +19,28 @@ export async function POST(req: Request) {
   if (!body) return json({ error: "bad request" }, 400);
 
   const update: Record<string, unknown> = {};
+
+  /* A member can change their username. It stays unique across the realm:
+     Supabase is asked whether any other profile already holds it. */
+  if (body.handle !== undefined) {
+    if (typeof body.handle !== "string")
+      return json({ error: "handle must be text" }, 400);
+    const handle = body.handle.toLowerCase().trim();
+    if (!/^[a-z0-9_]{3,20}$/.test(handle))
+      return json({ error: "Handle must be 3 to 20 characters, a-z 0-9 _" }, 400);
+    if (handle === "raven")
+      return json({ error: "That name belongs to the Herald." }, 400);
+    if (handle !== profile.handle) {
+      const { data: taken } = await db
+        .from("profiles")
+        .select("id")
+        .ilike("handle", handle)
+        .neq("id", profile.id)
+        .maybeSingle();
+      if (taken) return json({ error: "That handle is already claimed" }, 409);
+      update.handle = handle;
+    }
+  }
 
   if (body.display_name !== undefined) {
     if (typeof body.display_name !== "string")
