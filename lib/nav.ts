@@ -76,7 +76,7 @@ export const bottomNav = [
   { href: "/explore", label: "Explore", icon: "compass" },
   { href: "/rookery", label: "Live", icon: "signal" },
   { href: "/throne", label: "Throne", icon: "crown" },
-  { href: "/keep", label: "My Keep", icon: "user" },
+  { href: "/vault", label: "Vault", icon: "wallet" },
 ];
 
 export function findComingSoon(slug: string) {

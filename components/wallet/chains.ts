@@ -67,6 +67,13 @@ export function txExplorerUrl(meta: ChainMeta, hash: string): string | null {
   return meta.explorer ? `${meta.explorer}/tx/${hash}` : null;
 }
 
+export function addressExplorerUrl(
+  meta: ChainMeta,
+  address: string
+): string | null {
+  return meta.explorer ? `${meta.explorer}/address/${address}` : null;
+}
+
 /* Middle-truncate an address for compact display. */
 export function shortAddress(addr: string, lead = 6, tail = 4): string {
   if (addr.length <= lead + tail + 2) return addr;

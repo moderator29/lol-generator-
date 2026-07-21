@@ -52,7 +52,8 @@ function NavGroup({
 
 export function SideNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const { ready, authenticated } = useRealmAuth();
+  const { ready, authenticated, avatarUrl, displayName, xHandle } =
+    useRealmAuth();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -84,33 +85,49 @@ export function SideNav({ onNavigate }: { onNavigate?: () => void }) {
         <span className="gold-text">RAVENSPIRE</span>
       </Link>
 
-      <div className="glass glass-sm mb-3 p-3">
-        <Link href="/keep" className="flex items-center gap-3">
-          <div className="hairline flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-void text-bone-mut">
-            <Icon name="user" className="h-5 w-5" />
-          </div>
+      {authenticated ? (
+        <Link
+          href="/keep"
+          className="glass glass-sm mb-3 flex items-center gap-3 p-3 transition hover:border-gold/30"
+        >
+          {avatarUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={avatarUrl}
+              alt="Your portrait"
+              className="h-10 w-10 shrink-0 rounded-full border border-steel-line object-cover"
+            />
+          ) : (
+            <div className="hairline flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-void text-bone-mut">
+              <Icon name="user" className="h-5 w-5" />
+            </div>
+          )}
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-bone">Your Keep</p>
-            <p className="truncate text-xs text-bone-faint">Enter the realm</p>
+            <p className="truncate text-sm font-medium text-bone">
+              {displayName ?? (xHandle ? `@${xHandle}` : "Your Keep")}
+            </p>
+            <p className="truncate text-xs text-bone-faint">View your Keep</p>
           </div>
         </Link>
-        <div className="mt-3 flex items-center gap-2">
+      ) : (
+        <div className="glass glass-sm mb-3 p-3">
+          <div className="flex items-center gap-3">
+            <div className="hairline flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-void text-bone-mut">
+              <Icon name="user" className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-bone">Your Keep</p>
+              <p className="truncate text-xs text-bone-faint">Enter the realm</p>
+            </div>
+          </div>
           <Link
             href="/signin"
-            className="btn-gold flex-1 px-3 py-1.5 text-center text-[13px]"
+            className="btn-gold mt-3 block px-3 py-1.5 text-center text-[13px]"
           >
             Sign in
           </Link>
-          <Link
-            href="/vault"
-            className="btn-glass shrink-0 px-2.5 py-1.5 text-xs text-bone-mut"
-            title="The Vault"
-          >
-            <Icon name="wallet" className="h-4 w-4" />
-            $RAVEN
-          </Link>
         </div>
-      </div>
+      )}
 
       <NavGroup label="Social & Game" items={socialNav} pathname={pathname} />
       <NavGroup label="Tools" items={toolsNav} pathname={pathname} />

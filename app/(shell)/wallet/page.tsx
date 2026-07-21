@@ -11,19 +11,27 @@ export default function WalletPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
-      <div className="flex items-center gap-2.5">
-        <Icon name="wallet" className="h-5 w-5 text-gold" />
-        <h1 className="font-display text-xl font-semibold text-bone">
-          Your Wallet
-        </h1>
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/25 bg-panel-warm">
+          <Icon name="wallet" className="h-5 w-5 text-gold" />
+        </span>
+        <div>
+          <h1 className="font-display text-xl font-semibold text-bone">
+            Your Wallet
+          </h1>
+          <p className="mt-0.5 text-[11px] uppercase tracking-[0.26em] text-bone-faint">
+            Non-custodial, keys and coin
+          </p>
+        </div>
       </div>
-      <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
-        Non-custodial, keys and coin
-      </p>
 
       <div className="mt-5">
         {!ready ? (
-          <div className="glass h-40 animate-pulse" />
+          <div className="flex flex-col gap-4">
+            <div className="glass h-52 animate-pulse" />
+            <div className="glass h-28 animate-pulse" />
+            <div className="glass h-32 animate-pulse" />
+          </div>
         ) : !authenticated ? (
           <div className="glass relative overflow-hidden p-8 text-center sm:p-10">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-steel-line bg-panel">
