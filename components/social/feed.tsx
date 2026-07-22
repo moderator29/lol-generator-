@@ -118,48 +118,60 @@ export function Feed() {
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setFiltersOpen((v) => !v)}
-          aria-label="Feed filters"
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition ${
-            filtersOpen || filters.hideHerald || filters.mediaOnly || filters.callsOnly
-              ? "btn-gold"
-              : "btn-glass text-bone-mut"
-          }`}
-        >
-          <Icon name="sliders" className="h-4 w-4" />
-        </button>
-        {filtersOpen && (
-          <div className="glass glass-sm absolute right-0 top-11 z-20 w-56 p-3">
-            {(
-              [
-                ["hideHerald", "Hide the Herald's posts"],
-                ["mediaOnly", "Media only"],
-                ["callsOnly", "Calls only"],
-              ] as const
-            ).map(([key, label]) => (
+        <div className="relative shrink-0">
+          <button
+            onClick={() => setFiltersOpen((v) => !v)}
+            aria-label="Feed filters"
+            aria-expanded={filtersOpen}
+            className={`flex h-9 w-9 items-center justify-center rounded-full transition ${
+              filtersOpen ||
+              filters.hideHerald ||
+              filters.mediaOnly ||
+              filters.callsOnly
+                ? "btn-gold"
+                : "btn-glass text-bone-mut"
+            }`}
+          >
+            <Icon name="sliders" className="h-4 w-4" />
+          </button>
+          {filtersOpen && (
+            <>
               <button
-                key={key}
-                onClick={() =>
-                  setFilters((f) => ({ ...f, [key]: !f[key] }))
-                }
-                className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-xs text-bone-mut hover:bg-panel"
-              >
-                {label}
-                <span
-                  className={`h-3.5 w-6 rounded-full border transition ${
-                    filters[key]
-                      ? "gold-metal border-gold-bright/60"
-                      : "border-steel-line bg-steel-deep"
-                  }`}
-                />
-              </button>
-            ))}
-            <p className="mt-1 px-2 text-[10px] text-bone-faint">
-              Blocked members never appear.
-            </p>
-          </div>
-        )}
+                type="button"
+                aria-label="Close filters"
+                onClick={() => setFiltersOpen(false)}
+                className="fixed inset-0 z-40 cursor-default"
+              />
+              <div className="glass glass-sm absolute right-0 top-11 z-50 w-56 p-3">
+                {(
+                  [
+                    ["hideHerald", "Hide the Herald's posts"],
+                    ["mediaOnly", "Media only"],
+                    ["callsOnly", "Calls only"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setFilters((f) => ({ ...f, [key]: !f[key] }))}
+                    className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-xs text-bone-mut hover:bg-panel"
+                  >
+                    {label}
+                    <span
+                      className={`h-3.5 w-6 rounded-full border transition ${
+                        filters[key]
+                          ? "gold-metal border-gold-bright/60"
+                          : "border-steel-line bg-steel-deep"
+                      }`}
+                    />
+                  </button>
+                ))}
+                <p className="mt-1 px-2 text-[10px] text-bone-faint">
+                  Blocked members never appear.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {hasNew && (
