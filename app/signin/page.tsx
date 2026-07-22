@@ -81,7 +81,7 @@ export default function SignInPage() {
               <div className="flex items-center gap-2.5">
                 <RavenMark className="h-9 w-9" />
                 <span className="gold-text font-display text-lg font-semibold tracking-[0.14em]">
-                  RAVENSPIRE
+                  THE RAVENSPIRE
                 </span>
               </div>
               <h2 className="mt-8 font-display text-2xl font-semibold leading-snug text-bone">
@@ -119,7 +119,7 @@ export default function SignInPage() {
             <div className="mb-8 flex flex-col items-center text-center md:hidden">
               <RavenMark className="h-12 w-12" />
               <h1 className="gold-text mt-3 font-display text-2xl font-semibold tracking-[0.1em]">
-                RAVENSPIRE
+                THE RAVENSPIRE
               </h1>
               <p className="mt-2 text-[13px] text-bone-mut">
                 See every chain. Fear no rug. Rule your realm.

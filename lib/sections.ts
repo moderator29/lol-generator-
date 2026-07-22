@@ -131,7 +131,7 @@ export const sectionMeta: Record<string, SectionMeta> = {
     plain: "Docs",
     icon: "scroll",
     description:
-      "The written record of Ravenspire. What it is, how it works, and how the realm is governed.",
+      "The written record of The Ravenspire. What it is, how it works, and how the realm is governed.",
   },
   vault: {
     themed: "The Vault",

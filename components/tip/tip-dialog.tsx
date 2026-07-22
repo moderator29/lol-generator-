@@ -17,7 +17,7 @@ type Phase = "loading" | "amount" | "sending" | "success" | "error";
 /* Premium tribute flow. Reads the recipient's linked wallet, lets the tipper
    choose a native-token amount, sends a REAL transfer from their Privy embedded
    wallet, then records the tip and celebrates. Non-custodial throughout: the
-   coin moves wallet to wallet and RAVENSPIRE only writes the receipt. */
+   coin moves wallet to wallet and THE RAVENSPIRE only writes the receipt. */
 export function TipDialog({
   recipientId,
   recipientName,
@@ -235,7 +235,7 @@ export function TipDialog({
               <p className="mt-4 text-xs text-bone-faint">
                 A real, wallet-to-wallet transfer of{" "}
                 <span className="text-bone-mut">{chain.symbol}</span> on{" "}
-                {chain.name}. You pay network gas; RAVENSPIRE takes nothing.
+                {chain.name}. You pay network gas; THE RAVENSPIRE takes nothing.
               </p>
 
               <div className="mt-4 grid grid-cols-4 gap-2">

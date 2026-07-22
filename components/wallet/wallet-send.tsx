@@ -168,7 +168,7 @@ export function WalletSend({
     <div className="flex flex-col gap-4">
       <p className="text-sm text-bone-mut">
         Send {chainMeta.symbol} on {chainMeta.name}. You approve every transfer
-        yourself in a secure Privy window; Ravenspire cannot move your funds.
+        yourself in a secure Privy window; The Ravenspire cannot move your funds.
       </p>
 
       <label className="flex flex-col gap-1.5">

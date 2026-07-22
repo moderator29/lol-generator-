@@ -1,8 +1,8 @@
-# RAVENSPIRE
+# THE RAVENSPIRE
 
 See every chain. Fear no rug. Rule your realm.
 
-Ravenspire is a fun-first, non-custodial, medieval-fantasy SocialFi realm: a
+The Ravenspire is a fun-first, non-custodial, medieval-fantasy SocialFi realm: a
 crypto-native social network where creators and their Houses build reputation,
 post, banter, duel, tip, play, and earn, with on-chain intelligence as the
 superpower under the hood, never the headline.
@@ -90,7 +90,7 @@ Icon component. Tokens live in `app/globals.css`.
 
 ## Legal
 
-Ravenspire is a fun-first social platform. $RAVEN is a utility and social token,
+The Ravenspire is a fun-first social platform. $RAVEN is a utility and social token,
 not an investment, and nothing on the platform is financial advice. There is no
 presale, anywhere, at any time. Crypto carries real risk; bring only what you can
 afford to lose. See the Privacy Policy at `/legal/privacy` and the Terms of

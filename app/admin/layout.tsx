@@ -87,7 +87,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <div className="glass glass-sm p-3 lg:sticky lg:top-6 lg:p-4">
             <Link href="/admin" className="block px-2 py-1">
               <span className="gold-text font-display text-sm font-semibold tracking-[0.22em]">
-                RAVENSPIRE ADMIN
+                THE RAVENSPIRE ADMIN
               </span>
             </Link>
             <nav className="mt-3 flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">

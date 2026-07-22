@@ -48,7 +48,7 @@ const floatSpots = [
 
 const faqs = [
   {
-    q: "What is Ravenspire?",
+    q: "What is The Ravenspire?",
     a: "A social realm first, a crypto tool second. You post, banter, duel with wit, swear to a House and play The War. The chains and charts serve the story, never the other way round.",
   },
   {
@@ -162,7 +162,7 @@ export default function Landing() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="gold-text mt-6 font-display text-5xl font-semibold tracking-[0.12em] sm:text-7xl"
           >
-            RAVENSPIRE
+            THE RAVENSPIRE
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
@@ -424,9 +424,9 @@ export default function Landing() {
               A word before you ride
             </div>
             <p className="mt-3 text-[12px] leading-relaxed text-bone-faint">
-              Ravenspire is a fun-first social platform. $RSP is a utility and
+              The Ravenspire is a fun-first social platform. $RSP is a utility and
               social token that powers the realm, not an investment. Nothing here
-              is financial advice, and no one at Ravenspire will ever tell you to
+              is financial advice, and no one at The Ravenspire will ever tell you to
               buy, sell, or hold. Presale coming soon, and details will be
               announced in the open when it is ready.
               Crypto carries real risk, including the loss of everything you put

@@ -43,7 +43,7 @@ const chat = [
   { from: "user", text: "@raven settle this, is a hotdog a sandwich?" },
   {
     from: "raven",
-    text: "Bread embracing filling meets the letter of sandwich law, but no one who orders a sandwich expects a hotdog to arrive. Verdict: technically yes, spiritually no. Both of you may claim victory, the rarest outcome in Ravenspire.",
+    text: "Bread embracing filling meets the letter of sandwich law, but no one who orders a sandwich expects a hotdog to arrive. Verdict: technically yes, spiritually no. Both of you may claim victory, the rarest outcome in The Ravenspire.",
   },
   { from: "user", text: "@raven read $RSP for me." },
   {

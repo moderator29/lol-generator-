@@ -431,7 +431,7 @@ In app/api/watch/route.ts every check is a strict equality against "1" with the 
 **Recommendation:** Distinguish tri-state per field: pass only when the field is explicitly "0", risk on "1", and an "unknown" status (with a score haircut or an explicit "insufficient data" verdict) when the field is absent. Cap the top score when any field is unknown.
 
 ### 2. [HIGH/missing-feature] Approvals audit and one-tap revoke are absent though the brief calls them THE wedge `app/(shell)/watch/page.tsx`
-RAVENSPIREFOUNDATION.md line 444-445 defines The Watch as scanning "tokens/contracts/approvals" with "one-tap APPROVAL REVOKE. THE wedge." and lists it as a LIVE pillar. The shipped page (app/(shell)/watch/page.tsx line 158-162) only scans a single token contract and openly defers approvals: "Approvals audit and one-tap revoke arrive as the Watch deepens." The differentiating feature of the flagship safety pillar is missing entirely; there is no wallet-approval enumeration anywhere in the codebase.
+THE RAVENSPIREFOUNDATION.md line 444-445 defines The Watch as scanning "tokens/contracts/approvals" with "one-tap APPROVAL REVOKE. THE wedge." and lists it as a LIVE pillar. The shipped page (app/(shell)/watch/page.tsx line 158-162) only scans a single token contract and openly defers approvals: "Approvals audit and one-tap revoke arrive as the Watch deepens." The differentiating feature of the flagship safety pillar is missing entirely; there is no wallet-approval enumeration anywhere in the codebase.
 **Recommendation:** Add an approvals tab that takes the signed-in wallet (already available from useRealmAuth), enumerates ERC-20/NFT allowances (GoPlus approval_security endpoint or Alchemy/viem log scan of Approval events), flags risky spenders via GoPlus, and builds the revoke tx (approve(spender, 0)) through the Privy embedded wallet.
 
 ### 3. [HIGH/missing-feature] Watch uses only 6 GoPlus fields and ignores the dangerous ones `app/api/watch/route.ts`
@@ -471,7 +471,7 @@ app/(shell)/watch/page.tsx line 44 appends chain=1 unconditionally and the helpe
 **Recommendation:** Add a chain selector (ETH, Base, Arbitrum, Optimism, BSC) wired to the existing chain param, validated server-side per the previous finding. Solana can come later via GoPlus solana/token_security.
 
 ### 12. [MEDIUM/security] All four tool APIs are unauthenticated open proxies with zero rate limiting `app/api/ledger/route.ts`
-/api/watch, /api/ledger, /api/scrying, and /api/token have no requireProfile call and no throttling of any kind (grep for rate limiting only hits app/api/raven/route.ts). /api/ledger is the worst: it accepts any address and relays it to Covalent with the paid GOLDRUSH_API_KEY, so anyone on the internet can use Ravenspire as a free Covalent proxy and drain the key's quota; /api/watch similarly burns the shared GoPlus per-IP budget; /api/token relays arbitrary queries to DexScreener.
+/api/watch, /api/ledger, /api/scrying, and /api/token have no requireProfile call and no throttling of any kind (grep for rate limiting only hits app/api/raven/route.ts). /api/ledger is the worst: it accepts any address and relays it to Covalent with the paid GOLDRUSH_API_KEY, so anyone on the internet can use The Ravenspire as a free Covalent proxy and drain the key's quota; /api/watch similarly burns the shared GoPlus per-IP budget; /api/token relays arbitrary queries to DexScreener.
 **Recommendation:** Require the Privy bearer token (requireProfile) on /api/ledger at minimum, and add a lightweight per-profile/per-IP token bucket (Upstash Ratelimit or a Supabase counter) on all four routes.
 
 ### 13. [MEDIUM/bug] Ledger does not filter Covalent spam tokens, so fake airdrops inflate net worth `app/api/ledger/route.ts`
@@ -655,7 +655,7 @@ lib/auth/server.ts requireProfile inserts a new profiles row (with Privy enrichm
 
 ### 24. [LOW/polish] Admin pages have no document titles or metadata `app/admin/layout.tsx`
 All pages under app/admin are use client components with no exported metadata and no sibling layout metadata, so every admin tab shows the site-wide default title. With eight sections open in tabs (Users, Moderation, Flags...), stewards cannot tell tabs apart, and the panel feels less finished than the dark, premium admin dashboard the brief describes.
-**Recommendation:** Add a server layout or per-route layout.tsx files exporting metadata (RAVENSPIRE Admin: Users, etc.).
+**Recommendation:** Add a server layout or per-route layout.tsx files exporting metadata (THE RAVENSPIRE Admin: Users, etc.).
 
 ### 25. [LOW/ux] Moderation and users tables lose all rows behind a spinnerless pulse and act destructively without undo `app/admin/moderation/page.tsx`
 In app/admin/moderation/page.tsx, acting on a report immediately filters it out of local state on success; a misclicked Dismiss vanishes with no undo and no way to reopen (the API only transitions open reports, so a mistake is final). Buttons show Resolve/Dismiss with only a disabled state while busy, and the note error line is easy to miss above the table.
@@ -967,7 +967,7 @@ app/api/quests/route.ts line 31 sets period = new Date().toISOString().slice(0,1
 **Recommendation:** Compute period from cadence: ISO week start for weekly, season id for seasonal, day for daily.
 
 ### 4. [HIGH/missing-feature] Zero SEO surface: one metadata export in the whole app, no OG images, no robots, no sitemap `app/layout.tsx`
-Grep confirms the only metadata in the app is the root export in app/layout.tsx. There is no generateMetadata anywhere, no metadataBase, no opengraph-image or twitter-image, no app/robots.ts, no app/sitemap.ts, and public/ contains only create-next-app boilerplate svgs. Post pages, keeps, houses, chronicle and coming-soon pages all render the generic title Ravenspire when shared or indexed.
+Grep confirms the only metadata in the app is the root export in app/layout.tsx. There is no generateMetadata anywhere, no metadataBase, no opengraph-image or twitter-image, no app/robots.ts, no app/sitemap.ts, and public/ contains only create-next-app boilerplate svgs. Post pages, keeps, houses, chronicle and coming-soon pages all render the generic title The Ravenspire when shared or indexed.
 **Recommendation:** Add metadataBase plus openGraph/twitter blocks at root, generateMetadata on post/[id], u/[handle], houses/[slug], chronicle and soon/[slug], plus robots.ts and sitemap.ts.
 
 ### 5. [HIGH/missing-feature] No share cards for posts or keeps, share is a silent clipboard copy `components/social/post-card.tsx`

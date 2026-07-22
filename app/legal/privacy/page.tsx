@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "How Ravenspire collects, uses, and protects your information across a non-custodial SocialFi realm. Your keys and funds are always your own.",
+    "How The Ravenspire collects, uses, and protects your information across a non-custodial SocialFi realm. Your keys and funds are always your own.",
 };
 
 const EFFECTIVE_DATE = "July 19, 2026";
@@ -21,7 +21,7 @@ const sections: Section[] = [
     id: "overview",
     heading: "1. Overview",
     body: [
-      "Ravenspire is a medieval-fantasy social realm built on non-custodial principles. This Privacy Policy explains what information we collect when you enter the realm, how we use it, and the choices you hold over it. By using Ravenspire, you agree to the practices described here.",
+      "The Ravenspire is a medieval-fantasy social realm built on non-custodial principles. This Privacy Policy explains what information we collect when you enter the realm, how we use it, and the choices you hold over it. By using The Ravenspire, you agree to the practices described here.",
       "We keep the surface small on purpose. We collect what is needed to run the realm and keep it safe, and little else.",
     ],
   },
@@ -29,7 +29,7 @@ const sections: Section[] = [
     id: "non-custodial",
     heading: "2. Non-custodial by design",
     body: [
-      "Ravenspire never holds your private keys or your funds. Wallets are provided through Privy embedded wallets, created for you on sign-up and controlled by you. You can export your keys at any time and take them anywhere.",
+      "The Ravenspire never holds your private keys or your funds. Wallets are provided through Privy embedded wallets, created for you on sign-up and controlled by you. You can export your keys at any time and take them anywhere.",
       "Because we are non-custodial, we cannot move, freeze, or recover your assets, and we never take custody of them. Every on-chain action is signed by you. We do not have access to your seed phrase or private keys, and we cannot see or transact on your behalf.",
     ],
   },
@@ -41,7 +41,7 @@ const sections: Section[] = [
       "Your X (Twitter) handle, used to establish your identity and presence in the realm.",
       "Your email address, used for account access, security notices, and important service messages.",
       "Your public wallet address, used to associate on-chain activity and rewards with your account.",
-      "Your on-platform activity, such as posts, Calls, House membership, quests, duels, points, and other actions you take within Ravenspire.",
+      "Your on-platform activity, such as posts, Calls, House membership, quests, duels, points, and other actions you take within The Ravenspire.",
       "Basic technical data, such as device and browser information and general logs, used to keep the service running and secure.",
     ],
   },
@@ -49,7 +49,7 @@ const sections: Section[] = [
     id: "how-we-use",
     heading: "4. How we use your information",
     body: [
-      "We use the information we collect to provide and improve the realm, to authenticate you, to display your activity and standing, to calculate points and rewards, to communicate with you about your account, and to protect Ravenspire and its members from abuse and fraud.",
+      "We use the information we collect to provide and improve the realm, to authenticate you, to display your activity and standing, to calculate points and rewards, to communicate with you about your account, and to protect The Ravenspire and its members from abuse and fraud.",
       "We do not sell your personal information.",
     ],
   },
@@ -65,7 +65,7 @@ const sections: Section[] = [
     id: "sharing",
     heading: "6. Sharing and disclosure",
     body: [
-      "We share information only with the service providers that help us run Ravenspire, such as Privy and Supabase, and only to the extent needed for them to perform their function. We may disclose information if required by law, to enforce our terms, or to protect the rights, safety, and property of the realm and its members.",
+      "We share information only with the service providers that help us run The Ravenspire, such as Privy and Supabase, and only to the extent needed for them to perform their function. We may disclose information if required by law, to enforce our terms, or to protect the rights, safety, and property of the realm and its members.",
     ],
   },
   {
@@ -79,21 +79,21 @@ const sections: Section[] = [
     id: "security",
     heading: "8. Security",
     body: [
-      "We take reasonable measures to protect the information under our control. No system is perfectly secure, and you are responsible for safeguarding your own keys, devices, and login credentials. Because Ravenspire is non-custodial, the security of your funds ultimately rests with you.",
+      "We take reasonable measures to protect the information under our control. No system is perfectly secure, and you are responsible for safeguarding your own keys, devices, and login credentials. Because The Ravenspire is non-custodial, the security of your funds ultimately rests with you.",
     ],
   },
   {
     id: "eligibility",
     heading: "9. Children and eligibility",
     body: [
-      "Ravenspire is intended for adults. You must be at least 18 years of age, or the age of majority in your jurisdiction, to use the service. We do not knowingly collect information from anyone under this age.",
+      "The Ravenspire is intended for adults. You must be at least 18 years of age, or the age of majority in your jurisdiction, to use the service. We do not knowingly collect information from anyone under this age.",
     ],
   },
   {
     id: "changes",
     heading: "10. Changes to this policy",
     body: [
-      "We may update this Privacy Policy from time to time. When we do, we will revise the effective date above and, where appropriate, provide additional notice within the realm. Your continued use of Ravenspire after changes take effect means you accept the updated policy.",
+      "We may update this Privacy Policy from time to time. When we do, we will revise the effective date above and, where appropriate, provide additional notice within the realm. Your continued use of The Ravenspire after changes take effect means you accept the updated policy.",
     ],
   },
   {

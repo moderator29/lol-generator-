@@ -5,7 +5,7 @@ import { LandingIcon, type LandingIconName } from "@/components/landing/icons";
 import { ScrollRail } from "@/components/landing/scroll-rail";
 
 /*
-  The introduction. A crisp, professional statement of what Ravenspire is,
+  The introduction. A crisp, professional statement of what The Ravenspire is,
   followed by Mission, Vision and History as an elegant horizontal rail. This
   sets the frame before any of the medieval feature surfaces appear, so the
   realm reads as a considered product, not a costume.
@@ -40,7 +40,7 @@ const pillars: Pillar[] = [
     icon: "history",
     kicker: "History",
     title: "Built by people tired of soulless dashboards",
-    body: "Ravenspire began as a rebellion against cold terminals and empty hype. We set out to wrap real portfolio, safety and market tools in a living story people actually enjoy.",
+    body: "The Ravenspire began as a rebellion against cold terminals and empty hype. We set out to wrap real portfolio, safety and market tools in a living story people actually enjoy.",
   },
 ];
 
@@ -58,14 +58,14 @@ export function RealmIntro() {
       <motion.div variants={rise} className="mx-auto max-w-3xl text-center">
         <span className="inline-flex items-center gap-2 rounded-full border border-gold/20 bg-void/50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold">
           <LandingIcon name="layers" className="h-4 w-4" />
-          What is Ravenspire
+          What is The Ravenspire
         </span>
         <h2 className="mt-5 font-display text-3xl font-semibold text-bone sm:text-4xl">
           A premium social realm with{" "}
           <span className="gold-text">real crypto beneath it</span>
         </h2>
         <p className="mx-auto mt-5 max-w-2xl text-[15px] leading-relaxed text-bone-mut sm:text-base">
-          Ravenspire is a non-custodial SocialFi platform dressed as a medieval
+          The Ravenspire is a non-custodial SocialFi platform dressed as a medieval
           realm. You post, banter and duel with wit, swear to a House and play
           for the Throne, while a full suite of portfolio, safety and market
           tools works underneath, reading only real on-chain data. A wallet is

@@ -91,7 +91,7 @@ export function SideNav({ onNavigate }: { onNavigate?: () => void }) {
         className="mb-3 flex items-center gap-2.5 px-2 font-display text-[19px] font-semibold tracking-[0.08em]"
       >
         <RavenMark className="h-7 w-7" />
-        <span className="gold-text">RAVENSPIRE</span>
+        <span className="gold-text">THE RAVENSPIRE</span>
       </Link>
 
       {authenticated ? (

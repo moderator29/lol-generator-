@@ -1,4 +1,4 @@
-# Ravenspire Product Backlog (Wave 4+)
+# The Ravenspire Product Backlog (Wave 4+)
 
 This file extends the 261-finding Grand Audit (docs/AUDIT.md) with the founder's
 Wave 4 feature direction. Items marked MVP are being built now; the rest are the

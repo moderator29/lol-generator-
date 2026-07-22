@@ -63,7 +63,7 @@ export function NonCustodial() {
           Your keys. Your vault. Your realm.
         </h2>
         <p className="mt-3 text-[15px] leading-relaxed text-bone-mut">
-          Ravenspire is built on Privy embedded wallets. The platform never
+          The Ravenspire is built on Privy embedded wallets. The platform never
           holds your keys, so the realm is yours to leave with at any moment.
         </p>
       </motion.div>
