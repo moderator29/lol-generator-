@@ -1,5 +1,5 @@
 /*
-  Ravenspire landing icon set. A refined, thin-line premium family used across
+  The Ravenspire landing icon set. A refined, thin-line premium family used across
   the landing and sign-in. One visual language: 24px canvas, 1.4 stroke, round
   caps and joins, no fills except deliberate accent dots. No emoji, ever.
 

@@ -146,7 +146,7 @@ export function AccountSecurity() {
         </Row>
 
         <p className="mt-3 text-xs text-bone-faint">
-          These protections live with Privy, your non-custodial keeper. Ravenspire
+          These protections live with Privy, your non-custodial keeper. The Ravenspire
           never sees your password, recovery phrase, or second factor, and cannot
           move your funds.
         </p>

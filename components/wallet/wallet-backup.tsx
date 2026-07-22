@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui/icon";
 
 /* Backup / Export. Uses Privy's exportWallet, which reveals the private key or
    recovery phrase inside a secure, on-device window. The key never touches
-   Ravenspire's servers. Rendered as the body of the Backup modal; MUST render
+   The Ravenspire's servers. Rendered as the body of the Backup modal; MUST render
    only when Privy is enabled so usePrivy has its provider above it. */
 export function WalletBackup() {
   const { exportWallet } = usePrivy();
@@ -34,7 +34,7 @@ export function WalletBackup() {
         <Icon name="shield" className="mt-0.5 h-5 w-5 shrink-0 text-ember" />
         <p className="text-sm text-bone-mut">
           Guard it like the crown jewels. Anyone who holds your key controls the
-          funds. No steward of Ravenspire will ever ask you for it.
+          funds. No steward of The Ravenspire will ever ask you for it.
         </p>
       </div>
 

@@ -101,11 +101,11 @@ export function LandingNav({
         <Link
           href="/"
           className="flex shrink-0 items-center gap-2.5"
-          aria-label="Ravenspire home"
+          aria-label="The Ravenspire home"
         >
           <RavenMark className="h-7 w-7" />
           <span className="gold-text font-display text-sm font-semibold tracking-[0.18em] sm:text-base">
-            RAVENSPIRE
+            THE RAVENSPIRE
           </span>
         </Link>
 

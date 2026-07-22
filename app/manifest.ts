@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Ravenspire",
-    short_name: "Ravenspire",
+    name: "The Ravenspire",
+    short_name: "The Ravenspire",
     description:
       "See every chain. Fear no rug. Rule your realm. A fun-first social realm of Houses, Calls, crests and The War.",
     start_url: "/",

@@ -281,7 +281,7 @@ export default function SettingsPage() {
             </div>
             <WalletSection />
             <p className="px-1 text-xs text-bone-faint">
-              Your wallet is non-custodial. Ravenspire never holds your keys and
+              Your wallet is non-custodial. The Ravenspire never holds your keys and
               cannot move your funds; every transfer and key export happens on
               your device, and only you can authorize it.
             </p>

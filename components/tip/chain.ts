@@ -1,4 +1,4 @@
-/* Chain metadata for on-chain tipping. RAVENSPIRE tips are native-token,
+/* Chain metadata for on-chain tipping. THE RAVENSPIRE tips are native-token,
    wallet-to-wallet transfers sent from the tipper's Privy embedded wallet on
    whatever EVM chain that wallet is currently on. We resolve the chain at send
    time from the wallet itself, so this table only needs to map a chain id to

@@ -157,7 +157,7 @@ function parseVoice(raw: string): DnaVoice | null {
   }
 }
 
-const SYSTEM_PROMPT = `You are the DNA Analyzer for RAVENSPIRE, an intelligence tool. You read a subject's REAL data and distill it into a short, striking "DNA" profile.
+const SYSTEM_PROMPT = `You are the DNA Analyzer for THE RAVENSPIRE, an intelligence tool. You read a subject's REAL data and distill it into a short, striking "DNA" profile.
 
 Voice: sharp, modern, confident market-intel analyst. Present tense. Think a top on-chain sleuth or a social analyst, not a fortune teller. This is NOT medieval or mystical. No roleplay, no "milord", no purple prose.
 
@@ -302,7 +302,7 @@ async function walletDna(address: string): Promise<DnaResult | Response> {
     narrative: v.narrative,
     dataPoints,
     sparse,
-    shareText: `My RAVENSPIRE Wallet DNA: ${v.archetype} - ${v.traits.join(", ")}. Read yours in the DNA Analyzer.`,
+    shareText: `My THE RAVENSPIRE Wallet DNA: ${v.archetype} - ${v.traits.join(", ")}. Read yours in the DNA Analyzer.`,
   };
 }
 
@@ -444,7 +444,7 @@ async function socialDna(handle: string): Promise<DnaResult | Response> {
     dataPoints.push({ label: "Renown", value: `${profile.renown}` });
 
   const factLines: string[] = [
-    `Subject: RAVENSPIRE member @${profile.handle ?? clean}${profile.display_name ? ` (${profile.display_name})` : ""}${profile.is_verified ? ", verified" : ""}.`,
+    `Subject: THE RAVENSPIRE member @${profile.handle ?? clean}${profile.display_name ? ` (${profile.display_name})` : ""}${profile.is_verified ? ", verified" : ""}.`,
     houseName ? `House: ${houseName}.` : "Not aligned with any House yet.",
     profile.tier ? `Membership tier: ${profile.tier}.` : "",
     sparse
@@ -489,7 +489,7 @@ async function socialDna(handle: string): Promise<DnaResult | Response> {
     narrative: v.narrative,
     dataPoints,
     sparse,
-    shareText: `My RAVENSPIRE Social DNA: ${v.archetype} - ${v.traits.join(", ")}. Read yours in the DNA Analyzer.`,
+    shareText: `My THE RAVENSPIRE Social DNA: ${v.archetype} - ${v.traits.join(", ")}. Read yours in the DNA Analyzer.`,
   };
 }
 

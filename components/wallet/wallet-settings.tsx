@@ -185,7 +185,7 @@ export function WalletSettings({ address }: { address?: string }) {
       <div className="flex items-start gap-3 rounded-2xl border border-gold/15 bg-panel/40 p-3.5">
         <Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
         <p className="text-xs leading-relaxed text-bone-mut">
-          Non-custodial means self-custody. Ravenspire never holds your keys and
+          Non-custodial means self-custody. The Ravenspire never holds your keys and
           cannot move your funds. Guard your recovery phrase; anyone who holds it
           controls the wallet. We will never ask you for it.
         </p>

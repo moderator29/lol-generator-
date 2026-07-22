@@ -1,9 +1,9 @@
 # The Platform
 
-A full tour of Ravenspire: what it is, how it is built, and the vows it holds
+A full tour of The Ravenspire: what it is, how it is built, and the vows it holds
 to. This document tracks the current, shipped platform.
 
-Ravenspire is a fun-first, non-custodial, medieval-fantasy SocialFi realm. It is
+The Ravenspire is a fun-first, non-custodial, medieval-fantasy SocialFi realm. It is
 a social network first and a crypto toolkit second. Creators and their Houses
 are the heart of everything. The chains and charts serve the story, never the
 other way round.
@@ -286,9 +286,9 @@ to the browser; everything else stays server-side only.
 
 ## Legal and risk disclaimer
 
-Ravenspire is a fun-first social platform. $RAVEN is a utility and social token
+The Ravenspire is a fun-first social platform. $RAVEN is a utility and social token
 that powers the realm, not an investment. Nothing on the platform is financial
-advice, and no one at Ravenspire will ever tell anyone to buy, sell, or hold.
+advice, and no one at The Ravenspire will ever tell anyone to buy, sell, or hold.
 There is no presale, anywhere, at any time. Crypto carries real risk, including
 the total loss of everything a member puts in, so members should bring only what
 they can afford to lose. The realm is non-custodial by design: members hold their

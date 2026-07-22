@@ -111,7 +111,7 @@ export function TipSuccessCard({
           <span className="font-semibold text-bone">{recipientName}</span>
         </p>
         <p className="mt-1 text-[11px] text-bone-faint">
-          A real transfer, wallet to wallet on {chain.name}. RAVENSPIRE never
+          A real transfer, wallet to wallet on {chain.name}. THE RAVENSPIRE never
           touched the coin.
         </p>
 

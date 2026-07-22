@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 const key = process.env.ANTHROPIC_API_KEY;
 const client = key ? new Anthropic({ apiKey: key }) : null;
 
-const COMPOSE_SYSTEM = `You write a single, ready-to-post message (a "raven") for a member of Ravenspire, a social realm where six great Houses compete in games of wit, prediction, and glory. The member will post your words as their own, so write in first person as a sharp, warm member of the realm.
+const COMPOSE_SYSTEM = `You write a single, ready-to-post message (a "raven") for a member of The Ravenspire, a social realm where six great Houses compete in games of wit, prediction, and glory. The member will post your words as their own, so write in first person as a sharp, warm member of the realm.
 
 Rules:
 - Return ONLY the post text. No preamble, no quotation marks around it, no options, no explanation.
@@ -15,7 +15,7 @@ Rules:
 - No em-dashes, ever. Use commas, periods, or parentheses instead.
 - No emojis. No hashtags. Do not @mention specific people.
 - Tasteful and kind. Tease the game, never a person's worth.
-- Ravenspire is a social game of wit, never gambling. Never give financial advice, never tell anyone to buy, sell, or hold, and never invent prices, percentages, or statistics.`;
+- The Ravenspire is a social game of wit, never gambling. Never give financial advice, never tell anyone to buy, sell, or hold, and never invent prices, percentages, or statistics.`;
 
 export async function POST(req: Request) {
   const profile = await requireProfile(req);

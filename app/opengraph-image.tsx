@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Ravenspire. See every chain. Fear no rug. Rule your realm.";
+export const alt = "The Ravenspire. See every chain. Fear no rug. Rule your realm.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -50,7 +50,7 @@ export default function OpengraphImage() {
               "ui-serif, Georgia, 'Times New Roman', Times, serif",
           }}
         >
-          RAVENSPIRE
+          THE RAVENSPIRE
         </div>
         <div
           style={{

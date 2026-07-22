@@ -50,7 +50,7 @@ export function SiteFooter() {
           <div className="flex items-center gap-2.5">
             <RavenMark className="h-9 w-9" />
             <span className="gold-text font-display text-lg font-semibold tracking-[0.1em]">
-              RAVENSPIRE
+              THE RAVENSPIRE
             </span>
           </div>
           <p className="mt-3 max-w-xs text-xs leading-relaxed text-bone-mut">
@@ -78,10 +78,10 @@ export function SiteFooter() {
 
       <div className="mt-8 flex flex-col items-center gap-2 border-t border-steel-line/60 pt-6 text-center sm:flex-row sm:justify-between sm:text-left">
         <p className="text-xs text-bone-faint">
-          Ravenspire. The realm remembers. Reputation is earned, never bought.
+          The Ravenspire. The realm remembers. Reputation is earned, never bought.
         </p>
         <p className="text-xs text-bone-faint">
-          &copy; {new Date().getFullYear()} Ravenspire
+          &copy; {new Date().getFullYear()} The Ravenspire
         </p>
       </div>
     </motion.footer>

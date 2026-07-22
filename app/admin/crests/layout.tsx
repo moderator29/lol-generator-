@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "RAVENSPIRE Admin: Crests",
+  title: "THE RAVENSPIRE Admin: Crests",
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
