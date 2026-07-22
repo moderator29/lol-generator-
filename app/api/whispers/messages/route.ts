@@ -28,11 +28,21 @@ async function assertMember(
 
 /* Only images uploaded to our own public media shelf may travel in a whisper.
    Anything else (external URLs, other buckets) is rejected so a message can
-   never be used to smuggle a foreign link dressed as an image. */
+   never be used to smuggle a foreign link dressed as an image.
+
+   We match on the storage path segment rather than the full origin so a
+   trailing slash, a custom storage domain, or any drift between the upload
+   host and NEXT_PUBLIC_SUPABASE_URL cannot silently reject every image (the
+   same bug that once left every post with media = []). The url must still be
+   an absolute https URL that resolves to /storage/v1/object/public/media/. */
+const MEDIA_PATH = "/storage/v1/object/public/media/";
 function isOwnMediaUrl(url: string): boolean {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!base) return false;
-  return url.startsWith(`${base}/storage/v1/object/public/media/`);
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && u.pathname.startsWith(MEDIA_PATH);
+  } catch {
+    return false;
+  }
 }
 
 /* Fire a realtime broadcast through Supabase's HTTP endpoint using the service

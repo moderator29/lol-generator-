@@ -48,6 +48,37 @@ function avatarLetter(c: Convo): string {
   return convoName(c).slice(0, 1).toUpperCase();
 }
 
+/* The recipient's portrait: their real avatar when they have one, otherwise
+   the initial on the house-panel disc used everywhere else in the corridor. */
+function OtherAvatar({
+  other,
+  className,
+}: {
+  other: ConvoOther | null;
+  className: string;
+}) {
+  const letter = (other?.display_name ?? other?.handle ?? "?")
+    .slice(0, 1)
+    .toUpperCase();
+  if (other?.avatar_url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={other.avatar_url}
+        alt=""
+        className={`shrink-0 rounded-full border border-steel-line object-cover ${className}`}
+      />
+    );
+  }
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-full border border-steel-line bg-panel font-display text-gold ${className}`}
+    >
+      {letter}
+    </span>
+  );
+}
+
 function byTime(a: Message, b: Message): number {
   return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
 }
@@ -508,22 +539,35 @@ export default function WhispersPage() {
                   >
                     <Icon name="arrow" className="h-4 w-4 rotate-180" />
                   </button>
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-steel-line bg-panel font-display text-xs text-gold">
-                    {active ? avatarLetter(active) : "?"}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-bone">
-                      {active ? convoName(active) : "Whisper"}
-                    </p>
-                    {active?.other?.handle && (
-                      <Link
-                        href={`/u/${active.other.handle}`}
-                        className="block truncate text-xs text-bone-faint hover:text-gold"
-                      >
-                        @{active.other.handle}
-                      </Link>
-                    )}
-                  </div>
+                  {active?.other?.handle ? (
+                    <Link
+                      href={`/u/${active.other.handle}`}
+                      className="group flex min-w-0 flex-1 items-center gap-3"
+                    >
+                      <OtherAvatar
+                        other={active.other}
+                        className="h-8 w-8 text-xs"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-bone group-hover:text-gold">
+                          {convoName(active)}
+                        </p>
+                        <p className="truncate text-xs text-bone-faint">
+                          @{active.other.handle}
+                        </p>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <OtherAvatar
+                        other={active?.other ?? null}
+                        className="h-8 w-8 text-xs"
+                      />
+                      <p className="truncate text-sm font-semibold text-bone">
+                        {active ? convoName(active) : "Whisper"}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div
@@ -547,12 +591,21 @@ export default function WhispersPage() {
                         return (
                           <div
                             key={m.id}
-                            className={`flex max-w-[82%] flex-col ${
-                              mine
-                                ? "self-end items-end"
-                                : "self-start items-start"
+                            className={`flex max-w-[86%] items-end gap-2 ${
+                              mine ? "flex-row-reverse self-end" : "self-start"
                             } ${m.pending ? "opacity-70" : ""}`}
                           >
+                            {!mine && (
+                              <OtherAvatar
+                                other={active?.other ?? null}
+                                className="h-6 w-6 text-[10px]"
+                              />
+                            )}
+                            <div
+                              className={`flex min-w-0 flex-col ${
+                                mine ? "items-end" : "items-start"
+                              }`}
+                            >
                             <div
                               className={`${
                                 mine
@@ -591,6 +644,7 @@ export default function WhispersPage() {
                             <span className="tnum mt-0.5 px-1 text-[10px] text-bone-faint">
                               {m.pending ? "Sending" : timeAgo(m.created_at)}
                             </span>
+                            </div>
                           </div>
                         );
                       })}
