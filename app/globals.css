@@ -339,6 +339,18 @@ body {
   color: var(--bone);
 }
 
+/* iOS Safari auto-zooms into any field whose font-size is below 16px on focus.
+   Pin form controls to a 16px minimum on small screens so typing never
+   triggers that jarring zoom. The accessible fix, no maximum-scale hack. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    font-size: 16px;
+  }
+}
+
 /* Thin, unobtrusive scrollbars */
 * {
   scrollbar-width: thin;

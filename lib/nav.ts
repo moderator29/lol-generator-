@@ -8,10 +8,11 @@ export type NavItem = {
   badge?: string;
 };
 
-/* Social-first grouping: the social realm and the games lead, tools support. */
+/* Social-first grouping: the social realm and the games lead, tools support.
+   Home (The Ravenry) and Explore (The Crossroads) are intentionally omitted
+   here: they already anchor the mobile bottom nav, so listing them in the side
+   nav Social group would only duplicate them. */
 export const socialNav: NavItem[] = [
-  { slug: "home", href: "/home", themed: "The Ravenry", plain: "Feed", icon: "home" },
-  { slug: "explore", href: "/explore", themed: "The Crossroads", plain: "Explore", icon: "compass" },
   { slug: "rookery", href: "/rookery", themed: "The Rookery", plain: "Live", icon: "signal" },
   { slug: "houses", href: "/houses", themed: "Houses", plain: "Communities", icon: "banner" },
   { slug: "throne", href: "/throne", themed: "Claim the Throne", plain: "Season game", icon: "crown" },

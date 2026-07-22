@@ -150,49 +150,8 @@ export default function ExplorePage() {
       {/* Only surface discovery sections when not actively searching. */}
       {query.trim().length < 2 && (
         <>
-          {/* Trending cashtags */}
-          <h2 className="mt-8 font-display text-base font-semibold text-bone">
-            What the Realm Whispers
-          </h2>
-          <p className="text-xs text-bone-faint">
-            Cashtags carried by the most ravens this week
-          </p>
-          <div className="mt-3">
-            {cashtags === null ? (
-              <div className="flex flex-wrap gap-2">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="glass glass-sm h-9 w-24 animate-pulse rounded-full"
-                  />
-                ))}
-              </div>
-            ) : cashtags.length === 0 ? (
-              <div className="glass glass-sm p-6 text-center text-sm text-bone-mut">
-                No cashtags have taken flight yet. Seal a Call and start the
-                talk.
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {cashtags.map((c) => (
-                  <span
-                    key={c.tag}
-                    className="glass glass-sm flex items-center gap-2 rounded-full px-3.5 py-1.5"
-                  >
-                    <Icon name="coin" className="h-3.5 w-3.5 text-gold" />
-                    <span className="text-sm font-semibold text-gold-bright">
-                      ${c.tag}
-                    </span>
-                    <span className="tnum text-[11px] text-bone-faint">
-                      {c.count}
-                    </span>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* People to follow */}
+          {/* People to follow lead the Crossroads: real citizens worth
+              following come first, the talk of the realm follows below. */}
           <h2 className="mt-8 font-display text-base font-semibold text-bone">
             Lords and Ladies of Note
           </h2>
@@ -232,6 +191,48 @@ export default function ExplorePage() {
                   </span>
                 </Link>
               ))
+            )}
+          </div>
+
+          {/* Trending cashtags */}
+          <h2 className="mt-8 font-display text-base font-semibold text-bone">
+            What the Realm Whispers
+          </h2>
+          <p className="text-xs text-bone-faint">
+            Cashtags carried by the most ravens this week
+          </p>
+          <div className="mt-3">
+            {cashtags === null ? (
+              <div className="flex flex-wrap gap-2">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="glass glass-sm h-9 w-24 animate-pulse rounded-full"
+                  />
+                ))}
+              </div>
+            ) : cashtags.length === 0 ? (
+              <div className="glass glass-sm p-6 text-center text-sm text-bone-mut">
+                No cashtags have taken flight yet. Seal a Call and start the
+                talk.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {cashtags.map((c) => (
+                  <span
+                    key={c.tag}
+                    className="glass glass-sm flex items-center gap-2 rounded-full px-3.5 py-1.5"
+                  >
+                    <Icon name="coin" className="h-3.5 w-3.5 text-gold" />
+                    <span className="text-sm font-semibold text-gold-bright">
+                      ${c.tag}
+                    </span>
+                    <span className="tnum text-[11px] text-bone-faint">
+                      {c.count}
+                    </span>
+                  </span>
+                ))}
+              </div>
             )}
           </div>
         </>

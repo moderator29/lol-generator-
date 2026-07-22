@@ -1,73 +1,57 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRealmAuth } from "@/lib/auth/use-realm-auth";
 import { Icon } from "@/components/ui/icon";
-import { WatchBadge } from "@/components/tools/watch-badge";
 import { BackButton } from "@/components/shell/back-button";
+import type { WalletToken } from "@/components/wallet/wallet-token-types";
+import { buildPortfolio } from "@/components/ledger/portfolio-data";
+import { ValueHeader } from "@/components/ledger/value-header";
+import { Allocation } from "@/components/ledger/allocation";
+import { Positions } from "@/components/ledger/positions";
 
-interface Holding {
-  symbol: string;
-  name: string;
-  balance: string;
-  quoteUsd: number;
-  change24hUsd: number;
-  logo: string | null;
-  address: string | null;
-  chain: string;
-  chainLabel: string;
-  watchChain: string;
-}
-
-interface Allocation {
-  chain: string;
-  chainLabel: string;
-  totalUsd: number;
-}
-
-interface LedgerResponse {
+interface BalancesResponse {
   configured: boolean;
-  items?: Holding[];
-  dust?: Holding[];
+  tokens?: WalletToken[];
   totalUsd?: number;
-  change24hUsd?: number;
-  allocations?: Allocation[];
   error?: string;
 }
 
-const usd = (n: number) =>
-  n.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  });
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
+      {children}
+    </div>
+  );
+}
 
-const allocColors = [
-  "bg-gold",
-  "bg-ember",
-  "bg-gold-bright",
-  "bg-ember-deep",
-  "bg-bone-mut",
-];
+function EmptyCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="glass p-8 text-center text-sm leading-relaxed text-bone-mut">
+      {children}
+    </div>
+  );
+}
 
 export default function LedgerPage() {
   const { ready, authenticated, address } = useRealmAuth();
-  const [data, setData] = useState<LedgerResponse | null>(null);
+  const [data, setData] = useState<BalancesResponse | null>(null);
   const [failed, setFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
-  const [showDust, setShowDust] = useState(false);
 
   const load = useCallback(async () => {
+    /* Owner-only: we only ever read the signed-in member's own embedded
+       wallet address. No other member's balances are ever requested here. */
     if (!address) return;
     setRefreshing(true);
     setFailed(false);
     try {
       const res = await fetch(
-        `/api/ledger?address=${encodeURIComponent(address)}`
+        `/api/wallet/balances?address=${encodeURIComponent(address)}`
       );
-      const body = (await res.json()) as LedgerResponse;
+      const body = (await res.json()) as BalancesResponse;
       setData(body);
       setUpdatedAt(Date.now());
     } catch {
@@ -82,24 +66,30 @@ export default function LedgerPage() {
     void load();
   }, [ready, authenticated, address, load]);
 
-  const items = data?.items ?? [];
-  const dust = data?.dust ?? [];
-  const allocations = data?.allocations ?? [];
-  const change = data?.change24hUsd ?? 0;
-  const up = change >= 0;
+  const portfolio = useMemo(
+    () => (data?.tokens ? buildPortfolio(data.tokens) : null),
+    [data]
+  );
 
-  return (
-    <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
-      <div className="mb-4">
+  const header = (
+    <>
+      <div className="mb-4 flex items-center justify-between gap-3">
         <BackButton />
+        <Link
+          href="/vault"
+          className="btn-glass px-3.5 py-1.5 text-xs font-semibold text-bone-mut hover:text-bone"
+        >
+          <Icon name="wallet" className="h-3.5 w-3.5" />
+          Open the Vault
+        </Link>
       </div>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-xl font-semibold text-bone">
             The Ledger
           </h1>
-          <p className="mt-1 text-xs uppercase tracking-[0.26em] text-bone-faint">
-            Portfolio across ETH and L2s
+          <p className="mt-1 text-[11px] uppercase tracking-[0.26em] text-bone-faint">
+            The Ravenspire portfolio / $RSP and beyond
           </p>
         </div>
         {authenticated && address && (
@@ -113,24 +103,44 @@ export default function LedgerPage() {
           </button>
         )}
       </div>
+    </>
+  );
 
-      <div className="mt-5">
+  return (
+    <Shell>
+      {header}
+      <div className="mt-5 flex flex-col gap-3">
         {!ready ? (
-          <div className="glass h-32 animate-pulse" />
+          <>
+            <div className="glass h-40 animate-pulse" />
+            <div className="glass h-56 animate-pulse" />
+          </>
         ) : !authenticated ? (
-          <div className="glass p-8 text-center text-sm text-bone-mut">
+          <EmptyCard>
+            <p className="mb-3">
+              Your Ledger reads only your own wallet. Enter the realm to bind
+              yours.
+            </p>
             <Link href="/signin" className="text-gold underline">
               Enter the realm
-            </Link>{" "}
-            to open your Ledger.
-          </div>
+            </Link>
+          </EmptyCard>
         ) : !address ? (
-          <div className="glass p-8 text-center text-sm text-bone-mut">
-            No wallet is bound to your banner yet. Connect a wallet and the
-            Ledger will keep your accounts.
-          </div>
+          <EmptyCard>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-gold/25 bg-panel-warm">
+              <Icon name="wallet" className="h-5 w-5 text-gold" />
+            </div>
+            <p className="mb-3">
+              No wallet is connected to your banner yet. Open the Vault to
+              create or connect one, and your Ledger will fill in from your real
+              balances.
+            </p>
+            <Link href="/vault" className="text-gold underline">
+              Connect your wallet in the Vault
+            </Link>
+          </EmptyCard>
         ) : failed ? (
-          <div className="glass p-8 text-center text-sm text-bone-mut">
+          <EmptyCard>
             The Ledger could not be read just now.
             <button
               type="button"
@@ -139,20 +149,19 @@ export default function LedgerPage() {
             >
               Try again
             </button>
-          </div>
+          </EmptyCard>
         ) : data === null ? (
-          <div className="flex flex-col gap-2">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="glass glass-sm h-14 animate-pulse" />
-            ))}
-          </div>
+          <>
+            <div className="glass h-40 animate-pulse" />
+            <div className="glass h-56 animate-pulse" />
+          </>
         ) : !data.configured ? (
-          <div className="glass p-8 text-center text-sm text-bone-mut">
-            The Ledger&apos;s far-seeing lens (GoldRush key) is not yet mounted
-            in this environment.
-          </div>
+          <EmptyCard>
+            The Ledger&apos;s far-seeing lens is not mounted in this environment
+            yet, so no balances can be read.
+          </EmptyCard>
         ) : data.error ? (
-          <div className="glass p-8 text-center text-sm text-bone-mut">
+          <EmptyCard>
             The Ledger&apos;s lens clouded over.
             <button
               type="button"
@@ -161,184 +170,39 @@ export default function LedgerPage() {
             >
               Try again
             </button>
-          </div>
-        ) : items.length === 0 && dust.length === 0 ? (
-          <div className="glass p-8 text-center text-sm text-bone-mut">
-            This wallet holds no coin worth an entry yet. The Ledger awaits your
-            first treasure.
-          </div>
+          </EmptyCard>
+        ) : !portfolio ||
+          (portfolio.positions.length === 0 && portfolio.dust.length === 0) ? (
+          <EmptyCard>
+            This wallet holds no coin worth an entry yet across the chains we
+            read. The Ledger awaits your first treasure.
+          </EmptyCard>
         ) : (
           <>
-            <div className="glass p-6">
-              <p className="text-xs uppercase tracking-[0.26em] text-bone-faint">
-                Net worth
-              </p>
-              <p className="gold-text font-display tnum mt-2 text-3xl font-semibold">
-                {usd(data.totalUsd ?? 0)}
-              </p>
-              {items.length > 0 && (
-                <p
-                  className={`tnum mt-1 text-sm font-medium ${up ? "text-gold-bright" : "text-ember-deep"}`}
-                >
-                  {up ? "+" : ""}
-                  {usd(change)} in the last 24h
-                </p>
-              )}
-
-              {allocations.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex h-2 w-full overflow-hidden rounded-full bg-panel">
-                    {allocations.map((a, i) => (
-                      <div
-                        key={a.chain}
-                        className={allocColors[i % allocColors.length]}
-                        style={{
-                          width: `${((a.totalUsd / (data.totalUsd || 1)) * 100).toFixed(1)}%`,
-                        }}
-                        title={`${a.chainLabel} ${usd(a.totalUsd)}`}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                    {allocations.map((a, i) => (
-                      <span
-                        key={a.chain}
-                        className="inline-flex items-center gap-1.5 text-[11px] text-bone-mut"
-                      >
-                        <span
-                          className={`h-2 w-2 rounded-full ${allocColors[i % allocColors.length]}`}
-                        />
-                        {a.chainLabel}
-                        <span className="tnum text-bone-faint">
-                          {((a.totalUsd / (data.totalUsd || 1)) * 100).toFixed(0)}
-                          %
-                        </span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {items.length > 0 && (
-              <div className="glass mt-3 overflow-x-auto p-2">
-                <table className="w-full min-w-[460px] text-left text-sm">
-                  <thead>
-                    <tr className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
-                      <th className="px-3 py-2 font-medium">Holding</th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        Balance
-                      </th>
-                      <th className="px-3 py-2 text-right font-medium">Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((it, i) => (
-                      <tr
-                        key={`${it.chain}-${it.symbol}-${i}`}
-                        className="border-t border-steel-line"
-                      >
-                        <td className="px-3 py-2.5">
-                          <div className="flex items-center gap-2.5">
-                            {it.logo ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={it.logo}
-                                alt=""
-                                className="h-6 w-6 shrink-0 rounded-full"
-                              />
-                            ) : (
-                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-panel">
-                                <Icon
-                                  name="coin"
-                                  className="h-3.5 w-3.5 text-gold"
-                                />
-                              </span>
-                            )}
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <p className="font-medium text-bone">
-                                  {it.symbol}
-                                </p>
-                                {it.address && (
-                                  <WatchBadge
-                                    address={it.address}
-                                    chain={it.watchChain}
-                                  />
-                                )}
-                              </div>
-                              <p className="truncate text-xs text-bone-faint">
-                                {it.name}
-                                <span className="ml-1.5 text-bone-mut">
-                                  {it.chainLabel}
-                                </span>
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="tnum px-3 py-2.5 text-right text-bone-mut">
-                          {it.balance}
-                        </td>
-                        <td className="tnum px-3 py-2.5 text-right text-bone">
-                          {usd(it.quoteUsd)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <ValueHeader portfolio={portfolio} />
+            {portfolio.byAsset.length > 0 && (
+              <Allocation
+                byAsset={portfolio.byAsset}
+                byChain={portfolio.byChain}
+              />
             )}
-
-            {dust.length > 0 && (
-              <div className="glass mt-3 p-2">
-                <button
-                  type="button"
-                  onClick={() => setShowDust((v) => !v)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-bone-mut"
-                >
-                  <span>
-                    Small balances ({dust.length}) under {usd(0.5)}
-                  </span>
-                  <Icon
-                    name={showDust ? "compass" : "plus"}
-                    className="h-4 w-4 text-bone-faint"
-                  />
-                </button>
-                {showDust && (
-                  <div className="flex flex-col divide-y divide-steel-line">
-                    {dust.map((it, i) => (
-                      <div
-                        key={`${it.chain}-${it.symbol}-${i}`}
-                        className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
-                      >
-                        <span className="min-w-0 truncate text-bone-mut">
-                          {it.symbol}
-                          <span className="ml-1.5 text-xs text-bone-faint">
-                            {it.chainLabel}
-                          </span>
-                        </span>
-                        <span className="tnum text-bone-faint">
-                          {usd(it.quoteUsd)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
+            <Positions
+              positions={portfolio.positions}
+              dust={portfolio.dust}
+            />
             {updatedAt && (
-              <p className="mt-3 text-center text-[11px] text-bone-faint">
-                Read {new Date(updatedAt).toLocaleTimeString("en-US", {
+              <p className="text-center text-[11px] text-bone-faint">
+                Read{" "}
+                {new Date(updatedAt).toLocaleTimeString("en-US", {
                   hour: "numeric",
                   minute: "2-digit",
                 })}
-                . Values from live on-chain balances.
+                . Values from live on-chain balances across seven EVM chains.
               </p>
             )}
           </>
         )}
       </div>
-    </div>
+    </Shell>
   );
 }

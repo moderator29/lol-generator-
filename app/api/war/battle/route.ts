@@ -180,22 +180,29 @@ export async function POST(req: Request) {
     });
   }
 
+  const totals = {
+    battles: state.battles + 1,
+    wins: state.wins + (victory ? 1 : 0),
+    war_glory: state.war_glory + glory,
+    gold: state.gold + (victory ? 40 : 10),
+  };
   await db
     .from("war_state")
-    .update({
-      battles: state.battles + 1,
-      wins: state.wins + (victory ? 1 : 0),
-      war_glory: state.war_glory + glory,
-      gold: state.gold + (victory ? 40 : 10),
-      updated_at: new Date().toISOString(),
-    })
+    .update({ ...totals, updated_at: new Date().toISOString() })
     .eq("profile_id", profile.id);
   await award(db, profile.id, {
     glory,
     reason: victory ? "war_victory" : "war_fought",
   });
 
-  return json({ ok: true, glory, gold: victory ? 40 : 10 });
+  return json({
+    ok: true,
+    glory,
+    gold: victory ? 40 : 10,
+    battles: totals.battles,
+    wins: totals.wins,
+    war_glory: totals.war_glory,
+  });
 }
 
 export async function GET(req: Request) {

@@ -35,7 +35,20 @@ interface GeckoPool {
 interface GeckoIncluded {
   id?: string;
   type?: string;
-  attributes?: { symbol?: string; name?: string; address?: string };
+  attributes?: {
+    symbol?: string;
+    name?: string;
+    address?: string;
+    image_url?: string | null;
+  };
+}
+
+/* GeckoTerminal serves a placeholder "missing.png" for tokens without art;
+   treat that (and blanks) as no logo so the UI draws its own glyph instead. */
+function cleanLogo(src: string | null | undefined): string | null {
+  if (!src) return null;
+  if (src.toLowerCase().includes("missing")) return null;
+  return src;
 }
 
 async function readTrending() {
@@ -80,6 +93,8 @@ async function readTrending() {
           liquidityUsd: liquidity,
           chain: net?.label ?? networkId,
           watchChain: net?.watch ?? null,
+          network: networkId,
+          logo: cleanLogo(base?.attributes?.image_url),
           address,
           url: address
             ? `https://www.geckoterminal.com/${networkId}/pools/${pool.id?.split("_").slice(1).join("_") ?? ""}`
