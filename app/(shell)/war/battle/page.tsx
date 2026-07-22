@@ -27,6 +27,11 @@ function BattleInner() {
 
   const [outcome, setOutcome] = useState<BattleOutcome | null>(null);
   const [serverGlory, setServerGlory] = useState<number | null>(null);
+  const [totals, setTotals] = useState<{
+    wins: number;
+    battles: number;
+    war_glory: number;
+  } | null>(null);
   const [key, setKey] = useState(0);
   const [mastery, setMastery] = useState(0);
 
@@ -43,7 +48,12 @@ function BattleInner() {
   const handleEnd = async (o: BattleOutcome) => {
     setOutcome(o);
     if (authenticated) {
-      const res = await realmFetch<{ glory?: number }>("/api/war/battle", {
+      const res = await realmFetch<{
+        glory?: number;
+        wins?: number;
+        battles?: number;
+        war_glory?: number;
+      }>("/api/war/battle", {
         method: "POST",
         json: {
           champion: champion.slug,
@@ -55,6 +65,17 @@ function BattleInner() {
       });
       if (res.ok && res.data?.glory !== undefined)
         setServerGlory(res.data.glory);
+      if (
+        res.ok &&
+        res.data?.wins !== undefined &&
+        res.data?.battles !== undefined &&
+        res.data?.war_glory !== undefined
+      )
+        setTotals({
+          wins: res.data.wins,
+          battles: res.data.battles,
+          war_glory: res.data.war_glory,
+        });
     }
   };
 
@@ -111,6 +132,36 @@ function BattleInner() {
               </p>
             </div>
           </div>
+          {totals && (
+            <div className="tnum mt-4 flex items-center justify-center gap-5 text-center">
+              <div>
+                <p className="text-base font-bold text-gold-bright">
+                  {totals.wins}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-bone-faint">
+                  Battles won
+                </p>
+              </div>
+              <div className="h-6 w-px bg-steel-line" />
+              <div>
+                <p className="text-base font-bold text-bone">
+                  {totals.battles}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-bone-faint">
+                  Battles fought
+                </p>
+              </div>
+              <div className="h-6 w-px bg-steel-line" />
+              <div>
+                <p className="text-base font-bold text-gold-bright">
+                  {totals.war_glory.toLocaleString()}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-bone-faint">
+                  Total war Glory
+                </p>
+              </div>
+            </div>
+          )}
           <p className="mt-4 text-xs text-bone-mut">
             Glory converts to $RSP at the season rate, about{" "}
             <span className="text-gold">
