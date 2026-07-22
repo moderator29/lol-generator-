@@ -6,6 +6,7 @@ import { ChatInput } from "@/components/raven/chat-input";
 import { MessageList } from "@/components/raven/message-list";
 import { SettingsSheet } from "@/components/raven/settings-sheet";
 import { HistoryPanel } from "@/components/raven/history-panel";
+import { realmFetch } from "@/lib/auth/api";
 import {
   VOICES,
   VOICE_KEY,
@@ -139,12 +140,7 @@ export default function RavenPage() {
         .filter((m) => m.role === "user" || m.role === "assistant")
         .slice(-12)
         .map((m) => ({ role: m.role, content: m.content }));
-      const res = await fetch("/api/raven", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: payload, voice, browse, length }),
-      });
-      const data = (await res.json().catch(() => null)) as {
+      const { ok: resOk, data } = await realmFetch<{
         reply?: string;
         cards?: TokenCard[];
         walletCard?: WalletCard | null;
@@ -154,8 +150,11 @@ export default function RavenPage() {
         browsed?: boolean;
         browseRequested?: boolean;
         error?: string;
-      } | null;
-      if (!res.ok || !data?.reply) {
+      }>("/api/raven", {
+        method: "POST",
+        json: { messages: payload, voice, browse, length },
+      });
+      if (!resOk || !data?.reply) {
         setMessages((m) => [
           ...m,
           {

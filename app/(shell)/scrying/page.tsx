@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { WatchBadge } from "@/components/tools/watch-badge";
 import { BackButton } from "@/components/shell/back-button";
+import { TokenLogo } from "@/components/coin/token-logo";
+import { WatchStar } from "@/components/coin/watch-star";
 
 interface TrendingToken {
   symbol: string;
@@ -14,8 +17,20 @@ interface TrendingToken {
   liquidityUsd: number;
   chain: string;
   watchChain: string | null;
+  network: string;
+  logo: string | null;
   address: string;
   url: string;
+}
+
+/* The in-app coin page for a trending row, carrying the GeckoTerminal network
+   and ticker so the page can resolve real market data and history. */
+function coinHref(t: TrendingToken): string {
+  const qs = new URLSearchParams();
+  if (t.network) qs.set("net", t.network);
+  if (t.symbol && t.symbol !== "?") qs.set("sym", t.symbol);
+  const suffix = qs.toString();
+  return `/coin/${encodeURIComponent(t.address)}${suffix ? `?${suffix}` : ""}`;
 }
 
 interface WalletHolding {
@@ -185,48 +200,49 @@ export default function ScryingPage() {
                 <span className="tnum w-5 shrink-0 text-center text-sm text-bone-faint">
                   {i + 1}
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="truncate text-sm font-semibold text-bone">
-                      {t.symbol}
+                <TokenLogo src={t.logo} symbol={t.symbol} size={36} />
+                <Link
+                  href={coinHref(t)}
+                  aria-label={`Open ${t.symbol} coin page`}
+                  className="flex min-w-0 flex-1 items-center gap-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-sm font-semibold text-bone">
+                        {t.symbol}
+                      </p>
+                      {t.watchChain && (
+                        <WatchBadge
+                          address={t.address}
+                          chain={t.watchChain}
+                          linkToWatch={false}
+                        />
+                      )}
+                    </div>
+                    <p className="truncate text-[11px] text-bone-faint">
+                      {t.chain}
+                      {t.volume24h !== null && (
+                        <span className="ml-1.5 tnum">
+                          Vol {formatUsd(t.volume24h)}
+                        </span>
+                      )}
                     </p>
-                    {t.watchChain && (
-                      <WatchBadge address={t.address} chain={t.watchChain} />
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="tnum text-sm text-bone">
+                      {formatPrice(t.priceUsd)}
+                    </p>
+                    {t.change24h !== null && (
+                      <p
+                        className={`tnum text-[11px] font-medium ${up ? "text-gold-bright" : "text-ember-deep"}`}
+                      >
+                        {up ? "+" : ""}
+                        {t.change24h.toFixed(1)}%
+                      </p>
                     )}
                   </div>
-                  <p className="truncate text-[11px] text-bone-faint">
-                    {t.chain}
-                    {t.volume24h !== null && (
-                      <span className="ml-1.5 tnum">
-                        Vol {formatUsd(t.volume24h)}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="tnum text-sm text-bone">
-                    {formatPrice(t.priceUsd)}
-                  </p>
-                  {t.change24h !== null && (
-                    <p
-                      className={`tnum text-[11px] font-medium ${up ? "text-gold-bright" : "text-ember-deep"}`}
-                    >
-                      {up ? "+" : ""}
-                      {t.change24h.toFixed(1)}%
-                    </p>
-                  )}
-                </div>
-                {t.url && (
-                  <a
-                    href={t.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Open ${t.symbol} chart`}
-                    className="shrink-0 text-bone-faint transition-colors hover:text-gold"
-                  >
-                    <Icon name="arrow" className="h-4 w-4" />
-                  </a>
-                )}
+                </Link>
+                <WatchStar id={t.address} symbol={t.symbol} className="shrink-0" />
               </div>
             );
           })
@@ -312,15 +328,17 @@ export default function ScryingPage() {
                   {w.top.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {w.top.map((h) => (
-                        <span
+                        <Link
                           key={h.symbol}
-                          className="glass-sm rounded-full px-2 py-0.5 text-[11px] text-bone-mut"
+                          href={`/coin/${encodeURIComponent(h.symbol)}?sym=${encodeURIComponent(h.symbol)}`}
+                          aria-label={`Open ${h.symbol} coin page`}
+                          className="glass-sm rounded-full px-2 py-0.5 text-[11px] text-bone-mut transition-colors hover:text-bone"
                         >
                           <span className="text-bone">{h.symbol}</span>
                           <span className="tnum ml-1 text-bone-faint">
                             {formatUsd(h.quoteUsd)}
                           </span>
-                        </span>
+                        </Link>
                       ))}
                     </div>
                   )}
