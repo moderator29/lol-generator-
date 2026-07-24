@@ -49,8 +49,8 @@ const HOUSE_NAMES: Record<string, string> = {
   stormcrest: "House Stormcrest",
 };
 
-function authHeader(key: string): string {
-  return `Basic ${Buffer.from(`${key}:`).toString("base64")}`;
+function authHeaders(key: string): HeadersInit {
+  return { Authorization: `Bearer ${key}` };
 }
 
 function clientIp(req: Request): string {
@@ -90,8 +90,8 @@ async function fetchActivity(
 ): Promise<ActivitySummary | null> {
   try {
     const res = await fetch(
-      `https://api.covalenthq.com/v1/eth-mainnet/address/${address}/transactions_summary/`,
-      { headers: { Authorization: authHeader(key) }, next: { revalidate: 120 } }
+      `https://api.covalenthq.com/v1/eth-mainnet/address/${address}/transactions_summary/?key=${key}`,
+      { headers: authHeaders(key), next: { revalidate: 120 } }
     );
     if (!res.ok) return null;
     const body = (await res.json()) as {
