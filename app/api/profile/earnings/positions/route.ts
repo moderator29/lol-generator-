@@ -37,8 +37,13 @@ interface GoldRushItem {
 
 const NATIVE_SENTINEL = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
-function authHeader(key: string): string {
-  return `Basic ${Buffer.from(`${key}:`).toString("base64")}`;
+/* GoldRush now authenticates most reliably via the `?key=` query param (the
+   same method The Oracle and the Herald already use successfully); the older
+   Basic header started coming back unauthorised, which is what quietly emptied
+   the public balance on other Keeps. Kept as a Bearer header too, belt and
+   suspenders, since GoldRush also accepts that. */
+function authHeaders(key: string): HeadersInit {
+  return { Authorization: `Bearer ${key}` };
 }
 
 /* BigInt-safe display amount so balances above 2^53 stay exact. */
@@ -63,9 +68,9 @@ async function fetchChain(
 ): Promise<PositionToken[]> {
   try {
     const res = await fetch(
-      `https://api.covalenthq.com/v1/${chain.covalent}/address/${address}/balances_v2/?quote-currency=USD&nft=false&no-spam=true`,
+      `https://api.covalenthq.com/v1/${chain.covalent}/address/${address}/balances_v2/?quote-currency=USD&nft=false&no-spam=true&key=${key}`,
       {
-        headers: { Authorization: authHeader(key) },
+        headers: authHeaders(key),
         next: { revalidate: 45 },
       }
     );

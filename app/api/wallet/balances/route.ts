@@ -29,8 +29,10 @@ interface GoldRushItem {
 
 const NATIVE_SENTINEL = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
-function authHeader(key: string): string {
-  return `Basic ${Buffer.from(`${key}:`).toString("base64")}`;
+/* GoldRush auth via Bearer + `?key=` (the method the working routes use); the
+   legacy Basic header began returning unauthorised. */
+function authHeaders(key: string): HeadersInit {
+  return { Authorization: `Bearer ${key}` };
 }
 
 /* Precise display amount, BigInt-safe so balances above 2^53 stay exact. */
@@ -55,9 +57,9 @@ async function fetchChain(
 ): Promise<WalletToken[]> {
   try {
     const res = await fetch(
-      `https://api.covalenthq.com/v1/${chain.covalent}/address/${address}/balances_v2/?quote-currency=USD&nft=false&no-spam=true`,
+      `https://api.covalenthq.com/v1/${chain.covalent}/address/${address}/balances_v2/?quote-currency=USD&nft=false&no-spam=true&key=${key}`,
       {
-        headers: { Authorization: authHeader(key) },
+        headers: authHeaders(key),
         next: { revalidate: 45 },
       }
     );
